@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Splunk Veritas AI</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-block">
+          <div class="brand-mark">V</div>
+          <div>
+            <p class="eyebrow">Splunk Veritas AI</p>
+            <h1>War Room Truth Engine</h1>
+          </div>
+        </div>
+
+        <section class="incident-panel">
+          <p class="section-label">Active Incident</p>
+          <h2>Hospital patient portal degradation</h2>
+          <p>
+            Teams are debating the cause of failed appointments, auth errors,
+            and a rollback request while patient services are still affected.
+          </p>
+          <div class="incident-meta">
+            <span>Severity: SEV-1</span>
+            <span>Age: 34 min</span>
+            <span>Mode: Live verification</span>
+          </div>
+        </section>
+
+        <section class="score-panel">
+          <p class="section-label">Truth Posture</p>
+          <div class="score-ring">
+            <span id="truthScore">0</span>
+            <small>/100</small>
+          </div>
+          <p id="truthSummary">Waiting for verification.</p>
+        </section>
+
+        <section class="source-panel">
+          <p class="section-label">Evidence Sources</p>
+          <ul>
+            <li>Splunk auth logs</li>
+            <li>APM service traces</li>
+            <li>Deployment events</li>
+            <li>Backup validation logs</li>
+            <li>Patient portal access events</li>
+          </ul>
+        </section>
+      </aside>
+
+      <main class="main-view">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Real-time claim verification</p>
+            <h2>Separate fact from assumption before action</h2>
+          </div>
+          <div class="topbar-actions">
+            <button id="verifyAllBtn" class="primary-btn" type="button">
+              <span>Check</span>
+              Verify claims
+            </button>
+            <button id="exportBriefBtn" class="secondary-btn" type="button">
+              <span>Doc</span>
+              Export brief
+            </button>
+          </div>
+        </header>
+
+        <section class="metric-grid" aria-label="Incident metrics">
+          <article>
+            <span class="metric-label">Claims Checked</span>
+            <strong id="claimsChecked">0</strong>
+          </article>
+          <article>
+            <span class="metric-label">Contradicted</span>
+            <strong id="claimsContradicted">0</strong>
+          </article>
+          <article>
+            <span class="metric-label">Evidence Events</span>
+            <strong id="evidenceCount">0</strong>
+          </article>
+          <article>
+            <span class="metric-label">Risk If Wrong</span>
+            <strong id="riskLevel">Unknown</strong>
+          </article>
+        </section>
+
+        <section class="claim-composer">
+          <div>
+            <p class="section-label">Add a war room claim</p>
+            <h3>What assumption should Veritas verify?</h3>
+          </div>
+          <form id="claimForm">
+            <input
+              id="claimInput"
+              type="text"
+              placeholder="Example: No patient data was accessed"
+              autocomplete="off"
+            />
+            <button class="secondary-btn" type="submit">
+              <span>Add</span>
+              Verify
+            </button>
+          </form>
+        </section>
+
+        <section class="workspace-grid">
+          <div class="truth-board">
+            <div class="section-heading">
+              <div>
+                <p class="section-label">Truth Cards</p>
+                <h3>Claims under verification</h3>
+              </div>
+              <div class="legend">
+                <span><i class="dot supported"></i>Supported</span>
+                <span><i class="dot contradicted"></i>Contradicted</span>
+                <span><i class="dot uncertain"></i>Uncertain</span>
+              </div>
+            </div>
+            <div id="claimCards" class="claim-card-list"></div>
+          </div>
+
+          <aside class="right-rail">
+            <section class="evidence-panel">
+              <div class="section-heading">
+                <div>
+                  <p class="section-label">Splunk Evidence</p>
+                  <h3>Linked events</h3>
+                </div>
+              </div>
+              <div id="evidenceList" class="evidence-list"></div>
+            </section>
+
+            <section class="timeline-panel">
+              <div class="section-heading">
+                <div>
+                  <p class="section-label">Verified Timeline</p>
+                  <h3>What happened</h3>
+                </div>
+              </div>
+              <div id="timeline" class="timeline"></div>
+            </section>
+          </aside>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="briefDialog">
+      <div class="dialog-header">
+        <div>
+          <p class="section-label">Decision Brief</p>
+          <h3>Evidence-backed incident summary</h3>
+        </div>
+        <button id="closeBriefBtn" class="icon-btn" type="button" aria-label="Close brief">
+          X
+        </button>
+      </div>
+      <pre id="briefOutput"></pre>
+    </dialog>
+
+    <script src="app.js"></script>
+  </body>
+</html>
