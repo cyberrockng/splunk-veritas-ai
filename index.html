@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Veritas AI</title>
-    <link rel="stylesheet" href="styles.css?v=20260610-presentation-mode" />
+    <link rel="stylesheet" href="styles.css?v=20260610-custom-runner" />
   </head>
   <body>
     <div class="app-shell">
@@ -49,7 +49,7 @@
             <div class="incident-icon">!</div>
             <div class="incident-title">
               <p>ACTIVE INCIDENT</p>
-              <h2>ADMIN ACCOUNT TAKEOVER</h2>
+              <h2 id="incidentTitle">ADMIN ACCOUNT TAKEOVER</h2>
               <div class="incident-meta">
                 <span>Incident ID: INC-001</span>
                 <span>Status: <b id="stageLabel">idle</b></span>
@@ -85,6 +85,7 @@
 
         <section class="control-strip" aria-label="Incident controls">
           <button id="judgeModeBtn" class="primary-btn judge-btn" type="button">Run live judge demo</button>
+          <button id="customRequestBtn" class="primary-btn" type="button">Run custom request</button>
           <button id="loadSplunkBtn" class="secondary-btn" type="button">Pull indexed evidence</button>
           <button id="startAttackBtn" class="secondary-btn" type="button">Load demo evidence</button>
           <button id="nextEventBtn" class="secondary-btn" type="button">Add next event</button>
@@ -242,7 +243,51 @@
       <div id="evidenceOutput" class="evidence-drilldown"></div>
     </dialog>
 
-    <script type="module" src="app.js?v=20260610-presentation-mode"></script>
+    <dialog id="customDialog">
+      <div class="dialog-header">
+        <div>
+          <p class="section-label">Custom Request Runner</p>
+          <h3>Feed evidence, choose the task, and let Veritas execute if justified</h3>
+        </div>
+        <button id="closeCustomBtn" class="icon-btn" type="button" aria-label="Close custom request">
+          X
+        </button>
+      </div>
+      <form id="customRequestForm" class="custom-form">
+        <label>
+          Incident title
+          <input
+            id="customIncidentTitle"
+            name="title"
+            value="Suspicious admin activity review"
+            autocomplete="off"
+          />
+        </label>
+        <label>
+          Task to execute
+          <select id="customAction" name="action">
+            <option value="revoke-token">Revoke session token</option>
+            <option value="disable-account">Disable admin account</option>
+            <option value="block-ip">Block source IP</option>
+            <option value="open-incident">Open incident brief</option>
+          </select>
+        </label>
+        <label class="wide">
+          Evidence / request details
+          <textarea id="customEvidence" name="evidence" rows="8">Admin login from a new country, repeated MFA prompts, privilege escalation to super_admin, sensitive patient export endpoint returned 200, and scripted curl download from the admin workstation.</textarea>
+        </label>
+        <label class="checkline">
+          <input id="customExecute" type="checkbox" checked />
+          Execute the selected task when the evidence threshold is met
+        </label>
+        <div class="custom-actions">
+          <button class="primary-btn" type="submit">Run request</button>
+          <p id="customResult" class="custom-result"></p>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="app.js?v=20260610-custom-runner"></script>
     <script>
       (function () {
         var canvasWidth = 1500;

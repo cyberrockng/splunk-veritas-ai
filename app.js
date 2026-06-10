@@ -3,6 +3,7 @@ const API_BASE = "http://127.0.0.1:8001/api/sentinel";
 const els = {
   riskScore: document.querySelector("#riskScore"),
   riskSummary: document.querySelector("#riskSummary"),
+  incidentTitle: document.querySelector("#incidentTitle"),
   stageLabel: document.querySelector("#stageLabel"),
   providerLabel: document.querySelector("#providerLabel"),
   eventCount: document.querySelector("#eventCount"),
@@ -28,6 +29,15 @@ const els = {
   executeSafeBtn: document.querySelector("#executeSafeBtn"),
   resetLabBtn: document.querySelector("#resetLabBtn"),
   exportBriefBtn: document.querySelector("#exportBriefBtn"),
+  customRequestBtn: document.querySelector("#customRequestBtn"),
+  customDialog: document.querySelector("#customDialog"),
+  closeCustomBtn: document.querySelector("#closeCustomBtn"),
+  customRequestForm: document.querySelector("#customRequestForm"),
+  customIncidentTitle: document.querySelector("#customIncidentTitle"),
+  customAction: document.querySelector("#customAction"),
+  customEvidence: document.querySelector("#customEvidence"),
+  customExecute: document.querySelector("#customExecute"),
+  customResult: document.querySelector("#customResult"),
   briefDialog: document.querySelector("#briefDialog"),
   briefOutput: document.querySelector("#briefOutput"),
   closeBriefBtn: document.querySelector("#closeBriefBtn"),
@@ -227,6 +237,7 @@ function renderMetrics() {
   const ready = state.decisions.filter((decision) => ["approved", "caution"].includes(normalizedStatus(decision.status))).length;
   const blocked = state.decisions.filter((decision) => ["blocked", "not-ready"].includes(normalizedStatus(decision.status))).length;
   const provider = state.integration?.search_provider || state.integration?.provider || state.integration?.adapter || "demo";
+  const customRequest = state.integration?.request;
   const telemetry = state.integrity?.telemetry_completeness ?? 0;
   const risk = Number(state.risk || 0);
   const riskText = risk >= 75 ? "High Risk" : risk >= 45 ? "Elevated Risk" : risk > 0 ? "Controlled Risk" : "No Active Risk";
@@ -234,6 +245,7 @@ function renderMetrics() {
 
   els.riskScore.textContent = risk;
   els.riskSummary.textContent = `${riskText} | Trend (15m): ${trend}`;
+  els.incidentTitle.textContent = customRequest?.title || "ADMIN ACCOUNT TAKEOVER";
   els.stageLabel.textContent = state.stage || "Ready";
   els.providerLabel.textContent = provider;
   els.eventCount.textContent = state.events.length;
@@ -660,6 +672,31 @@ async function exportBrief() {
   els.briefDialog.showModal();
 }
 
+async function runCustomRequest(event) {
+  event.preventDefault();
+  els.customResult.textContent = "Running request...";
+  const payload = {
+    title: els.customIncidentTitle.value,
+    evidence: els.customEvidence.value,
+    action: els.customAction.value,
+    execute: els.customExecute.checked
+  };
+
+  try {
+    const result = await requestJson("/custom-run", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+    setState(result);
+    els.customResult.textContent = result.message || "Request executed.";
+    logEntry(result.message || "Custom request executed.");
+    requestAnimationFrame(() => els.customDialog.close());
+  } catch (error) {
+    els.customResult.textContent = error.message;
+    logEntry(`Custom request failed: ${error.message}`, "error");
+  }
+}
+
 function showEvidenceDrilldown(checkId) {
   const result = findCheck(checkId);
   if (!result) return;
@@ -753,6 +790,12 @@ function bindEvents() {
     requestAnimationFrame(fitExecutiveCanvas);
   });
   els.resetLabBtn.addEventListener("click", () => resetLab().catch((error) => logEntry(error.message, "error")));
+  els.customRequestBtn.addEventListener("click", () => {
+    els.customResult.textContent = "";
+    els.customDialog.showModal();
+  });
+  els.closeCustomBtn.addEventListener("click", () => els.customDialog.close());
+  els.customRequestForm.addEventListener("submit", runCustomRequest);
   els.loadSplunkBtn.addEventListener("click", () => loadFromSplunk().catch(() => {}));
   els.startAttackBtn.addEventListener("click", () => startAttack().catch((error) => logEntry(error.message, "error")));
   els.nextEventBtn.addEventListener("click", () => streamNextEvent().catch((error) => logEntry(error.message, "error")));

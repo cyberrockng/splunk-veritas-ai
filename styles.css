@@ -399,7 +399,7 @@ h3 {
   bottom: 14px;
   left: 266px;
   display: grid;
-  grid-template-columns: auto auto auto auto auto auto auto minmax(280px, 1fr);
+  grid-template-columns: repeat(8, auto) minmax(280px, 1fr);
   gap: 7px;
   align-items: center;
   border: 1px solid rgba(7, 26, 68, 0.18);
@@ -519,6 +519,7 @@ h3 {
 
 .panel {
   min-width: 0;
+  overflow: hidden;
   padding: 12px;
   transition:
     border-color 180ms ease,
@@ -603,15 +604,43 @@ h3 {
   border-spacing: 0;
   border-radius: 5px;
   font-size: 11px;
+  table-layout: fixed;
 }
 
 .data-table th,
 .data-table td {
   border-bottom: 1px solid var(--soft-line);
-  padding: 8px 9px;
+  overflow: hidden;
+  padding: 8px 7px;
   line-height: 1.15;
   text-align: left;
+  text-overflow: ellipsis;
   vertical-align: middle;
+}
+
+.decision-table th:nth-child(1),
+.decision-table td:nth-child(1) {
+  width: 37%;
+}
+
+.decision-table th:nth-child(2),
+.decision-table td:nth-child(2) {
+  width: 15%;
+}
+
+.decision-table th:nth-child(3),
+.decision-table td:nth-child(3) {
+  width: 22%;
+}
+
+.decision-table th:nth-child(4),
+.decision-table td:nth-child(4) {
+  width: 14%;
+}
+
+.decision-table th:nth-child(5),
+.decision-table td:nth-child(5) {
+  width: 12%;
 }
 
 .data-table tr:last-child td {
@@ -653,7 +682,17 @@ h3 {
   display: flex;
   gap: 8px;
   align-items: center;
-  min-width: 160px;
+  min-width: 0;
+}
+
+.decision-name > div {
+  min-width: 0;
+}
+
+.decision-name strong,
+.decision-name button {
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .decision-icon {
@@ -686,13 +725,14 @@ h3 {
 .approval-state {
   display: inline-flex !important;
   align-items: center;
-  width: max-content;
+  width: fit-content;
   max-width: 100%;
   min-height: 22px;
   border-radius: 4px;
-  padding: 0 7px;
+  padding: 0 6px;
   font-size: 10px;
   font-weight: 850;
+  white-space: normal;
 }
 
 .impact-pill.high,
@@ -721,8 +761,8 @@ h3 {
 
 .score-cell {
   display: grid;
-  grid-template-columns: 36px minmax(46px, 1fr);
-  gap: 8px;
+  grid-template-columns: 34px minmax(34px, 1fr);
+  gap: 6px;
   align-items: center;
 }
 
@@ -1352,4 +1392,68 @@ dialog::backdrop {
 
 .muted-copy {
   color: var(--muted);
+}
+
+.custom-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 14px;
+  padding: 18px;
+  background: #fbfdff;
+}
+
+.custom-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.custom-form label.wide,
+.custom-form .checkline,
+.custom-actions {
+  grid-column: 1 / -1;
+}
+
+.custom-form input,
+.custom-form select,
+.custom-form textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 10px;
+  color: var(--ink);
+  background: var(--panel);
+  font: inherit;
+  font-weight: 500;
+}
+
+.custom-form textarea {
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.custom-form .checkline {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+}
+
+.custom-form .checkline input {
+  width: auto;
+}
+
+.custom-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.custom-result {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
 }

@@ -1,9 +1,10 @@
 from urllib import error, request
 import json
+import os
 import sys
 
 
-BASE_URL = "http://127.0.0.1:5173"
+BASE_URL = os.environ.get("VERITAS_BASE_URL", "http://127.0.0.1:5173")
 
 
 def request_json(path, method="GET", payload=None):
@@ -131,6 +132,26 @@ def main():
     assert_true("Threshold search jobs" in brief["brief"], "brief search job section")
     assert_true("Analyst approval gate" in brief["brief"], "brief approval gate section")
     assert_true("Missing evidence and SPL" in brief["brief"], "brief SPL gap section")
+
+    custom = request_json(
+        "/api/sentinel/custom-run",
+        method="POST",
+        payload={
+            "title": "Custom MFA session containment",
+            "evidence": "Admin login from a new country with impossible travel and repeated MFA fatigue prompts followed by approval.",
+            "action": "revoke-token",
+            "execute": True,
+        },
+    )
+    assert_equal(custom["integration"]["provider"], "custom-input", "custom provider")
+    assert_equal(custom["integration"]["request"]["title"], "Custom MFA session containment", "custom title")
+    assert_equal(len(custom["events"]), 3, "custom event mapping")
+    assert_true(custom["risk"] != 12, "custom request should recalculate risk")
+    assert_equal(
+        next(item for item in custom["actions"] if item["id"] == "revoke-token")["status"],
+        "completed",
+        "custom request should execute approved task",
+    )
 
     request_json("/api/sentinel/reset", method="POST", payload={})
     print("Smoke tests passed.")

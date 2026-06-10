@@ -372,7 +372,18 @@ LAB_STATE = {
     "approvals": {},
     "last_splunk_load": None,
     "last_investigation": None,
+    "custom_request": None,
 }
+
+
+CUSTOM_SIGNAL_MAP = [
+    ("SEC-3001", ("login", "authenticated", "sign in", "signin")),
+    ("SEC-3002", ("impossible travel", "new country", "new location", "unusual location", "foreign", "geo")),
+    ("SEC-3003", ("mfa", "push", "fatigue", "approval", "denied")),
+    ("SEC-3004", ("privilege", "super_admin", "domain admin", "role grant", "escalation")),
+    ("SEC-3005", ("export", "patient", "sensitive data", "api", "download endpoint")),
+    ("SEC-3006", ("script", "curl", "python", "download", "edr", "workstation")),
+]
 
 
 def action_status():
@@ -392,6 +403,17 @@ def action_status():
 
 def completed_action_ids():
     return {action["id"] for action in LAB_STATE["actions"]}
+
+
+def clear_lab_state(stage="idle"):
+    LAB_STATE["stage"] = stage
+    LAB_STATE["events"] = []
+    LAB_STATE["detections"] = []
+    LAB_STATE["actions"] = []
+    LAB_STATE["approvals"] = {}
+    LAB_STATE["last_splunk_load"] = None
+    LAB_STATE["last_investigation"] = None
+    LAB_STATE["custom_request"] = None
 
 
 def decision_lookup():
@@ -666,6 +688,95 @@ def run_detections():
         LAB_STATE["stage"] = "investigated"
 
 
+def custom_event_ids(text):
+    lowered = text.lower()
+    ids = []
+    for event_id, keywords in CUSTOM_SIGNAL_MAP:
+        if any(keyword in lowered for keyword in keywords):
+            ids.append(event_id)
+
+    if "SEC-3002" in ids and "SEC-3001" not in ids:
+        ids.insert(0, "SEC-3001")
+    if "SEC-3006" in ids and "SEC-3005" not in ids and any(word in lowered for word in ("export", "data", "patient")):
+        ids.insert(ids.index("SEC-3006"), "SEC-3005")
+    if not ids:
+        ids.append("SEC-3001")
+
+    ordered = []
+    for event in ATTACK_EVENTS:
+        if event["id"] in ids and event["id"] not in ordered:
+            ordered.append(event["id"])
+    return ordered
+
+
+def custom_events_from_text(text):
+    selected_ids = custom_event_ids(text)
+    events = []
+    for index, event_id in enumerate(selected_ids, start=1):
+        prototype = event_prototype(event_id)
+        if not prototype:
+            continue
+        events.append(
+            {
+                **prototype,
+                "time": f"custom+{index:02d}",
+                "summary": f"{prototype['summary']} Source: analyst-provided request.",
+                "origin": "custom-input",
+            }
+        )
+    return events
+
+
+def run_custom_request(payload):
+    title = (payload.get("title") or "Custom incident request").strip()[:120]
+    evidence_text = (payload.get("evidence") or payload.get("text") or "").strip()
+    action_id = payload.get("action") or payload.get("action_id") or "revoke-token"
+    execute = bool(payload.get("execute", True))
+
+    action = next((item for item in RESPONSE_ACTIONS if item["id"] == action_id), None)
+    if action is None:
+        return {"ok": False, "error": "Unknown response action"}
+    if not evidence_text:
+        return {"ok": False, "error": "Evidence text is required"}
+
+    clear_lab_state("custom-request")
+    LAB_STATE["events"] = custom_events_from_text(evidence_text)
+    run_detections()
+    LAB_STATE["custom_request"] = {
+        "title": title,
+        "evidence": evidence_text,
+        "action_id": action_id,
+        "action_label": action["label"],
+        "execute_requested": execute,
+    }
+
+    decisions = decision_lookup()
+    decision_id = ACTION_DECISION_MAP.get(action_id)
+    decision = decisions.get(decision_id) if decision_id else None
+    executed = False
+    message = "Evidence loaded and indicators recalculated."
+
+    if action_id == "open-incident":
+        LAB_STATE["actions"].append(action)
+        LAB_STATE["stage"] = "responding"
+        executed = True
+        message = "Incident brief opened from custom request."
+    elif execute and decision and eligible_for_approval(decision):
+        LAB_STATE["approvals"][decision_id] = "approved"
+        LAB_STATE["actions"].append(action)
+        LAB_STATE["stage"] = "contained" if calculate_risk() <= 35 else "responding"
+        executed = True
+        message = f"{action['label']} executed because the evidence threshold was met."
+    elif execute and decision:
+        message = f"{action['label']} was not executed because decision status is {decision['status']}."
+    elif not execute:
+        message = "Evidence loaded. Execution was not requested."
+
+    LAB_STATE["custom_request"]["executed"] = executed
+    LAB_STATE["custom_request"]["message"] = message
+    return {"ok": True, "message": message, **state_payload()}
+
+
 def find_events_by_ids(ids):
     id_set = set(ids)
     return [event for event in ATTACK_EVENTS if event["id"] in id_set]
@@ -870,6 +981,7 @@ def load_splunk_evidence():
     LAB_STATE["detections"] = []
     LAB_STATE["actions"] = []
     LAB_STATE["approvals"] = {}
+    LAB_STATE["custom_request"] = None
     LAB_STATE["last_investigation"] = None
     LAB_STATE["last_splunk_load"] = {
         "query": query,
@@ -890,6 +1002,14 @@ def load_splunk_evidence():
 
 
 def state_payload():
+    integration = splunk_status()
+    if LAB_STATE.get("custom_request"):
+        integration = {
+            **integration,
+            "provider": "custom-input",
+            "search_provider": "custom-input",
+            "request": LAB_STATE["custom_request"],
+        }
     return {
         "stage": LAB_STATE["stage"],
         "events": LAB_STATE["events"],
@@ -899,7 +1019,7 @@ def state_payload():
         "actions": action_status(),
         "approvals": approval_payload(),
         "risk": calculate_risk(),
-        "integration": splunk_status(),
+        "integration": integration,
     }
 
 
@@ -1181,29 +1301,22 @@ class VeritasHandler(SimpleHTTPRequestHandler):
             return
 
         if path == "/api/sentinel/reset":
-            LAB_STATE["stage"] = "idle"
-            LAB_STATE["events"] = []
-            LAB_STATE["detections"] = []
-            LAB_STATE["actions"] = []
-            LAB_STATE["approvals"] = {}
-            LAB_STATE["last_splunk_load"] = None
-            LAB_STATE["last_investigation"] = None
+            clear_lab_state("idle")
             self.send_json(state_payload())
             return
 
         if path == "/api/sentinel/start":
-            LAB_STATE["stage"] = "attack-running"
-            LAB_STATE["events"] = []
-            LAB_STATE["detections"] = []
-            LAB_STATE["actions"] = []
-            LAB_STATE["approvals"] = {}
-            LAB_STATE["last_splunk_load"] = None
-            LAB_STATE["last_investigation"] = None
+            clear_lab_state("attack-running")
             self.send_json({**state_payload(), "sequence_length": len(ATTACK_EVENTS)})
             return
 
         if path == "/api/sentinel/load-splunk":
             result = load_splunk_evidence()
+            self.send_json(result, status=200 if result.get("ok") else 400)
+            return
+
+        if path == "/api/sentinel/custom-run":
+            result = run_custom_request(payload)
             self.send_json(result, status=200 if result.get("ok") else 400)
             return
 
