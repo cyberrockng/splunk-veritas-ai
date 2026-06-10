@@ -37,6 +37,8 @@ const els = {
   closeEvidenceBtn: document.querySelector("#closeEvidenceBtn")
 };
 
+els.themeToggle = document.querySelector("#themeToggle");
+
 const actionPlan = [
   { decisionId: "revoke-session", actionId: "revoke-token" },
   { decisionId: "disable-admin", actionId: "disable-account" },
@@ -250,10 +252,12 @@ function renderDemoSteps() {
     { label: "Approve safe actions", done: approvedApprovalCount() >= 3 },
     { label: "Execute and brief", done: completedActionCount() >= 3 }
   ];
+  const nextIndex = steps.findIndex((step) => !step.done);
+  const activeIndex = nextIndex === -1 ? steps.length - 1 : nextIndex;
 
   els.demoSteps.innerHTML = steps
     .map((step, index) => `
-      <div class="demo-step ${step.done ? "done" : ""}">
+      <div class="demo-step ${step.done ? "done" : ""} ${index === activeIndex ? "active" : ""}">
         <span>${index + 1}</span>
         <strong>${escapeHtml(step.label)}</strong>
       </div>
@@ -279,7 +283,7 @@ function renderDecisionMatrix() {
         </tr>
       </thead>
       <tbody>
-        ${state.decisions.map((decision) => {
+        ${state.decisions.map((decision, index) => {
           const foundCheck = (decision.checks || []).find((check) => check.status === "found") || (decision.checks || [])[0];
           const approval = state.approvals.find((item) => item.decision_id === decision.id);
           const approvalLabel = approval?.approval === "approved"
@@ -290,7 +294,7 @@ function renderDecisionMatrix() {
                 ? "Human review"
                 : "Auto-ready";
           return `
-            <tr>
+            <tr class="decision-row ${readinessTone(decision)}" style="--i:${index}">
               <td>
                 <div class="decision-name">
                   <span class="decision-icon">${normalizedStatus(decision.status) === "blocked" ? "!" : "OK"}</span>
@@ -343,13 +347,13 @@ function renderThresholdMatrix() {
         </tr>
       </thead>
       <tbody>
-        ${rows.slice(0, 7).map(({ decision, check }) => {
+        ${rows.slice(0, 7).map(({ decision, check }, index) => {
           const threshold = check.mandatory ? 80 : 70;
           const current = thresholdScore(check);
           const gap = current - threshold;
           const status = check.status === "found" ? "Sufficient" : check.status === "contradicted" ? "Insufficient" : "Below Threshold";
           return `
-            <tr>
+            <tr class="threshold-row ${statusClass(status)}" style="--i:${index}">
               <td>
                 <strong>${escapeHtml(check.label)}</strong>
                 <span>${escapeHtml(decision.title)}</span>
@@ -541,10 +545,10 @@ function renderEvents() {
 
   els.eventStream.innerHTML = `
     <div class="timeline-rail">
-      ${state.events.map((event) => {
+      ${state.events.map((event, index) => {
         const display = eventDisplay(event);
         return `
-        <div class="timeline-item ${event.severity || "medium"}">
+        <div class="timeline-item ${event.severity || "medium"}" style="--i:${index}">
           <div class="timeline-node ${escapeHtml(display.icon)}"></div>
           <time>${formatTime(event.timestamp || event._time || event.time)}</time>
           <strong>${escapeHtml(display.title)}</strong>
@@ -699,6 +703,7 @@ async function runJudgeMode() {
   const buttonLabel = els.judgeModeBtn.textContent;
   els.judgeModeBtn.disabled = true;
   els.judgeModeBtn.textContent = "Running...";
+  document.body.classList.add("presentation-running");
   logEntry("Judge mode started.");
 
   try {
@@ -736,10 +741,17 @@ async function runJudgeMode() {
   } finally {
     els.judgeModeBtn.disabled = false;
     els.judgeModeBtn.textContent = buttonLabel;
+    document.body.classList.remove("presentation-running");
   }
 }
 
 function bindEvents() {
+  els.themeToggle?.addEventListener("click", () => {
+    document.body.classList.toggle("dark");
+    const isDark = document.body.classList.contains("dark");
+    els.themeToggle.textContent = isDark ? "UI-N: Night Executive" : "UI-H: Light Executive";
+    requestAnimationFrame(fitExecutiveCanvas);
+  });
   els.resetLabBtn.addEventListener("click", () => resetLab().catch((error) => logEntry(error.message, "error")));
   els.loadSplunkBtn.addEventListener("click", () => loadFromSplunk().catch(() => {}));
   els.startAttackBtn.addEventListener("click", () => startAttack().catch((error) => logEntry(error.message, "error")));
