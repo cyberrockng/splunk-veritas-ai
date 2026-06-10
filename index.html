@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Veritas AI</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260610-exact-reference" />
   </head>
   <body>
     <div class="app-shell">
@@ -20,17 +20,17 @@
         <button class="mode-pill" type="button">UI-H: Light Executive</button>
 
         <nav class="side-nav" aria-label="Application sections">
-          <a class="active" href="#overview"><span>OV</span>Overview</a>
-          <a href="#incident"><span>IN</span>Incidents</a>
-          <a href="#matrix"><span>EM</span>Evidence Matrix</a>
-          <a href="#decisions"><span>DC</span>Decisions</a>
-          <a href="#blast"><span>BR</span>Blast Radius</a>
-          <a href="#investigations"><span>IV</span>Investigations</a>
-          <a href="#automation"><span>AU</span>Automation</a>
-          <a href="#reports"><span>RP</span>Reports</a>
-          <a href="#playbooks"><span>PB</span>Playbooks</a>
-          <a href="#settings"><span>ST</span>Settings</a>
-          <a href="#integrations"><span>IT</span>Integrations</a>
+          <a class="active" href="#overview"><span class="nav-icon icon-grid"></span>Overview</a>
+          <a href="#incident"><span class="nav-icon icon-shield"></span>Incidents</a>
+          <a href="#matrix"><span class="nav-icon icon-matrix"></span>Evidence Matrix</a>
+          <a href="#decisions"><span class="nav-icon icon-check"></span>Decisions</a>
+          <a href="#blast"><span class="nav-icon icon-target"></span>Blast Radius</a>
+          <a href="#investigations"><span class="nav-icon icon-search"></span>Investigations</a>
+          <a href="#automation"><span class="nav-icon icon-case"></span>Automation</a>
+          <a href="#reports"><span class="nav-icon icon-report"></span>Reports</a>
+          <a href="#playbooks"><span class="nav-icon icon-clip"></span>Playbooks</a>
+          <a href="#settings"><span class="nav-icon icon-gear"></span>Settings</a>
+          <a href="#integrations"><span class="nav-icon icon-plug"></span>Integrations</a>
         </nav>
 
         <div class="analyst-card">
@@ -44,60 +44,54 @@
       </aside>
 
       <main class="main-view" id="overview">
-        <section class="incident-hero" id="incident">
-          <div class="incident-icon">!</div>
-          <div class="incident-title">
-            <p>ACTIVE INCIDENT</p>
-            <h2>ADMIN ACCOUNT TAKEOVER</h2>
-            <div class="incident-meta">
-              <span>Incident ID: INC-001</span>
-              <span id="stageLabel">Status: idle</span>
-              <span>Started: live Splunk session</span>
-              <span>Owner: SOC Tier 2</span>
-              <span id="providerLabel">Provider: mock-mcp</span>
+        <section class="top-grid">
+          <section class="incident-hero" id="incident">
+            <div class="incident-icon">!</div>
+            <div class="incident-title">
+              <p>ACTIVE INCIDENT</p>
+              <h2>ADMIN ACCOUNT TAKEOVER</h2>
+              <div class="incident-meta">
+                <span>Incident ID: INC-001</span>
+                <span>Status: <b id="stageLabel">idle</b></span>
+                <span>Started: live Splunk session</span>
+                <span>Owner: SOC Tier 2</span>
+                <span>Provider: <b id="providerLabel">mock-mcp</b></span>
+              </div>
             </div>
-          </div>
-          <div class="hero-actions">
-            <button id="judgeModeBtn" class="primary-btn judge-btn" type="button">
-              <span>Go</span>
-              Run live judge demo
-            </button>
-            <button id="resetLabBtn" class="secondary-btn" type="button">
-              <span>Rst</span>
-              Reset
-            </button>
-          </div>
+          </section>
+
+          <article class="panel risk-panel">
+            <div class="panel-heading compact">
+              <div>
+                <p class="section-label">Overall Risk Score</p>
+              </div>
+            </div>
+            <div class="risk-gauge">
+              <div class="gauge-arc"></div>
+              <div class="gauge-value">
+                <strong id="riskScore">12</strong>
+                <span>/100</span>
+              </div>
+            </div>
+            <p id="riskSummary">Load the incident evidence to evaluate response decisions.</p>
+            <div class="metric-row metric-hidden" aria-hidden="true">
+              <span>Events <strong id="eventCount">0</strong></span>
+              <span>Ready <strong id="readyCount">0</strong></span>
+              <span>Blocked <strong id="blockedCount">0</strong></span>
+              <span>Coverage <strong id="telemetryScore">0%</strong></span>
+            </div>
+          </article>
         </section>
 
         <section class="control-strip" aria-label="Incident controls">
-          <button id="loadSplunkBtn" class="secondary-btn" type="button">
-            <span>Spl</span>
-            Pull indexed evidence
-          </button>
-          <button id="startAttackBtn" class="secondary-btn" type="button">
-            <span>Run</span>
-            Load demo evidence
-          </button>
-          <button id="nextEventBtn" class="secondary-btn" type="button">
-            <span>Evt</span>
-            Add next event
-          </button>
-          <button id="investigateBtn" class="secondary-btn" type="button">
-            <span>Chk</span>
-            Check thresholds
-          </button>
-          <button id="executeSafeBtn" class="primary-btn" type="button">
-            <span>Act</span>
-            Execute approved containment
-          </button>
+          <button id="judgeModeBtn" class="primary-btn judge-btn" type="button">Run live judge demo</button>
+          <button id="loadSplunkBtn" class="secondary-btn" type="button">Pull indexed evidence</button>
+          <button id="startAttackBtn" class="secondary-btn" type="button">Load demo evidence</button>
+          <button id="nextEventBtn" class="secondary-btn" type="button">Add next event</button>
+          <button id="investigateBtn" class="secondary-btn" type="button">Check thresholds</button>
+          <button id="executeSafeBtn" class="primary-btn" type="button">Execute approved containment</button>
+          <button id="resetLabBtn" class="secondary-btn" type="button">Reset</button>
           <p id="labStatus" class="copy-status" aria-live="polite"></p>
-        </section>
-
-        <section class="demo-runway" aria-label="Judge demo flow">
-          <div>
-            <p class="section-label">Judge Demo Flow</p>
-            <h3>Evidence to decision to action</h3>
-          </div>
           <div id="demoSteps" class="demo-steps"></div>
         </section>
 
@@ -122,29 +116,6 @@
               </div>
             </div>
             <div id="thresholdMatrix" class="threshold-table"></div>
-          </article>
-
-          <article class="panel risk-panel">
-            <div class="panel-heading compact">
-              <div>
-                <p class="section-label">Overall Risk Score</p>
-                <h3>Decision risk</h3>
-              </div>
-            </div>
-            <div class="risk-gauge">
-              <div class="gauge-arc"></div>
-              <div class="gauge-value">
-                <strong id="riskScore">12</strong>
-                <span>/100</span>
-              </div>
-            </div>
-            <p id="riskSummary">Load the incident evidence to evaluate response decisions.</p>
-            <div class="metric-row">
-              <span>Events <strong id="eventCount">0</strong></span>
-              <span>Ready <strong id="readyCount">0</strong></span>
-              <span>Blocked <strong id="blockedCount">0</strong></span>
-              <span>Coverage <strong id="telemetryScore">0%</strong></span>
-            </div>
           </article>
 
           <article class="panel integrity-panel">
@@ -219,7 +190,7 @@
 
           <article class="panel event-panel">
             <div class="panel-heading">
-              <span class="panel-number">9</span>
+              <span class="panel-number">7</span>
               <div>
                 <p class="section-label">Live Event Timeline</p>
                 <h3>Recent Splunk evidence</h3>
@@ -228,7 +199,9 @@
             </div>
             <div id="eventStream" class="event-rail"></div>
           </article>
+        </section>
 
+        <section class="support-grid">
           <article class="panel console-panel">
             <div class="panel-heading">
               <span class="panel-number">10</span>
@@ -269,6 +242,24 @@
       <div id="evidenceOutput" class="evidence-drilldown"></div>
     </dialog>
 
-    <script type="module" src="app.js?v=20260610-executive-interface"></script>
+    <script type="module" src="app.js?v=20260610-exact-reference"></script>
+    <script>
+      (function () {
+        var canvasWidth = 1500;
+        function fitExecutiveCanvas() {
+          var canvas = document.querySelector(".app-shell");
+          if (!canvas) return;
+          var available = Math.max(320, (document.documentElement.clientWidth || window.innerWidth) - 2);
+          var scale = Math.min(1, available / canvasWidth);
+          document.documentElement.style.setProperty("--fit-scale", scale.toFixed(4));
+          document.body.style.minHeight = Math.ceil(canvas.scrollHeight * scale) + "px";
+        }
+        window.addEventListener("resize", fitExecutiveCanvas);
+        window.addEventListener("load", fitExecutiveCanvas);
+        fitExecutiveCanvas();
+        setTimeout(fitExecutiveCanvas, 250);
+        setTimeout(fitExecutiveCanvas, 1000);
+      })();
+    </script>
   </body>
 </html>

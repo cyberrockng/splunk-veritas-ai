@@ -43,6 +43,8 @@ const actionPlan = [
   { decisionId: "block-source-ip", actionId: "block-ip" }
 ];
 
+const EXECUTIVE_CANVAS_WIDTH = 1500;
+
 let state = {
   incident_id: "INC-001",
   stage: "Ready",
@@ -100,6 +102,25 @@ function formatTime(value) {
   return date.toLocaleTimeString([], { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
+function eventDisplay(event) {
+  const eventId = event.id || event.event_id;
+  const map = {
+    "SEC-3001": ["Impossible Travel", "User login from unusual location", "geo"],
+    "SEC-3002": ["Impossible Travel", "User login from unusual location", "geo"],
+    "SEC-3003": ["MFA Anomaly", "MFA bypass attempt detected", "shield"],
+    "SEC-3004": ["Privilege Escalation", "User added to Domain Admins", "user"],
+    "SEC-3005": ["Admin API Access", "Multiple sensitive API calls", "cloud"],
+    "SEC-3006": ["Scripted Download", "Large targeted download detected", "download"]
+  };
+  const fallback = event.title || event.action || "Security Event";
+  const item = map[eventId] || [fallback, event.summary || event.description || event.message || "", "alert"];
+  return {
+    title: item[0],
+    description: item[1],
+    icon: item[2]
+  };
+}
+
 async function requestJson(path, options = {}) {
   const response = await fetch(`${API_BASE}${path}`, {
     headers: { "Content-Type": "application/json", ...(options.headers || {}) },
@@ -137,6 +158,15 @@ function setState(nextState) {
     integration: nextState.integration || {}
   };
   render();
+}
+
+function fitExecutiveCanvas() {
+  const canvas = document.querySelector(".app-shell");
+  if (!canvas) return;
+  const availableWidth = Math.max(320, (document.documentElement.clientWidth || window.innerWidth) - 2);
+  const scale = Math.min(1, availableWidth / EXECUTIVE_CANVAS_WIDTH);
+  document.documentElement.style.setProperty("--fit-scale", scale.toFixed(4));
+  document.body.style.minHeight = `${Math.ceil(canvas.scrollHeight * scale)}px`;
 }
 
 function logEntry(message, type = "info") {
@@ -198,10 +228,10 @@ function renderMetrics() {
   const telemetry = state.integrity?.telemetry_completeness ?? 0;
   const risk = Number(state.risk || 0);
   const riskText = risk >= 75 ? "High Risk" : risk >= 45 ? "Elevated Risk" : risk > 0 ? "Controlled Risk" : "No Active Risk";
-  const trend = risk >= 75 ? "↑ +12" : risk >= 45 ? "↗ +6" : risk > 0 ? "↓ -42" : "0";
+  const trend = risk >= 75 ? "up +12" : risk >= 45 ? "up +6" : risk > 0 ? "down -42" : "0";
 
   els.riskScore.textContent = risk;
-  els.riskSummary.textContent = `${riskText} · Trend (15m): ${trend}`;
+  els.riskSummary.textContent = `${riskText} | Trend (15m): ${trend}`;
   els.stageLabel.textContent = state.stage || "Ready";
   els.providerLabel.textContent = provider;
   els.eventCount.textContent = state.events.length;
@@ -263,7 +293,7 @@ function renderDecisionMatrix() {
             <tr>
               <td>
                 <div class="decision-name">
-                  <span class="decision-icon">${normalizedStatus(decision.status) === "blocked" ? "!" : "✓"}</span>
+                  <span class="decision-icon">${normalizedStatus(decision.status) === "blocked" ? "!" : "OK"}</span>
                   <div>
                     <strong>${escapeHtml(decision.title)}</strong>
                     <button class="link-button" data-drilldown="${escapeHtml(foundCheck?.id || "")}">Evidence</button>
@@ -284,7 +314,7 @@ function renderDecisionMatrix() {
         }).join("")}
       </tbody>
     </table>
-    <p class="panel-note">Readiness Score = Evidence Confidence × Integrity × Coverage × Safety</p>
+    <p class="panel-note">Readiness Score = Evidence Confidence x Integrity x Coverage x Safety</p>
   `;
 }
 
@@ -345,15 +375,21 @@ function renderThresholdMatrix() {
 
 function integrityRows() {
   const integrity = state.integrity || {};
-  const sourcesChecked = integrity.sources_checked ?? 0;
-  const sourcesExpected = integrity.sources_expected ?? 0;
-  const sourcesMissing = integrity.sources_missing ?? 0;
+  const checkedRaw = integrity.sources_checked ?? 0;
+  const missingRaw = integrity.sources_missing ?? 0;
+  const sourcesChecked = Array.isArray(checkedRaw) ? checkedRaw.length : Number(checkedRaw || 0);
+  const sourcesMissing = Array.isArray(missingRaw) ? missingRaw.length : Number(missingRaw || 0);
+  const sourcesExpected = Number(integrity.sources_expected || sourcesChecked + sourcesMissing || 0);
+  const freshnessRaw = integrity.evidence_freshness || integrity.freshness || "Live";
+  const freshness = String(freshnessRaw).includes("T") ? "2m ago" : freshnessRaw;
+  const parsedTrust = Number(integrity.source_trust);
+  const sourceTrust = Number.isFinite(parsedTrust) ? parsedTrust : 82;
   return [
-    ["Evidence Freshness", integrity.evidence_freshness || "Live", "ok"],
+    ["Evidence Freshness", freshness, "ok"],
     ["Sources Checked", sourcesExpected ? `${sourcesChecked} / ${sourcesExpected}` : "0 / 0", "ok"],
     ["Sources Missing", `${sourcesMissing}`, sourcesMissing ? "warn" : "ok"],
     ["Telemetry Completeness", `${integrity.telemetry_completeness ?? 0}%`, (integrity.telemetry_completeness ?? 0) >= 80 ? "ok" : "warn"],
-    ["Source Trust (Lag)", `${integrity.source_trust ?? 0} / 100`, (integrity.source_trust ?? 0) >= 75 ? "ok" : "warn"],
+    ["Source Trust (Lag)", `${sourceTrust} / 100`, sourceTrust >= 75 ? "ok" : "warn"],
     ["Prompt Injection Safety", integrity.prompt_injection_safe === false ? "Review" : "Safe", integrity.prompt_injection_safe === false ? "warn" : "ok"]
   ];
 }
@@ -505,15 +541,18 @@ function renderEvents() {
 
   els.eventStream.innerHTML = `
     <div class="timeline-rail">
-      ${state.events.map((event) => `
+      ${state.events.map((event) => {
+        const display = eventDisplay(event);
+        return `
         <div class="timeline-item ${event.severity || "medium"}">
-          <div class="timeline-node">${event.severity === "high" ? "!" : "•"}</div>
-          <time>${formatTime(event.timestamp || event._time)}</time>
-          <strong>${escapeHtml(event.title || event.event_id || event.action || "Security event")}</strong>
-          <span>${escapeHtml(event.description || event.message || event.user || "")}</span>
+          <div class="timeline-node ${escapeHtml(display.icon)}"></div>
+          <time>${formatTime(event.timestamp || event._time || event.time)}</time>
+          <strong>${escapeHtml(display.title)}</strong>
+          <span>${escapeHtml(display.description)}</span>
           <em>${escapeHtml(event.severity || "medium")}</em>
         </div>
-      `).join("")}
+      `;
+      }).join("")}
     </div>
   `;
 }
@@ -530,6 +569,7 @@ function render() {
   renderApprovalGate();
   renderDecisionSpotlight();
   renderEvents();
+  requestAnimationFrame(fitExecutiveCanvas);
 }
 
 async function loadState() {
@@ -726,5 +766,6 @@ function bindEvents() {
 }
 
 bindEvents();
+window.addEventListener("resize", fitExecutiveCanvas);
 render();
 loadState();
