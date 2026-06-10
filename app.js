@@ -851,6 +851,13 @@ function bindEvents() {
   });
 
   document.body.addEventListener("click", (event) => {
+    const detailTarget = event.target.closest("[data-detail]");
+    const interactive = event.target.closest("button, a, input, select, textarea, dialog, [data-drilldown]");
+    if (detailTarget && !interactive) {
+      window.location.href = `detail.html?view=${encodeURIComponent(detailTarget.dataset.detail)}`;
+      return;
+    }
+
     const drilldownId = event.target.closest("[data-drilldown]")?.dataset.drilldown;
     if (drilldownId) showEvidenceDrilldown(drilldownId);
   });

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Veritas AI Detail</title>
+    <link rel="stylesheet" href="styles.css?v=20260611-detail-pages" />
+  </head>
+  <body class="detail-body">
+    <main class="detail-shell">
+      <header class="detail-hero">
+        <a class="back-link" href="index.html?v=custom-feedback-final">Back to dashboard</a>
+        <div>
+          <p class="section-label" id="detailEyebrow">Indicator Detail</p>
+          <h1 id="detailTitle">Veritas AI</h1>
+          <p id="detailSubtitle">Loading live decision data...</p>
+        </div>
+        <div class="detail-actions">
+          <button id="refreshBtn" class="secondary-btn" type="button">Refresh</button>
+          <button id="runCustomBtn" class="primary-btn" type="button">Run custom request</button>
+          <button id="exportBriefBtn" class="secondary-btn" type="button">Export brief</button>
+        </div>
+      </header>
+
+      <section class="detail-summary-grid">
+        <article>
+          <span>Risk</span>
+          <strong id="detailRisk">--</strong>
+        </article>
+        <article>
+          <span>Provider</span>
+          <strong id="detailProvider">--</strong>
+        </article>
+        <article>
+          <span>Events</span>
+          <strong id="detailEvents">--</strong>
+        </article>
+        <article>
+          <span>Stage</span>
+          <strong id="detailStage">--</strong>
+        </article>
+      </section>
+
+      <section id="detailContent" class="detail-content"></section>
+
+      <section class="detail-console">
+        <div class="panel-heading">
+          <span class="panel-number">Run</span>
+          <div>
+            <p class="section-label">Executable Test Input</p>
+            <h3>Feed information and let Veritas decide whether to execute</h3>
+          </div>
+        </div>
+        <form id="detailCustomForm" class="custom-form detail-custom-form">
+          <label>
+            Incident title
+            <input id="detailCustomTitle" value="Detail page custom request" autocomplete="off" />
+          </label>
+          <label>
+            Task
+            <select id="detailCustomAction">
+              <option value="revoke-token">Revoke session token</option>
+              <option value="disable-account">Disable admin account</option>
+              <option value="block-ip">Block source IP</option>
+              <option value="open-incident">Open incident brief</option>
+            </select>
+          </label>
+          <label class="wide">
+            Evidence / request details
+            <textarea id="detailCustomEvidence" rows="6">Admin login from a new country with impossible travel and MFA fatigue prompts followed by approval.</textarea>
+          </label>
+          <div class="scenario-row wide">
+            <button type="button" data-action="revoke-token" data-title="Detail revoke test" data-evidence="Admin login from a new country with impossible travel and repeated MFA fatigue prompts followed by approval.">Revoke session test</button>
+            <button type="button" data-action="disable-account" data-title="Detail disable admin test" data-evidence="Admin login from a new country, repeated MFA prompts, privilege escalation to super_admin, and sensitive patient export.">Disable admin test</button>
+            <button type="button" data-action="block-ip" data-title="Detail weak evidence hold" data-evidence="Analyst saw one normal admin login and wants to block the source IP without export or reputation evidence.">Insufficient evidence test</button>
+          </div>
+          <label class="checkline">
+            <input id="detailCustomExecute" type="checkbox" checked />
+            Execute when threshold is met
+          </label>
+          <div class="custom-actions">
+            <button class="primary-btn" type="submit">Run request</button>
+            <p id="detailCustomResult" class="custom-result">Choose a scenario or enter your own evidence.</p>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <dialog id="detailBriefDialog">
+      <div class="dialog-header">
+        <div>
+          <p class="section-label">Decision Audit Brief</p>
+          <h3>Evidence-backed response governance</h3>
+        </div>
+        <button id="closeBriefBtn" class="icon-btn" type="button" aria-label="Close brief">X</button>
+      </div>
+      <pre id="detailBriefOutput"></pre>
+    </dialog>
+
+    <script type="module" src="detail.js?v=20260611-detail-pages"></script>
+  </body>
+</html>

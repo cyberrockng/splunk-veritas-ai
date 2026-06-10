@@ -20,17 +20,17 @@
         <button id="themeToggle" class="mode-pill" type="button">UI-H: Light Executive</button>
 
         <nav class="side-nav" aria-label="Application sections">
-          <a class="active" href="#overview"><span class="nav-icon icon-grid"></span>Overview</a>
-          <a href="#incident"><span class="nav-icon icon-shield"></span>Incidents</a>
-          <a href="#matrix"><span class="nav-icon icon-matrix"></span>Evidence Matrix</a>
-          <a href="#decisions"><span class="nav-icon icon-check"></span>Decisions</a>
-          <a href="#blast"><span class="nav-icon icon-target"></span>Blast Radius</a>
-          <a href="#investigations"><span class="nav-icon icon-search"></span>Investigations</a>
-          <a href="#automation"><span class="nav-icon icon-case"></span>Automation</a>
-          <a href="#reports"><span class="nav-icon icon-report"></span>Reports</a>
-          <a href="#playbooks"><span class="nav-icon icon-clip"></span>Playbooks</a>
-          <a href="#settings"><span class="nav-icon icon-gear"></span>Settings</a>
-          <a href="#integrations"><span class="nav-icon icon-plug"></span>Integrations</a>
+          <a class="active" href="index.html?v=custom-feedback-final"><span class="nav-icon icon-grid"></span>Overview</a>
+          <a href="detail.html?view=incident"><span class="nav-icon icon-shield"></span>Incidents</a>
+          <a href="detail.html?view=matrix"><span class="nav-icon icon-matrix"></span>Evidence Matrix</a>
+          <a href="detail.html?view=decisions"><span class="nav-icon icon-check"></span>Decisions</a>
+          <a href="detail.html?view=blast"><span class="nav-icon icon-target"></span>Blast Radius</a>
+          <a href="detail.html?view=timeline"><span class="nav-icon icon-search"></span>Investigations</a>
+          <a href="detail.html?view=decisions"><span class="nav-icon icon-case"></span>Automation</a>
+          <a href="detail.html?view=audit"><span class="nav-icon icon-report"></span>Reports</a>
+          <a href="detail.html?view=missing"><span class="nav-icon icon-clip"></span>Playbooks</a>
+          <a href="detail.html?view=integrity"><span class="nav-icon icon-gear"></span>Settings</a>
+          <a href="detail.html?view=integrity"><span class="nav-icon icon-plug"></span>Integrations</a>
         </nav>
 
         <div class="analyst-card">
@@ -45,7 +45,7 @@
 
       <main class="main-view" id="overview">
         <section class="top-grid">
-          <section class="incident-hero" id="incident">
+          <section class="incident-hero" id="incident" data-detail="incident">
             <div class="incident-icon">!</div>
             <div class="incident-title">
               <p>ACTIVE INCIDENT</p>
@@ -60,7 +60,7 @@
             </div>
           </section>
 
-          <article class="panel risk-panel">
+          <article class="panel risk-panel" data-detail="risk">
             <div class="panel-heading compact">
               <div>
                 <p class="section-label">Overall Risk Score</p>
@@ -97,7 +97,7 @@
         </section>
 
         <section class="dashboard-grid">
-          <article class="panel panel-decisions" id="decisions">
+          <article class="panel panel-decisions" id="decisions" data-detail="decisions">
             <div class="panel-heading">
               <span class="panel-number">1</span>
               <div>
@@ -108,7 +108,7 @@
             <div id="decisionMatrix" class="decision-matrix"></div>
           </article>
 
-          <article class="panel panel-threshold" id="matrix">
+          <article class="panel panel-threshold" id="matrix" data-detail="matrix">
             <div class="panel-heading">
               <span class="panel-number">2</span>
               <div>
@@ -119,7 +119,7 @@
             <div id="thresholdMatrix" class="threshold-table"></div>
           </article>
 
-          <article class="panel integrity-panel">
+          <article class="panel integrity-panel" data-detail="integrity">
             <div class="panel-heading">
               <span class="panel-number">3</span>
               <div>
@@ -130,7 +130,7 @@
             <div id="integrityPanel" class="integrity-grid"></div>
           </article>
 
-          <article class="panel missing-panel">
+          <article class="panel missing-panel" data-detail="missing">
             <div class="panel-heading">
               <span class="panel-number">4</span>
               <div>
@@ -141,7 +141,7 @@
             <div id="splGapList" class="missing-list"></div>
           </article>
 
-          <article class="panel blast-panel" id="blast">
+          <article class="panel blast-panel" id="blast" data-detail="blast">
             <div class="panel-heading">
               <span class="panel-number">5</span>
               <div>
@@ -152,7 +152,7 @@
             <div id="blastRadiusList" class="blast-list"></div>
           </article>
 
-          <article class="panel brief-panel">
+          <article class="panel brief-panel" data-detail="audit">
             <div class="panel-heading">
               <span class="panel-number">6</span>
               <div>
@@ -167,7 +167,7 @@
             <div id="auditPreview" class="audit-preview"></div>
           </article>
 
-          <article class="panel approval-panel">
+          <article class="panel approval-panel" data-detail="decisions">
             <div class="panel-heading">
               <span class="panel-number">7</span>
               <div>
@@ -178,7 +178,7 @@
             <div id="approvalGate" class="approval-grid"></div>
           </article>
 
-          <article class="panel spotlight-panel">
+          <article class="panel spotlight-panel" data-detail="decisions">
             <div class="panel-heading">
               <span class="panel-number">8</span>
               <div>
@@ -189,7 +189,7 @@
             <div id="decisionSpotlight" class="decision-spotlight"></div>
           </article>
 
-          <article class="panel event-panel">
+          <article class="panel event-panel" data-detail="timeline">
             <div class="panel-heading">
               <span class="panel-number">7</span>
               <div>
@@ -203,7 +203,7 @@
         </section>
 
         <section class="support-grid">
-          <article class="panel console-panel">
+          <article class="panel console-panel" data-detail="audit">
             <div class="panel-heading">
               <span class="panel-number">10</span>
               <div>
@@ -313,7 +313,7 @@
       </form>
     </dialog>
 
-    <script type="module" src="app.js?v=20260611-custom-feedback"></script>
+    <script type="module" src="app.js?v=20260611-detail-pages"></script>
     <script>
       (function () {
         var canvasWidth = 1500;
