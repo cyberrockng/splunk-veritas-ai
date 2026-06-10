@@ -44,11 +44,12 @@ That matters because unsafe incident decisions can cause business disruption, le
 - Missing Evidence to SPL Queries
 - Blast Radius Warnings
 - Judge Demo Flow with live decision spotlight
+- One-click Judge Mode
 - Evidence-gated containment execution
 - Real Splunk HEC ingestion path
 - Live Splunk REST evidence pull
 - MCP-shaped Splunk tool-call output
-- Decision Audit Brief export
+- Decision Audit Brief with Splunk job IDs and search provenance
 
 ## Security Principles
 
@@ -97,6 +98,13 @@ python ingest_to_splunk.py
 See `SPLUNK_REAL_DATA.md` for the full real-data runbook.
 
 ## Demo Flow
+
+Fast path:
+
+1. Click **Run live judge demo**.
+2. Veritas pulls indexed Splunk evidence, checks thresholds, executes safe containment, and opens the audit brief.
+
+Manual path:
 
 1. Click **Reset**.
 2. Click **Load incident evidence** for mock mode, or **Pull indexed evidence** for Splunk-backed mode.

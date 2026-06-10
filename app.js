@@ -6,6 +6,7 @@ const eventCount = document.querySelector("#eventCount");
 const readyCount = document.querySelector("#readyCount");
 const blockedCount = document.querySelector("#blockedCount");
 const telemetryScore = document.querySelector("#telemetryScore");
+const judgeModeBtn = document.querySelector("#judgeModeBtn");
 const startAttackBtn = document.querySelector("#startAttackBtn");
 const nextEventBtn = document.querySelector("#nextEventBtn");
 const loadSplunkBtn = document.querySelector("#loadSplunkBtn");
@@ -42,6 +43,8 @@ let runLog = [
     detail: "Load incident evidence, then check whether each proposed response decision is evidence-ready.",
   },
 ];
+
+let judgeModeRunning = false;
 
 const actionPlan = [
   {
@@ -420,6 +423,7 @@ function render() {
   renderEvents();
   renderRunConsole();
   executeSafeBtn.disabled = !hasCheckedThresholds() || completedActionCount() >= 3;
+  judgeModeBtn.disabled = judgeModeRunning;
 }
 
 async function loadState() {
@@ -428,13 +432,17 @@ async function loadState() {
 
 async function resetLab() {
   const nextState = await requestJson("/api/sentinel/reset", { method: "POST" });
-  runLog = [
-    {
-      type: "ready",
-      title: "Lab reset",
-      detail: "Evidence has been cleared. Load the incident evidence to evaluate decisions.",
-    },
-  ];
+  if (judgeModeRunning) {
+    logEntry("ready", "Lab reset", "Evidence has been cleared for the guided judge run.");
+  } else {
+    runLog = [
+      {
+        type: "ready",
+        title: "Lab reset",
+        detail: "Evidence has been cleared. Load the incident evidence to evaluate decisions.",
+      },
+    ];
+  }
   labStatus.textContent = "Reset complete";
   setState(nextState);
 }
@@ -471,10 +479,12 @@ async function loadFromSplunk() {
     ].slice(0, 24);
     labStatus.textContent = `${search.mapped_events || 0} indexed events loaded`;
     setState(result);
+    return result;
   } catch (error) {
     labStatus.textContent = error.message;
     logEntry("error", "Splunk pull failed", error.message);
     render();
+    throw error;
   }
 }
 
@@ -494,6 +504,7 @@ async function startAttack() {
     await sleep(420);
     await streamNextEvent();
   }
+  return state;
 }
 
 async function checkThresholds() {
@@ -520,6 +531,7 @@ async function checkThresholds() {
 
   labStatus.textContent = `${result.decisions.length} decisions evaluated`;
   setState(result);
+  return result;
 }
 
 async function executeApprovedContainment() {
@@ -557,6 +569,7 @@ async function executeApprovedContainment() {
   );
   labStatus.textContent = "Containment executed";
   setState(refreshed);
+  return refreshed;
 }
 
 async function exportBrief() {
@@ -564,8 +577,49 @@ async function exportBrief() {
   briefOutput.textContent = data.brief;
   briefDialog.showModal();
   render();
+  return data;
 }
 
+async function runJudgeMode() {
+  judgeModeRunning = true;
+  render();
+  try {
+    runLog = [
+      {
+        type: "claim",
+        title: "Judge Mode started",
+        detail: "Veritas will load evidence, evaluate thresholds, execute safe containment, and open the audit brief.",
+      },
+    ];
+    labStatus.textContent = "Running judge demo";
+    await resetLab();
+
+    try {
+      await loadFromSplunk();
+      logEntry("supported", "Live Splunk mode", "Indexed evidence was pulled from Splunk REST.");
+    } catch (error) {
+      logEntry("uncertain", "Fallback demo mode", "Splunk was unavailable, so Veritas loaded the deterministic demo evidence path.");
+      await startAttack();
+    }
+
+    await sleep(350);
+    await checkThresholds();
+    await sleep(350);
+    await executeApprovedContainment();
+    await sleep(350);
+    await exportBrief();
+    labStatus.textContent = "Judge demo complete";
+  } catch (error) {
+    labStatus.textContent = error.message;
+    logEntry("error", "Judge Mode failed", error.message);
+    render();
+  } finally {
+    judgeModeRunning = false;
+    render();
+  }
+}
+
+judgeModeBtn.addEventListener("click", runJudgeMode);
 startAttackBtn.addEventListener("click", startAttack);
 nextEventBtn.addEventListener("click", streamNextEvent);
 loadSplunkBtn.addEventListener("click", loadFromSplunk);

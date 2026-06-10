@@ -10,16 +10,13 @@ Point to:
 - Decision Risk
 - Principles panel
 
-## 0:20 - 0:45: Load Incident Evidence
+## 0:20 - 0:45: Run Judge Mode
 
-Click **Reset**, then choose one:
-
-- Reliable demo mode: **Load incident evidence**
-- Real Splunk mode: **Pull indexed evidence**
+Click **Run live judge demo**.
 
 Say:
 
-"The incident is an admin account takeover. In real Splunk mode, Veritas pulls indexed events from `index=veritas` using the Splunk REST search API. In fallback mode, the same evidence contract is simulated for reliability."
+"The incident is an admin account takeover. Judge Mode pulls indexed events from Splunk, evaluates evidence thresholds, executes only evidence-ready containment, and opens the audit brief. If Splunk is unavailable, it falls back to the deterministic demo path."
 
 Show:
 
@@ -30,7 +27,7 @@ Show:
 
 ## 0:45 - 1:20: Check Thresholds
 
-Click **Check thresholds**.
+Point to the Evidence Threshold Matrix and Live Decision Spotlight.
 
 Say:
 
@@ -45,8 +42,6 @@ Show:
 - Close incident as contained: Not Ready or Blocked
 
 ## 1:20 - 1:40: Execute Only Evidence-Ready Actions
-
-Click **Execute approved containment**.
 
 Say:
 
@@ -74,8 +69,6 @@ Show:
 
 ## 1:55 - 2:00: Export Brief
 
-Click **Export audit brief**.
-
 Say:
 
-"The output is an auditable decision brief: what was approved, what was blocked, why, what evidence was used, what evidence is missing, and what SPL should be run next."
+"The output is an auditable decision brief: what was approved, what was blocked, why, which Splunk jobs supported the decision, what evidence is missing, and what SPL should be run next."

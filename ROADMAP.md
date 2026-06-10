@@ -49,7 +49,7 @@
 - Added `splunk-rest` provider/index/incident visibility in the UI.
 - Keep `mock-mcp` fallback for judging reliability.
 
-## Current: Phase 7 - Real Splunk Runtime Validation
+## Passed: Phase 7 - Real Splunk Runtime Validation
 
 - Create or access a Splunk instance.
 - Create `veritas` index and HEC token.
@@ -57,7 +57,14 @@
 - Start Veritas with `SPLUNK_HOST` and `SPLUNK_TOKEN`.
 - Pull indexed evidence from the UI and confirm real job IDs.
 
-## Next: Phase 8 - Submission Package
+## Passed: Phase 8 - Judge Mode & Audit Provenance
+
+- Added **Run live judge demo** one-click flow.
+- Judge Mode pulls indexed evidence, checks thresholds, executes safe containment, and opens the brief.
+- Audit brief now groups approved/caution and blocked/not-ready decisions.
+- Audit brief includes Splunk index, incident id, evidence load job, evidence event jobs, threshold search jobs, and source coverage.
+
+## Current: Phase 9 - Submission Package
 
 - Capture screenshots or short GIF.
 - Record two-minute walkthrough.

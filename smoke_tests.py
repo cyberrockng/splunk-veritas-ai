@@ -104,7 +104,11 @@ def main():
 
     brief = request_json("/api/sentinel/brief")
     assert_true("Veritas AI Decision Audit Brief" in brief["brief"], "brief title")
-    assert_true("Decision readiness" in brief["brief"], "brief decision section")
+    assert_true("Executive decision summary" in brief["brief"], "brief executive section")
+    assert_true("Approved or caution-ready decisions" in brief["brief"], "brief approved section")
+    assert_true("Blocked or not-ready decisions" in brief["brief"], "brief blocked section")
+    assert_true("Splunk evidence provenance" in brief["brief"], "brief provenance section")
+    assert_true("Threshold search jobs" in brief["brief"], "brief search job section")
     assert_true("Missing evidence and SPL" in brief["brief"], "brief SPL gap section")
 
     request_json("/api/sentinel/reset", method="POST", payload={})

@@ -40,7 +40,8 @@ Veritas makes those decisions evidence-bound and auditable.
 - Evidence Integrity & Blind Spot Panel
 - Real Splunk HEC ingestion path
 - Live Splunk REST evidence pull
-- Decision Audit Brief
+- One-click Judge Mode
+- Decision Audit Brief with Splunk search provenance
 
 ## Security Maturity
 
@@ -65,3 +66,5 @@ It can run in `mock-mcp` mode for reliable judging, or in `splunk-rest` mode aft
 - setting `SPLUNK_HOST`
 - setting `SPLUNK_TOKEN`
 - clicking **Pull indexed evidence**
+
+For presentation, click **Run live judge demo** to execute the complete evidence -> decision -> containment -> audit flow.
