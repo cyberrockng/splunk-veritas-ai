@@ -64,7 +64,15 @@
 - Audit brief now groups approved/caution and blocked/not-ready decisions.
 - Audit brief includes Splunk index, incident id, evidence load job, evidence event jobs, threshold search jobs, and source coverage.
 
-## Current: Phase 9 - Submission Package
+## Passed: Phase 9 - Approval Gate & Evidence Drilldown
+
+- Added analyst approve/reject workflow before containment actions execute.
+- Backend now blocks high-impact response actions until approval is recorded.
+- Added evidence drilldown for each threshold checklist item.
+- Drilldown shows SPL, matched events, source, user, IP, and Splunk job context.
+- UI/UX upgraded around the approval and drilldown workflow.
+
+## Current: Phase 10 - Submission Package
 
 - Capture screenshots or short GIF.
 - Record two-minute walkthrough.

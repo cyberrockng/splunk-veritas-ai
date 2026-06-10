@@ -17,6 +17,7 @@ const executeSafeBtn = document.querySelector("#executeSafeBtn");
 const labStatus = document.querySelector("#labStatus");
 const demoSteps = document.querySelector("#demoSteps");
 const decisionSpotlight = document.querySelector("#decisionSpotlight");
+const approvalGate = document.querySelector("#approvalGate");
 const decisionMatrix = document.querySelector("#decisionMatrix");
 const integrityPanel = document.querySelector("#integrityPanel");
 const splGapList = document.querySelector("#splGapList");
@@ -25,6 +26,10 @@ const runConsole = document.querySelector("#runConsole");
 const briefDialog = document.querySelector("#briefDialog");
 const closeBriefBtn = document.querySelector("#closeBriefBtn");
 const briefOutput = document.querySelector("#briefOutput");
+const evidenceDialog = document.querySelector("#evidenceDialog");
+const closeEvidenceBtn = document.querySelector("#closeEvidenceBtn");
+const evidenceDialogTitle = document.querySelector("#evidenceDialogTitle");
+const evidenceOutput = document.querySelector("#evidenceOutput");
 
 let state = {
   stage: "idle",
@@ -34,6 +39,7 @@ let state = {
   integrity: {},
   risk: 12,
   integration: { provider: "mock-mcp" },
+  approvals: [],
 };
 
 let runLog = [
@@ -127,6 +133,10 @@ function completedActions() {
 
 function completedActionCount() {
   return completedActions().size;
+}
+
+function approvedApprovalCount() {
+  return (state.approvals || []).filter((item) => item.approval === "approved" && !item.executed).length;
 }
 
 function hasCheckedThresholds() {
@@ -266,6 +276,48 @@ function renderDecisionSpotlight() {
   `;
 }
 
+function renderApprovalGate() {
+  const approvals = state.approvals || [];
+  if (!approvals.length) {
+    approvalGate.innerHTML = `
+      <article class="approval-card pending">
+        <div>
+          <strong>No approval candidates yet</strong>
+          <p>Check thresholds to populate the analyst approval gate.</p>
+        </div>
+      </article>
+    `;
+    return;
+  }
+
+  approvalGate.innerHTML = approvals
+    .map((item) => {
+      const canApprove = item.eligible && !item.executed;
+      const approvalClass = item.executed ? "executed" : item.approval;
+      return `
+        <article class="approval-card ${approvalClass}">
+          <div class="approval-head">
+            <div>
+              <strong>${escapeHtml(item.action_label)}</strong>
+              <p>${escapeHtml(item.decision_title || "No linked decision")}</p>
+            </div>
+            <span class="approval-pill ${approvalClass}">${item.executed ? "Executed" : item.approval}</span>
+          </div>
+          <div class="approval-meta">
+            <span>Decision: <strong>${escapeHtml(item.decision_status || "Pending")}</strong></span>
+            <span>Readiness: <strong>${item.readiness ?? 0}%</strong></span>
+          </div>
+          <p>${escapeHtml(item.summary)}</p>
+          <div class="approval-actions">
+            <button type="button" data-approve="${escapeHtml(item.decision_id)}" ${canApprove ? "" : "disabled"}>Approve</button>
+            <button type="button" data-reject="${escapeHtml(item.decision_id)}" ${canApprove ? "" : "disabled"}>Reject</button>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
 function renderDecisionMatrix() {
   decisionMatrix.innerHTML = state.decisions
     .map(
@@ -291,6 +343,7 @@ function renderDecisionMatrix() {
                   <div class="check-row ${check.status}">
                     <span>${check.status === "found" ? "Found" : check.status === "contradicted" ? "Contradicts" : "Missing"}</span>
                     <strong>${check.label}</strong>
+                    <button type="button" data-drilldown="${decision.id}:${check.id}">Evidence</button>
                   </div>
                 `,
               )
@@ -417,12 +470,13 @@ function render() {
   renderMetrics();
   renderDemoSteps();
   renderDecisionSpotlight();
+  renderApprovalGate();
   renderDecisionMatrix();
   renderIntegrity();
   renderSplGaps();
   renderEvents();
   renderRunConsole();
-  executeSafeBtn.disabled = !hasCheckedThresholds() || completedActionCount() >= 3;
+  executeSafeBtn.disabled = !hasCheckedThresholds() || approvedApprovalCount() === 0 || completedActionCount() >= 3;
   judgeModeBtn.disabled = judgeModeRunning;
 }
 
@@ -534,6 +588,24 @@ async function checkThresholds() {
   return result;
 }
 
+async function setApproval(decisionId, approval) {
+  const nextState = await requestJson("/api/sentinel/approval", {
+    method: "POST",
+    body: JSON.stringify({ decision_id: decisionId, approval }),
+  });
+  const decision = nextState.decisions.find((item) => item.id === decisionId);
+  logEntry(
+    approval === "approved" ? "supported" : "blocked",
+    `${decision?.title || decisionId}: ${approval}`,
+    approval === "approved"
+      ? "Analyst approval recorded for this evidence-ready action."
+      : "Analyst rejection recorded; Veritas will not execute this action.",
+  );
+  labStatus.textContent = `Decision ${approval}`;
+  setState(nextState);
+  return nextState;
+}
+
 async function executeApprovedContainment() {
   if (!hasCheckedThresholds()) {
     labStatus.textContent = "Check thresholds first";
@@ -547,7 +619,13 @@ async function executeApprovedContainment() {
 
   for (const item of actionPlan) {
     const decision = nextState.decisions.find((candidate) => candidate.id === item.decisionId);
-    if (!decision || !allowedStatuses.has(decision.status) || completed.has(item.actionId)) {
+    const approval = (nextState.approvals || []).find((candidate) => candidate.decision_id === item.decisionId);
+    if (
+      !decision ||
+      !allowedStatuses.has(decision.status) ||
+      approval?.approval !== "approved" ||
+      completed.has(item.actionId)
+    ) {
       continue;
     }
 
@@ -571,6 +649,78 @@ async function executeApprovedContainment() {
   setState(refreshed);
   return refreshed;
 }
+
+function findCheck(decisionId, checkId) {
+  const decision = state.decisions.find((item) => item.id === decisionId);
+  const check = decision?.checks.find((item) => item.id === checkId);
+  return { decision, check };
+}
+
+function showEvidenceDrilldown(decisionId, checkId) {
+  const { decision, check } = findCheck(decisionId, checkId);
+  if (!decision || !check) return;
+
+  evidenceDialogTitle.textContent = `${decision.title} / ${check.label}`;
+  const evidenceRows = (check.evidence || [])
+    .map(
+      (event) => `
+        <article class="drilldown-event">
+          <div class="drilldown-event-head">
+            <strong>${escapeHtml(event.id)} - ${escapeHtml(event.time)}</strong>
+            <span class="severity-pill ${severityClass(event.severity)}">${escapeHtml(event.severity)}</span>
+          </div>
+          <p>${escapeHtml(event.summary)}</p>
+          <dl>
+            <div><dt>Source</dt><dd>${escapeHtml(event.source)}</dd></div>
+            <div><dt>User</dt><dd>${escapeHtml(event.user)}</dd></div>
+            <div><dt>IP</dt><dd>${escapeHtml(event.src_ip)}</dd></div>
+            <div><dt>Job</dt><dd>${escapeHtml(event.splunk_job_id || "mock")}</dd></div>
+          </dl>
+          <code>${escapeHtml(event.query)}</code>
+        </article>
+      `,
+    )
+    .join("");
+
+  evidenceOutput.innerHTML = `
+    <div class="drilldown-summary ${check.status}">
+      <span class="status-pill ${check.status === "found" ? "approved" : check.status === "contradicted" ? "blocked" : "caution"}">
+        ${check.status}
+      </span>
+      <div>
+        <strong>${escapeHtml(check.label)}</strong>
+        <p>${check.mandatory ? "Mandatory evidence threshold item." : "Supporting evidence threshold item."}</p>
+      </div>
+    </div>
+    <section>
+      <p class="section-label">SPL Used To Close This Gap</p>
+      <code>${escapeHtml(check.spl)}</code>
+    </section>
+    <section>
+      <p class="section-label">Matched Evidence</p>
+      ${evidenceRows || `<article class="drilldown-event"><p>No matching evidence has been found yet. Run the SPL above before approving this decision.</p></article>`}
+    </section>
+  `;
+  evidenceDialog.showModal();
+}
+
+approvalGate.addEventListener("click", async (event) => {
+  const approve = event.target.closest("[data-approve]");
+  const reject = event.target.closest("[data-reject]");
+  if (approve) {
+    await setApproval(approve.dataset.approve, "approved");
+  }
+  if (reject) {
+    await setApproval(reject.dataset.reject, "rejected");
+  }
+});
+
+decisionMatrix.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-drilldown]");
+  if (!button) return;
+  const [decisionId, checkId] = button.dataset.drilldown.split(":");
+  showEvidenceDrilldown(decisionId, checkId);
+});
 
 async function exportBrief() {
   const data = await requestJson("/api/sentinel/brief");
@@ -603,7 +753,14 @@ async function runJudgeMode() {
     }
 
     await sleep(350);
-    await checkThresholds();
+    const investigated = await checkThresholds();
+    for (const item of actionPlan) {
+      const decision = investigated.decisions.find((candidate) => candidate.id === item.decisionId);
+      if (decision && ["Approved", "Caution"].includes(decision.status)) {
+        await setApproval(item.decisionId, "approved");
+        await sleep(160);
+      }
+    }
     await sleep(350);
     await executeApprovedContainment();
     await sleep(350);
@@ -628,5 +785,6 @@ resetLabBtn.addEventListener("click", resetLab);
 exportBriefBtn.addEventListener("click", exportBrief);
 executeSafeBtn.addEventListener("click", executeApprovedContainment);
 closeBriefBtn.addEventListener("click", () => briefDialog.close());
+closeEvidenceBtn.addEventListener("click", () => evidenceDialog.close());
 
 loadState();

@@ -41,6 +41,8 @@ Veritas makes those decisions evidence-bound and auditable.
 - Real Splunk HEC ingestion path
 - Live Splunk REST evidence pull
 - One-click Judge Mode
+- Analyst Approval Gate
+- Evidence Drilldown
 - Decision Audit Brief with Splunk search provenance
 
 ## Security Maturity

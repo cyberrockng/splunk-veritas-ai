@@ -170,6 +170,13 @@ RESPONSE_ACTIONS = [
     },
 ]
 
+ACTION_DECISION_MAP = {
+    "revoke-token": "revoke-session",
+    "disable-account": "disable-admin",
+    "block-ip": "block-source-ip",
+    "open-incident": None,
+}
+
 DECISION_POLICIES = [
     {
         "id": "revoke-session",
@@ -362,6 +369,7 @@ LAB_STATE = {
     "events": [],
     "detections": [],
     "actions": [],
+    "approvals": {},
     "last_splunk_load": None,
     "last_investigation": None,
 }
@@ -372,6 +380,10 @@ def action_status():
     return [
         {
             **action,
+            "decision_id": ACTION_DECISION_MAP.get(action["id"]),
+            "approval": LAB_STATE["approvals"].get(ACTION_DECISION_MAP.get(action["id"]), "pending")
+            if ACTION_DECISION_MAP.get(action["id"])
+            else "not-required",
             "status": "completed" if action["id"] in completed else "pending",
         }
         for action in RESPONSE_ACTIONS
@@ -380,6 +392,36 @@ def action_status():
 
 def completed_action_ids():
     return {action["id"] for action in LAB_STATE["actions"]}
+
+
+def decision_lookup():
+    return {decision["id"]: decision for decision in evaluate_decisions()}
+
+
+def eligible_for_approval(decision):
+    return decision and decision["status"] in {"Approved", "Caution"}
+
+
+def approval_payload():
+    decisions = decision_lookup()
+    return [
+        {
+            "action_id": action["id"],
+            "action_label": action["label"],
+            "decision_id": ACTION_DECISION_MAP.get(action["id"]),
+            "decision_title": decisions.get(ACTION_DECISION_MAP.get(action["id"]), {}).get("title"),
+            "decision_status": decisions.get(ACTION_DECISION_MAP.get(action["id"]), {}).get("status"),
+            "readiness": decisions.get(ACTION_DECISION_MAP.get(action["id"]), {}).get("readiness"),
+            "approval": LAB_STATE["approvals"].get(ACTION_DECISION_MAP.get(action["id"]), "pending")
+            if ACTION_DECISION_MAP.get(action["id"])
+            else "not-required",
+            "executed": action["id"] in completed_action_ids(),
+            "eligible": eligible_for_approval(decisions.get(ACTION_DECISION_MAP.get(action["id"]))),
+            "summary": action["summary"],
+        }
+        for action in RESPONSE_ACTIONS
+        if ACTION_DECISION_MAP.get(action["id"])
+    ]
 
 
 def streamed_event_ids():
@@ -827,6 +869,8 @@ def load_splunk_evidence():
     LAB_STATE["events"] = ordered_events
     LAB_STATE["detections"] = []
     LAB_STATE["actions"] = []
+    LAB_STATE["approvals"] = {}
+    LAB_STATE["last_investigation"] = None
     LAB_STATE["last_splunk_load"] = {
         "query": query,
         "job_id": search_result["job_id"],
@@ -853,6 +897,7 @@ def state_payload():
         "decisions": evaluate_decisions(),
         "integrity": evidence_integrity(),
         "actions": action_status(),
+        "approvals": approval_payload(),
         "risk": calculate_risk(),
         "integration": splunk_status(),
     }
@@ -979,6 +1024,13 @@ def brief_text():
     action_lines = "\n".join(
         f"- {item['label']}: {item['summary']}" for item in LAB_STATE["actions"]
     )
+    approval_lines = line_or_default(
+        [
+            f"- {item['decision_title']}: approval={item['approval']}, action={item['action_label']}, readiness={item['readiness']}%, executed={'yes' if item['executed'] else 'no'}"
+            for item in approval_payload()
+        ],
+        "- No analyst approval records.",
+    )
     event_lines = "\n".join(
         f"- {event['time']} {event['id']} {event['summary']}" for event in LAB_STATE["events"]
     )
@@ -1048,6 +1100,9 @@ Threshold search jobs:
 
 Evidence source coverage:
 {source_lines}
+
+Analyst approval gate:
+{approval_lines}
 
 Missing evidence and SPL to close gaps:
 {missing_lines or "- No missing decision evidence."}
@@ -1120,6 +1175,7 @@ class VeritasHandler(SimpleHTTPRequestHandler):
             LAB_STATE["events"] = []
             LAB_STATE["detections"] = []
             LAB_STATE["actions"] = []
+            LAB_STATE["approvals"] = {}
             LAB_STATE["last_splunk_load"] = None
             LAB_STATE["last_investigation"] = None
             self.send_json(state_payload())
@@ -1130,6 +1186,7 @@ class VeritasHandler(SimpleHTTPRequestHandler):
             LAB_STATE["events"] = []
             LAB_STATE["detections"] = []
             LAB_STATE["actions"] = []
+            LAB_STATE["approvals"] = {}
             LAB_STATE["last_splunk_load"] = None
             LAB_STATE["last_investigation"] = None
             self.send_json({**state_payload(), "sequence_length": len(ATTACK_EVENTS)})
@@ -1154,11 +1211,33 @@ class VeritasHandler(SimpleHTTPRequestHandler):
             self.send_json(investigation_payload())
             return
 
+        if path == "/api/sentinel/approval":
+            decision_id = payload.get("decision_id")
+            action = payload.get("approval")
+            if action not in {"approved", "rejected"}:
+                self.send_json({"error": "Approval must be approved or rejected"}, status=400)
+                return
+            decisions = decision_lookup()
+            decision = decisions.get(decision_id)
+            if decision is None:
+                self.send_json({"error": "Unknown decision"}, status=400)
+                return
+            if not eligible_for_approval(decision):
+                self.send_json({"error": "Decision is not eligible for approval"}, status=400)
+                return
+            LAB_STATE["approvals"][decision_id] = action
+            self.send_json(state_payload())
+            return
+
         if path == "/api/sentinel/respond":
             action_id = payload.get("action")
             action = next((item for item in RESPONSE_ACTIONS if item["id"] == action_id), None)
             if action is None:
                 self.send_json({"error": "Unknown response action"}, status=400)
+                return
+            decision_id = ACTION_DECISION_MAP.get(action_id)
+            if decision_id and LAB_STATE["approvals"].get(decision_id) != "approved":
+                self.send_json({"error": "Analyst approval is required before this action can execute"}, status=409)
                 return
             if action_id not in {item["id"] for item in LAB_STATE["actions"]}:
                 LAB_STATE["actions"].append(action)

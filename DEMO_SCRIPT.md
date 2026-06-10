@@ -40,15 +40,17 @@ Show:
 - Block source IP: Caution
 - Declare no sensitive data accessed: Blocked
 - Close incident as contained: Not Ready or Blocked
+- Click any **Evidence** button to show matched Splunk events, SPL, and job IDs
 
 ## 1:20 - 1:40: Execute Only Evidence-Ready Actions
 
 Say:
 
-"Veritas does not blindly automate every action. It executes only the evidence-ready containment decisions, then keeps blocking premature closure and no-data-access statements."
+"Veritas does not blindly automate every action. The analyst approval gate records approval before containment executes, then Veritas keeps blocking premature closure and no-data-access statements."
 
 Show:
 
+- Analyst Approval Gate
 - Risk score drops after containment
 - Live Decision Spotlight remains blocked for unsafe statements
 - Close incident still needs post-containment monitoring

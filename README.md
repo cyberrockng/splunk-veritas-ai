@@ -46,6 +46,8 @@ That matters because unsafe incident decisions can cause business disruption, le
 - Judge Demo Flow with live decision spotlight
 - One-click Judge Mode
 - Evidence-gated containment execution
+- Analyst Approval Gate for approve/reject before action
+- Evidence Drilldown for each threshold checklist item
 - Real Splunk HEC ingestion path
 - Live Splunk REST evidence pull
 - MCP-shaped Splunk tool-call output
@@ -109,14 +111,12 @@ Manual path:
 1. Click **Reset**.
 2. Click **Load incident evidence** for mock mode, or **Pull indexed evidence** for Splunk-backed mode.
 3. Click **Check thresholds**.
-4. Show the Evidence Threshold Matrix.
-5. Show approved/caution decisions.
-6. Show blocked decisions, especially **Declare no sensitive data accessed**.
-7. Show missing evidence and recommended SPL.
-8. Click **Execute approved containment**.
-9. Show that risk drops while unsafe closure/no-data-access claims remain blocked.
-10. Show the Evidence Integrity & Blind Spot Panel.
-11. Export the Decision Audit Brief.
+4. Use **Evidence** buttons in the matrix to drill into matched Splunk events, SPL, and job IDs.
+5. Approve eligible actions in the **Analyst Approval Gate**.
+6. Click **Execute approved containment**.
+7. Show that risk drops while unsafe closure/no-data-access claims remain blocked.
+8. Show the Evidence Integrity & Blind Spot Panel.
+9. Export the Decision Audit Brief.
 
 ## Test
 

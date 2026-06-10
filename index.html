@@ -140,6 +140,16 @@
           <div id="decisionSpotlight" class="decision-spotlight"></div>
         </section>
 
+        <section class="approval-panel">
+          <div class="section-heading">
+            <div>
+              <p class="section-label">Analyst Approval Gate</p>
+              <h3>Human approval before high-impact action</h3>
+            </div>
+          </div>
+          <div id="approvalGate" class="approval-grid"></div>
+        </section>
+
         <section class="matrix-panel">
           <div class="section-heading">
             <div>
@@ -209,6 +219,19 @@
       <pre id="briefOutput"></pre>
     </dialog>
 
-    <script type="module" src="app.js?v=20260610-phase8-judge-mode"></script>
+    <dialog id="evidenceDialog">
+      <div class="dialog-header">
+        <div>
+          <p class="section-label">Evidence Drilldown</p>
+          <h3 id="evidenceDialogTitle">Threshold evidence</h3>
+        </div>
+        <button id="closeEvidenceBtn" class="icon-btn" type="button" aria-label="Close evidence">
+          X
+        </button>
+      </div>
+      <div id="evidenceOutput" class="evidence-drilldown"></div>
+    </dialog>
+
+    <script type="module" src="app.js?v=20260610-approval-drilldown"></script>
   </body>
 </html>

@@ -85,8 +85,28 @@ def main():
     assert_true(close_incident["status"] in {"Not Ready", "Blocked"}, "close incident status")
     assert_true(data_statement["recommended_spl"], "blocked decision should include SPL gaps")
     assert_true(investigation["integrity"]["sources_missing"], "integrity panel should show blind spots")
+    assert_equal(len(investigation["approvals"]), 3, "approval gate action count")
+
+    status, body = request_json_error("/api/sentinel/respond", method="POST", payload={"action": "revoke-token"})
+    assert_equal(status, 409, "unapproved action should be blocked")
+    assert_true("Analyst approval is required" in body["error"], "approval required error")
 
     contained = investigation
+    for decision_id in ("revoke-session", "disable-admin", "block-source-ip"):
+        contained = request_json(
+            "/api/sentinel/approval",
+            method="POST",
+            payload={"decision_id": decision_id, "approval": "approved"},
+        )
+    assert_true(
+        all(
+            item["approval"] == "approved"
+            for item in contained["approvals"]
+            if item["decision_id"] in {"revoke-session", "disable-admin", "block-source-ip"}
+        ),
+        "eligible actions should be approved",
+    )
+
     for action_id in ("revoke-token", "disable-account", "block-ip"):
         contained = request_json("/api/sentinel/respond", method="POST", payload={"action": action_id})
 
@@ -109,6 +129,7 @@ def main():
     assert_true("Blocked or not-ready decisions" in brief["brief"], "brief blocked section")
     assert_true("Splunk evidence provenance" in brief["brief"], "brief provenance section")
     assert_true("Threshold search jobs" in brief["brief"], "brief search job section")
+    assert_true("Analyst approval gate" in brief["brief"], "brief approval gate section")
     assert_true("Missing evidence and SPL" in brief["brief"], "brief SPL gap section")
 
     request_json("/api/sentinel/reset", method="POST", payload={})

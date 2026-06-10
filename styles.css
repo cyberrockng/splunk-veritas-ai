@@ -211,6 +211,11 @@ h3 {
   background: var(--accent);
 }
 
+.judge-btn {
+  background: var(--teal);
+  box-shadow: 0 10px 30px rgba(7, 125, 118, 0.25);
+}
+
 .secondary-btn {
   padding: 0 14px;
   color: var(--dark);
@@ -250,6 +255,7 @@ h3 {
 .demo-runway,
 .claim-composer,
 .spotlight-panel,
+.approval-panel,
 .matrix-panel,
 .mcp-panel,
 .run-panel,
@@ -433,6 +439,121 @@ h3 {
   white-space: normal;
 }
 
+.approval-panel {
+  padding: 18px;
+  margin-bottom: 18px;
+}
+
+.approval-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.approval-card {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--muted);
+  border-radius: 8px;
+  padding: 14px;
+  background: #fbfdfe;
+}
+
+.approval-card.approved,
+.approval-card.executed {
+  border-left-color: var(--green);
+}
+
+.approval-card.rejected {
+  border-left-color: var(--red);
+}
+
+.approval-card.pending {
+  border-left-color: var(--yellow);
+}
+
+.approval-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.approval-head strong,
+.approval-head p,
+.approval-card p {
+  margin: 0;
+}
+
+.approval-head p,
+.approval-card p {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.approval-pill {
+  align-self: flex-start;
+  border-radius: 999px;
+  padding: 6px 8px;
+  color: #ffffff;
+  background: var(--yellow);
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.approval-pill.approved,
+.approval-pill.executed {
+  background: var(--green);
+}
+
+.approval-pill.rejected {
+  background: var(--red);
+}
+
+.approval-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.approval-meta span {
+  border-radius: 6px;
+  padding: 7px 9px;
+  background: #edf3f5;
+  font-size: 0.82rem;
+}
+
+.approval-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.approval-actions button,
+.check-row button {
+  min-height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 10px;
+  color: var(--blue);
+  background: #ffffff;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.approval-actions button:first-child {
+  color: #ffffff;
+  border-color: var(--green);
+  background: var(--green);
+}
+
+.approval-actions button:disabled,
+.check-row button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .decision-matrix {
   display: grid;
   gap: 12px;
@@ -530,7 +651,7 @@ h3 {
 
 .check-row {
   display: grid;
-  grid-template-columns: 90px minmax(0, 1fr);
+  grid-template-columns: 90px minmax(0, 1fr) auto;
   gap: 10px;
   align-items: center;
 }
@@ -1099,6 +1220,85 @@ dialog::backdrop {
   line-height: 1.5;
 }
 
+.evidence-drilldown {
+  display: grid;
+  gap: 16px;
+  max-height: 70vh;
+  overflow: auto;
+  padding: 18px;
+  background: #fbfdfe;
+}
+
+.evidence-drilldown section {
+  display: grid;
+  gap: 10px;
+}
+
+.evidence-drilldown code,
+.drilldown-event code {
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  color: var(--blue);
+  background: #ffffff;
+  white-space: normal;
+}
+
+.drilldown-summary {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: #ffffff;
+}
+
+.drilldown-summary p {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+
+.drilldown-event {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: #ffffff;
+}
+
+.drilldown-event-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.drilldown-event p {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.drilldown-event dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.drilldown-event dt {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.drilldown-event dd {
+  margin: 3px 0 0;
+  word-break: break-word;
+}
+
 @media (max-width: 1100px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -1126,6 +1326,10 @@ dialog::backdrop {
   }
 
   .integrity-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .approval-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1167,6 +1371,11 @@ dialog::backdrop {
   }
 
   .check-row {
+    grid-template-columns: 1fr;
+  }
+
+  .drilldown-summary,
+  .drilldown-event dl {
     grid-template-columns: 1fr;
   }
 

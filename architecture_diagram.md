@@ -13,13 +13,17 @@ flowchart LR
   H --> J["Evidence Integrity & Blind Spots"]
   H --> K["Missing Evidence To SPL"]
   H --> L["Blast Radius Warning"]
+  H --> Q["Evidence Drilldown"]
   I --> M["Decision Readiness Score"]
   J --> M
   K --> M
   L --> M
   M --> N["Approve / Caution / Block / Not Ready"]
-  N --> O["Evidence-Gated Containment"]
+  N --> R["Analyst Approval Gate"]
+  R --> O["Evidence-Gated Containment"]
   N --> P["Decision Audit Brief"]
+  Q --> P
+  R --> P
 ```
 
 ## Data Flow
@@ -31,8 +35,10 @@ flowchart LR
 5. Veritas maps returned rows into evidence objects.
 6. The verification engine evaluates each proposed response decision.
 7. Each decision is scored against a required evidence threshold.
-8. Veritas executes only evidence-ready containment actions.
-9. Veritas exports a decision audit brief with search and decision context.
+8. Analysts drill into threshold evidence and review the SPL/job context.
+9. Analysts approve or reject eligible high-impact actions.
+10. Veritas executes only approved, evidence-ready containment actions.
+11. Veritas exports a decision audit brief with search, evidence, approval, and action context.
 
 ## Core Principle
 
