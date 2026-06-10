@@ -12,196 +12,233 @@
         <div class="brand-block">
           <div class="brand-mark">V</div>
           <div>
-            <p class="eyebrow">Veritas AI</p>
-            <h1>Evidence Threshold Engine for Splunk</h1>
+            <h1>VERITAS AI</h1>
+            <p>Evidence Threshold Engine for Splunk</p>
           </div>
         </div>
 
-        <section class="incident-panel">
-          <p class="section-label">Demo Incident</p>
-          <h2>Admin account takeover</h2>
-          <p>
-            Veritas checks whether the team has enough Splunk evidence to act,
-            contain, escalate, stand down, or make leadership statements.
-          </p>
-          <div class="incident-meta">
-            <span>Security track</span>
-            <span id="stageLabel">Stage: idle</span>
-            <span id="providerLabel">Provider: mock-mcp</span>
-          </div>
-        </section>
+        <button class="mode-pill" type="button">UI-H: Light Executive</button>
 
-        <section class="score-panel">
-          <p class="section-label">Decision Risk</p>
-          <div class="score-ring">
-            <span id="riskScore">12</span>
-            <small>/100</small>
-          </div>
-          <p id="riskSummary">Load the incident evidence to evaluate response decisions.</p>
-        </section>
+        <nav class="side-nav" aria-label="Application sections">
+          <a class="active" href="#overview"><span>OV</span>Overview</a>
+          <a href="#incident"><span>IN</span>Incidents</a>
+          <a href="#matrix"><span>EM</span>Evidence Matrix</a>
+          <a href="#decisions"><span>DC</span>Decisions</a>
+          <a href="#blast"><span>BR</span>Blast Radius</a>
+          <a href="#investigations"><span>IV</span>Investigations</a>
+          <a href="#automation"><span>AU</span>Automation</a>
+          <a href="#reports"><span>RP</span>Reports</a>
+          <a href="#playbooks"><span>PB</span>Playbooks</a>
+          <a href="#settings"><span>ST</span>Settings</a>
+          <a href="#integrations"><span>IT</span>Integrations</a>
+        </nav>
 
-        <section class="source-panel">
-          <p class="section-label">Principles</p>
-          <ul>
-            <li>Missing logs are not proof of safety</li>
-            <li>Logs are evidence, not instructions</li>
-            <li>High-impact actions need human approval</li>
-            <li>Veritas supports decisions, not blind automation</li>
-          </ul>
-        </section>
+        <div class="analyst-card">
+          <div class="avatar">SO</div>
+          <div>
+            <strong>SOC Analyst</strong>
+            <p>Tier 2</p>
+            <small><span></span>Online</small>
+          </div>
+        </div>
       </aside>
 
-      <main class="main-view">
-        <header class="topbar">
-          <div>
-            <p class="eyebrow">Know when you have enough evidence to act</p>
-            <h2>Response decision assurance for incident teams</h2>
+      <main class="main-view" id="overview">
+        <section class="incident-hero" id="incident">
+          <div class="incident-icon">!</div>
+          <div class="incident-title">
+            <p>ACTIVE INCIDENT</p>
+            <h2>ADMIN ACCOUNT TAKEOVER</h2>
+            <div class="incident-meta">
+              <span>Incident ID: INC-001</span>
+              <span id="stageLabel">Status: idle</span>
+              <span>Started: live Splunk session</span>
+              <span>Owner: SOC Tier 2</span>
+              <span id="providerLabel">Provider: mock-mcp</span>
+            </div>
           </div>
-          <div class="topbar-actions">
+          <div class="hero-actions">
             <button id="judgeModeBtn" class="primary-btn judge-btn" type="button">
               <span>Go</span>
               Run live judge demo
-            </button>
-            <button id="startAttackBtn" class="primary-btn" type="button">
-              <span>Run</span>
-              Load incident evidence
-            </button>
-            <button id="investigateBtn" class="secondary-btn" type="button">
-              <span>Chk</span>
-              Check thresholds
-            </button>
-            <button id="exportBriefBtn" class="secondary-btn" type="button">
-              <span>Doc</span>
-              Export audit brief
-            </button>
-          </div>
-        </header>
-
-        <section class="demo-runway" aria-label="Judge demo flow">
-          <div>
-            <p class="section-label">Judge Demo Flow</p>
-            <h3>Evidence to decision to action in under two minutes</h3>
-          </div>
-          <div id="demoSteps" class="demo-steps"></div>
-        </section>
-
-        <section class="metric-grid" aria-label="Decision metrics">
-          <article>
-            <span class="metric-label">Evidence Events</span>
-            <strong id="eventCount">0</strong>
-          </article>
-          <article>
-            <span class="metric-label">Approved/Caution</span>
-            <strong id="readyCount">0</strong>
-          </article>
-          <article>
-            <span class="metric-label">Blocked/Not Ready</span>
-            <strong id="blockedCount">0</strong>
-          </article>
-          <article>
-            <span class="metric-label">Telemetry Complete</span>
-            <strong id="telemetryScore">0%</strong>
-          </article>
-        </section>
-
-        <section class="claim-composer">
-          <div>
-            <p class="section-label">Incident Control</p>
-            <h3>Load evidence, then evaluate response decisions</h3>
-          </div>
-          <div class="lab-actions">
-            <button id="nextEventBtn" class="secondary-btn" type="button">
-              <span>Evt</span>
-              Add next event
-            </button>
-            <button id="loadSplunkBtn" class="secondary-btn" type="button">
-              <span>Spl</span>
-              Pull indexed evidence
             </button>
             <button id="resetLabBtn" class="secondary-btn" type="button">
               <span>Rst</span>
               Reset
             </button>
-            <button id="executeSafeBtn" class="primary-btn" type="button">
-              <span>Act</span>
-              Execute approved containment
-            </button>
-            <p id="labStatus" class="copy-status" aria-live="polite"></p>
           </div>
         </section>
 
-        <section class="spotlight-panel">
-          <div class="section-heading">
-            <div>
-              <p class="section-label">Live Decision Spotlight</p>
-              <h3>The moment Veritas proves it is not blind automation</h3>
-            </div>
-          </div>
-          <div id="decisionSpotlight" class="decision-spotlight"></div>
+        <section class="control-strip" aria-label="Incident controls">
+          <button id="loadSplunkBtn" class="secondary-btn" type="button">
+            <span>Spl</span>
+            Pull indexed evidence
+          </button>
+          <button id="startAttackBtn" class="secondary-btn" type="button">
+            <span>Run</span>
+            Load demo evidence
+          </button>
+          <button id="nextEventBtn" class="secondary-btn" type="button">
+            <span>Evt</span>
+            Add next event
+          </button>
+          <button id="investigateBtn" class="secondary-btn" type="button">
+            <span>Chk</span>
+            Check thresholds
+          </button>
+          <button id="executeSafeBtn" class="primary-btn" type="button">
+            <span>Act</span>
+            Execute approved containment
+          </button>
+          <p id="labStatus" class="copy-status" aria-live="polite"></p>
         </section>
 
-        <section class="approval-panel">
-          <div class="section-heading">
-            <div>
-              <p class="section-label">Analyst Approval Gate</p>
-              <h3>Human approval before high-impact action</h3>
-            </div>
+        <section class="demo-runway" aria-label="Judge demo flow">
+          <div>
+            <p class="section-label">Judge Demo Flow</p>
+            <h3>Evidence to decision to action</h3>
           </div>
-          <div id="approvalGate" class="approval-grid"></div>
+          <div id="demoSteps" class="demo-steps"></div>
         </section>
 
-        <section class="matrix-panel">
-          <div class="section-heading">
-            <div>
-              <p class="section-label">Evidence Threshold Matrix</p>
-              <h3>Proposed response decisions</h3>
-            </div>
-          </div>
-          <div id="decisionMatrix" class="decision-matrix"></div>
-        </section>
-
-        <section class="workspace-grid">
-          <div class="truth-board">
-            <div class="section-heading">
+        <section class="dashboard-grid">
+          <article class="panel panel-decisions" id="decisions">
+            <div class="panel-heading">
+              <span class="panel-number">1</span>
               <div>
-                <p class="section-label">Evidence Integrity & Blind Spots</p>
-                <h3>Can this evidence support a decision?</h3>
+                <p class="section-label">Proposed Response Decisions</p>
+                <h3>Actions Veritas will approve, block, or hold</h3>
+              </div>
+            </div>
+            <div id="decisionMatrix" class="decision-matrix"></div>
+          </article>
+
+          <article class="panel panel-threshold" id="matrix">
+            <div class="panel-heading">
+              <span class="panel-number">2</span>
+              <div>
+                <p class="section-label">Evidence Threshold Matrix</p>
+                <h3>Current evidence against required thresholds</h3>
+              </div>
+            </div>
+            <div id="thresholdMatrix" class="threshold-table"></div>
+          </article>
+
+          <article class="panel risk-panel">
+            <div class="panel-heading compact">
+              <div>
+                <p class="section-label">Overall Risk Score</p>
+                <h3>Decision risk</h3>
+              </div>
+            </div>
+            <div class="risk-gauge">
+              <div class="gauge-arc"></div>
+              <div class="gauge-value">
+                <strong id="riskScore">12</strong>
+                <span>/100</span>
+              </div>
+            </div>
+            <p id="riskSummary">Load the incident evidence to evaluate response decisions.</p>
+            <div class="metric-row">
+              <span>Events <strong id="eventCount">0</strong></span>
+              <span>Ready <strong id="readyCount">0</strong></span>
+              <span>Blocked <strong id="blockedCount">0</strong></span>
+              <span>Coverage <strong id="telemetryScore">0%</strong></span>
+            </div>
+          </article>
+
+          <article class="panel integrity-panel">
+            <div class="panel-heading">
+              <span class="panel-number">3</span>
+              <div>
+                <p class="section-label">Evidence Integrity & Blind Spot</p>
+                <h3>Can this evidence support the decision?</h3>
               </div>
             </div>
             <div id="integrityPanel" class="integrity-grid"></div>
-          </div>
+          </article>
 
-          <aside class="right-rail">
-            <section class="evidence-panel">
-              <div class="section-heading">
-                <div>
-                  <p class="section-label">Evidence Timeline</p>
-                  <h3>Splunk-style events</h3>
-                </div>
+          <article class="panel missing-panel">
+            <div class="panel-heading">
+              <span class="panel-number">4</span>
+              <div>
+                <p class="section-label">Missing Evidence To SPL</p>
+                <h3>Generate SPL queries to collect missing evidence</h3>
               </div>
-              <div id="eventStream" class="evidence-list"></div>
-            </section>
-
-            <section class="timeline-panel">
-              <div class="section-heading">
-                <div>
-                  <p class="section-label">Missing Evidence To SPL</p>
-                  <h3>Searches to close gaps</h3>
-                </div>
-              </div>
-              <div id="splGapList" class="timeline"></div>
-            </section>
-          </aside>
-        </section>
-
-        <section class="run-panel" aria-label="Decision audit console">
-          <div class="section-heading">
-            <div>
-              <p class="section-label">Decision Audit Console</p>
-              <h3>MCP-shaped searches, readiness checks, and guardrails</h3>
             </div>
-          </div>
-          <div id="runConsole" class="run-console"></div>
+            <div id="splGapList" class="missing-list"></div>
+          </article>
+
+          <article class="panel blast-panel" id="blast">
+            <div class="panel-heading">
+              <span class="panel-number">5</span>
+              <div>
+                <p class="section-label">Blast Radius Warning</p>
+                <h3>What could go wrong if the team acts</h3>
+              </div>
+            </div>
+            <div id="blastRadiusList" class="blast-list"></div>
+          </article>
+
+          <article class="panel brief-panel">
+            <div class="panel-heading">
+              <span class="panel-number">6</span>
+              <div>
+                <p class="section-label">Decision Audit Brief</p>
+                <h3>Evidence-backed response governance</h3>
+              </div>
+              <button id="exportBriefBtn" class="secondary-btn" type="button">
+                <span>Doc</span>
+                Export Brief
+              </button>
+            </div>
+            <div id="auditPreview" class="audit-preview"></div>
+          </article>
+
+          <article class="panel approval-panel">
+            <div class="panel-heading">
+              <span class="panel-number">7</span>
+              <div>
+                <p class="section-label">Analyst Approval Gate</p>
+                <h3>Human approval before high-impact action</h3>
+              </div>
+            </div>
+            <div id="approvalGate" class="approval-grid"></div>
+          </article>
+
+          <article class="panel spotlight-panel">
+            <div class="panel-heading">
+              <span class="panel-number">8</span>
+              <div>
+                <p class="section-label">Live Decision Spotlight</p>
+                <h3>The decision Veritas is protecting right now</h3>
+              </div>
+            </div>
+            <div id="decisionSpotlight" class="decision-spotlight"></div>
+          </article>
+
+          <article class="panel event-panel">
+            <div class="panel-heading">
+              <span class="panel-number">9</span>
+              <div>
+                <p class="section-label">Live Event Timeline</p>
+                <h3>Recent Splunk evidence</h3>
+              </div>
+              <span class="live-pill">Live</span>
+            </div>
+            <div id="eventStream" class="event-rail"></div>
+          </article>
+
+          <article class="panel console-panel">
+            <div class="panel-heading">
+              <span class="panel-number">10</span>
+              <div>
+                <p class="section-label">Decision Audit Console</p>
+                <h3>MCP-shaped searches, readiness checks, and guardrails</h3>
+              </div>
+            </div>
+            <div id="runConsole" class="run-console"></div>
+          </article>
         </section>
       </main>
     </div>
@@ -232,6 +269,6 @@
       <div id="evidenceOutput" class="evidence-drilldown"></div>
     </dialog>
 
-    <script type="module" src="app.js?v=20260610-approval-drilldown"></script>
+    <script type="module" src="app.js?v=20260610-executive-interface"></script>
   </body>
 </html>

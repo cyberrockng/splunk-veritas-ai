@@ -1125,6 +1125,12 @@ class VeritasHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=ROOT, **kwargs)
 
+    def end_headers(self):
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        super().end_headers()
+
     def send_json(self, payload, status=200):
         body = json.dumps(payload).encode("utf-8")
         self.send_response(status)
@@ -1139,6 +1145,10 @@ class VeritasHandler(SimpleHTTPRequestHandler):
         if length == 0:
             return {}
         return json.loads(self.rfile.read(length).decode("utf-8"))
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.end_headers()
 
     def do_GET(self):
         path = urlparse(self.path).path

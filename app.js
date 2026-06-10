@@ -1,88 +1,118 @@
-const riskScore = document.querySelector("#riskScore");
-const riskSummary = document.querySelector("#riskSummary");
-const stageLabel = document.querySelector("#stageLabel");
-const providerLabel = document.querySelector("#providerLabel");
-const eventCount = document.querySelector("#eventCount");
-const readyCount = document.querySelector("#readyCount");
-const blockedCount = document.querySelector("#blockedCount");
-const telemetryScore = document.querySelector("#telemetryScore");
-const judgeModeBtn = document.querySelector("#judgeModeBtn");
-const startAttackBtn = document.querySelector("#startAttackBtn");
-const nextEventBtn = document.querySelector("#nextEventBtn");
-const loadSplunkBtn = document.querySelector("#loadSplunkBtn");
-const investigateBtn = document.querySelector("#investigateBtn");
-const resetLabBtn = document.querySelector("#resetLabBtn");
-const exportBriefBtn = document.querySelector("#exportBriefBtn");
-const executeSafeBtn = document.querySelector("#executeSafeBtn");
-const labStatus = document.querySelector("#labStatus");
-const demoSteps = document.querySelector("#demoSteps");
-const decisionSpotlight = document.querySelector("#decisionSpotlight");
-const approvalGate = document.querySelector("#approvalGate");
-const decisionMatrix = document.querySelector("#decisionMatrix");
-const integrityPanel = document.querySelector("#integrityPanel");
-const splGapList = document.querySelector("#splGapList");
-const eventStream = document.querySelector("#eventStream");
-const runConsole = document.querySelector("#runConsole");
-const briefDialog = document.querySelector("#briefDialog");
-const closeBriefBtn = document.querySelector("#closeBriefBtn");
-const briefOutput = document.querySelector("#briefOutput");
-const evidenceDialog = document.querySelector("#evidenceDialog");
-const closeEvidenceBtn = document.querySelector("#closeEvidenceBtn");
-const evidenceDialogTitle = document.querySelector("#evidenceDialogTitle");
-const evidenceOutput = document.querySelector("#evidenceOutput");
+const API_BASE = "http://127.0.0.1:8001/api/sentinel";
+
+const els = {
+  riskScore: document.querySelector("#riskScore"),
+  riskSummary: document.querySelector("#riskSummary"),
+  stageLabel: document.querySelector("#stageLabel"),
+  providerLabel: document.querySelector("#providerLabel"),
+  eventCount: document.querySelector("#eventCount"),
+  readyCount: document.querySelector("#readyCount"),
+  blockedCount: document.querySelector("#blockedCount"),
+  telemetryScore: document.querySelector("#telemetryScore"),
+  demoSteps: document.querySelector("#demoSteps"),
+  decisionMatrix: document.querySelector("#decisionMatrix"),
+  thresholdMatrix: document.querySelector("#thresholdMatrix"),
+  integrityPanel: document.querySelector("#integrityPanel"),
+  splGapList: document.querySelector("#splGapList"),
+  blastRadiusList: document.querySelector("#blastRadiusList"),
+  auditPreview: document.querySelector("#auditPreview"),
+  approvalGate: document.querySelector("#approvalGate"),
+  decisionSpotlight: document.querySelector("#decisionSpotlight"),
+  eventStream: document.querySelector("#eventStream"),
+  runConsole: document.querySelector("#runConsole"),
+  judgeModeBtn: document.querySelector("#judgeModeBtn"),
+  loadSplunkBtn: document.querySelector("#loadSplunkBtn"),
+  startAttackBtn: document.querySelector("#startAttackBtn"),
+  nextEventBtn: document.querySelector("#nextEventBtn"),
+  investigateBtn: document.querySelector("#investigateBtn"),
+  executeSafeBtn: document.querySelector("#executeSafeBtn"),
+  resetLabBtn: document.querySelector("#resetLabBtn"),
+  exportBriefBtn: document.querySelector("#exportBriefBtn"),
+  briefDialog: document.querySelector("#briefDialog"),
+  briefOutput: document.querySelector("#briefOutput"),
+  closeBriefBtn: document.querySelector("#closeBriefBtn"),
+  evidenceDialog: document.querySelector("#evidenceDialog"),
+  evidenceDialogTitle: document.querySelector("#evidenceDialogTitle"),
+  evidenceOutput: document.querySelector("#evidenceOutput"),
+  closeEvidenceBtn: document.querySelector("#closeEvidenceBtn")
+};
+
+const actionPlan = [
+  { decisionId: "revoke-session", actionId: "revoke-token" },
+  { decisionId: "disable-admin", actionId: "disable-account" },
+  { decisionId: "block-source-ip", actionId: "block-ip" }
+];
 
 let state = {
-  stage: "idle",
+  incident_id: "INC-001",
+  stage: "Ready",
+  risk: 0,
   events: [],
   detections: [],
   decisions: [],
   integrity: {},
-  risk: 12,
-  integration: { provider: "mock-mcp" },
+  actions: [],
   approvals: [],
+  integration: {}
 };
 
-let runLog = [
-  {
-    type: "ready",
-    title: "Ready",
-    detail: "Load incident evidence, then check whether each proposed response decision is evidence-ready.",
-  },
-];
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
 
-let judgeModeRunning = false;
+function statusClass(status = "") {
+  return String(status).toLowerCase().replaceAll(" ", "-");
+}
 
-const actionPlan = [
-  {
-    decisionId: "revoke-session",
-    actionId: "revoke-token",
-  },
-  {
-    decisionId: "disable-admin",
-    actionId: "disable-account",
-  },
-  {
-    decisionId: "block-source-ip",
-    actionId: "block-ip",
-  },
-];
+function normalizedStatus(status = "") {
+  return statusClass(status);
+}
+
+function riskTone(score = 0) {
+  if (score >= 75) return "high";
+  if (score >= 45) return "medium";
+  if (score > 0) return "low";
+  return "quiet";
+}
+
+function statusLabel(status = "") {
+  const normalized = String(status).replaceAll("-", " ");
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
+
+function readinessTone(decision) {
+  const status = normalizedStatus(decision.status);
+  if (status === "approved") return "ready";
+  if (status === "blocked" || status === "not-ready") return "blocked";
+  if (status === "caution") return "caution";
+  return "review";
+}
+
+function formatTime(value) {
+  if (!value) return "--:--:--";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleTimeString([], { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
 
 async function requestJson(path, options = {}) {
-  const response = await fetch(path, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
-    ...options,
+  const response = await fetch(`${API_BASE}${path}`, {
+    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    ...options
   });
 
   if (!response.ok) {
-    let message = `Request failed: ${response.status}`;
+    let message = `${response.status} ${response.statusText}`;
     try {
-      const errorBody = await response.json();
-      message = errorBody.error || message;
+      const payload = await response.json();
+      message = payload.error || payload.detail || message;
     } catch {
-      // Keep the generic HTTP message.
+      message = await response.text();
     }
     throw new Error(message);
   }
@@ -95,696 +125,606 @@ function sleep(ms) {
 }
 
 function setState(nextState) {
-  state = nextState;
+  state = {
+    ...state,
+    ...nextState,
+    events: nextState.events || [],
+    detections: nextState.detections || [],
+    decisions: nextState.decisions || [],
+    actions: nextState.actions || [],
+    approvals: nextState.approvals || [],
+    integrity: nextState.integrity || {},
+    integration: nextState.integration || {}
+  };
   render();
 }
 
-function statusClass(status) {
-  return String(status || "").toLowerCase().replace(/\s+/g, "-");
-}
-
-function severityClass(value) {
-  return String(value || "").toLowerCase();
-}
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-function riskText(score) {
-  if (score >= 80) return "Critical response risk. Unsafe decisions must be blocked.";
-  if (score >= 55) return "High response risk. Evidence supports containment, but statements need care.";
-  if (score >= 30) return "Moderate response risk. Some decisions are ready, others need more evidence.";
-  return "Low risk state. Continue monitoring and preserve evidence.";
-}
-
-function logEntry(type, title, detail) {
-  runLog = [{ type, title, detail }, ...runLog].slice(0, 24);
-}
-
-function completedActions() {
-  return new Set((state.actions || []).filter((item) => item.status === "completed").map((item) => item.id));
+function logEntry(message, type = "info") {
+  const row = document.createElement("div");
+  row.className = `console-line ${type}`;
+  row.innerHTML = `<span>${formatTime(new Date().toISOString())}</span><strong>${escapeHtml(message)}</strong>`;
+  els.runConsole.prepend(row);
+  while (els.runConsole.children.length > 9) els.runConsole.lastElementChild.remove();
 }
 
 function completedActionCount() {
-  return completedActions().size;
+  return state.actions.filter((action) => action.status === "completed").length;
 }
 
 function approvedApprovalCount() {
-  return (state.approvals || []).filter((item) => item.approval === "approved" && !item.executed).length;
+  return state.approvals.filter((approval) => approval.approval === "approved").length;
+}
+
+function missingEvidenceItems() {
+  return state.decisions.flatMap((decision) =>
+    (decision.checks || [])
+      .filter((check) => check.status !== "found")
+      .map((check) => ({ decision, check }))
+  );
 }
 
 function hasCheckedThresholds() {
-  return state.stage === "investigated" || state.stage === "responding" || completedActionCount() > 0;
+  return state.decisions.some((decision) => (decision.checks || []).length);
 }
 
-function demoStepState(step) {
-  const checks = {
-    load: state.events.length === 6,
-    check: hasCheckedThresholds(),
-    act: completedActionCount() >= 3,
-    brief: briefDialog.open,
-  };
+function allChecks() {
+  const seen = new Set();
+  const rows = [];
 
-  if (checks[step]) return "done";
-  if (step === "load" && state.events.length > 0) return "active";
-  if (step === "check" && checks.load) return "active";
-  if (step === "act" && checks.check) return "active";
-  if (step === "brief" && checks.act) return "active";
-  return "pending";
+  for (const decision of state.decisions) {
+    for (const check of decision.checks || []) {
+      const key = `${check.id}-${check.label}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      rows.push({ decision, check });
+    }
+  }
+
+  return rows;
+}
+
+function findCheck(checkId) {
+  for (const decision of state.decisions) {
+    const check = (decision.checks || []).find((item) => item.id === checkId);
+    if (check) return { decision, check };
+  }
+  return null;
 }
 
 function renderMetrics() {
-  const approved = state.decisions.filter((item) =>
-    ["Approved", "Caution"].includes(item.status),
-  ).length;
-  const blocked = state.decisions.filter((item) =>
-    ["Blocked", "Not Ready"].includes(item.status),
-  ).length;
+  const ready = state.decisions.filter((decision) => ["approved", "caution"].includes(normalizedStatus(decision.status))).length;
+  const blocked = state.decisions.filter((decision) => ["blocked", "not-ready"].includes(normalizedStatus(decision.status))).length;
+  const provider = state.integration?.search_provider || state.integration?.provider || state.integration?.adapter || "demo";
+  const telemetry = state.integrity?.telemetry_completeness ?? 0;
+  const risk = Number(state.risk || 0);
+  const riskText = risk >= 75 ? "High Risk" : risk >= 45 ? "Elevated Risk" : risk > 0 ? "Controlled Risk" : "No Active Risk";
+  const trend = risk >= 75 ? "↑ +12" : risk >= 45 ? "↗ +6" : risk > 0 ? "↓ -42" : "0";
 
-  riskScore.textContent = state.risk;
-  riskSummary.textContent = riskText(state.risk);
-  stageLabel.textContent = `Stage: ${state.stage}`;
-  providerLabel.textContent = `Provider: ${state.integration?.provider || "mock-mcp"} / index=${state.integration?.index || "veritas"}`;
-  eventCount.textContent = state.events.length;
-  readyCount.textContent = approved;
-  blockedCount.textContent = blocked;
-  telemetryScore.textContent = `${state.integrity?.telemetry_completeness || 0}%`;
+  els.riskScore.textContent = risk;
+  els.riskSummary.textContent = `${riskText} · Trend (15m): ${trend}`;
+  els.stageLabel.textContent = state.stage || "Ready";
+  els.providerLabel.textContent = provider;
+  els.eventCount.textContent = state.events.length;
+  els.readyCount.textContent = ready;
+  els.blockedCount.textContent = blocked;
+  els.telemetryScore.textContent = `${telemetry}%`;
+
+  document.documentElement.style.setProperty("--risk-value", `${Math.min(risk, 100) * 1.8}deg`);
+  document.documentElement.dataset.riskTone = riskTone(risk);
 }
 
 function renderDemoSteps() {
   const steps = [
-    {
-      id: "load",
-      label: "Load evidence",
-      detail: "Stream demo evidence or pull indexed events from Splunk.",
-    },
-    {
-      id: "check",
-      label: "Check thresholds",
-      detail: "Score each proposed response decision against required evidence.",
-    },
-    {
-      id: "act",
-      label: "Execute safe actions",
-      detail: "Run containment only for decisions that are evidence-ready.",
-    },
-    {
-      id: "brief",
-      label: "Export brief",
-      detail: "Produce the audit-ready decision record.",
-    },
+    { label: "Pull indexed evidence", done: (state.integration?.search_provider || state.integration?.provider) === "splunk-rest" },
+    { label: "Check thresholds", done: hasCheckedThresholds() },
+    { label: "Approve safe actions", done: approvedApprovalCount() >= 3 },
+    { label: "Execute and brief", done: completedActionCount() >= 3 }
   ];
 
-  demoSteps.innerHTML = steps
-    .map(
-      (step, index) => `
-        <article class="demo-step ${demoStepState(step.id)}">
-          <span>${index + 1}</span>
-          <div>
-            <strong>${step.label}</strong>
-            <p>${step.detail}</p>
-          </div>
-        </article>
-      `,
-    )
-    .join("");
-}
-
-function spotlightDecision() {
-  const dataAccess = state.decisions.find((item) => item.id === "declare-no-data-access");
-  const closeIncident = state.decisions.find((item) => item.id === "close-contained");
-  const disableAdmin = state.decisions.find((item) => item.id === "disable-admin");
-  return dataAccess || closeIncident || disableAdmin || state.decisions[0];
-}
-
-function renderDecisionSpotlight() {
-  if (!state.events.length) {
-    decisionSpotlight.innerHTML = `
-      <article class="spotlight-card">
-        <span class="status-pill not-ready">Waiting</span>
-        <div>
-          <h4>No evidence loaded yet</h4>
-          <p>Load the incident evidence and check thresholds to see Veritas approve safe containment while blocking unsafe statements.</p>
-        </div>
-      </article>
-    `;
-    return;
-  }
-
-  const decision = spotlightDecision();
-  if (!decision) {
-    decisionSpotlight.innerHTML = `
-      <article class="spotlight-card">
-        <span class="status-pill not-ready">Waiting</span>
-        <div>
-          <h4>No decision evaluated yet</h4>
-          <p>Load the evidence and check thresholds to see Veritas approve safe containment while blocking unsafe statements.</p>
-        </div>
-      </article>
-    `;
-    return;
-  }
-
-  const evidenceHits = decision.checks?.filter((item) => item.status !== "missing").length || 0;
-  const missing = decision.missing_evidence?.length || 0;
-  const topGap = decision.missing_evidence?.[0];
-  decisionSpotlight.innerHTML = `
-    <article class="spotlight-card ${statusClass(decision.status)}">
-      <span class="status-pill ${statusClass(decision.status)}">${decision.status}</span>
-      <div>
-        <h4>${escapeHtml(decision.title)}</h4>
-        <p>${escapeHtml(decision.reason)}</p>
-        <div class="spotlight-stats">
-          <span>Readiness <strong>${decision.readiness}%</strong></span>
-          <span>Evidence hits <strong>${evidenceHits}</strong></span>
-          <span>Missing/unsafe <strong>${missing}</strong></span>
-        </div>
-        <p class="spotlight-action"><strong>Safe next action:</strong> ${escapeHtml(decision.recommended_action)}</p>
-        ${
-          topGap
-            ? `<code>${escapeHtml(topGap.spl)}</code>`
-            : `<code>All required evidence for this decision is currently present.</code>`
-        }
+  els.demoSteps.innerHTML = steps
+    .map((step, index) => `
+      <div class="demo-step ${step.done ? "done" : ""}">
+        <span>${index + 1}</span>
+        <strong>${escapeHtml(step.label)}</strong>
       </div>
-    </article>
-  `;
-}
-
-function renderApprovalGate() {
-  const approvals = state.approvals || [];
-  if (!approvals.length) {
-    approvalGate.innerHTML = `
-      <article class="approval-card pending">
-        <div>
-          <strong>No approval candidates yet</strong>
-          <p>Check thresholds to populate the analyst approval gate.</p>
-        </div>
-      </article>
-    `;
-    return;
-  }
-
-  approvalGate.innerHTML = approvals
-    .map((item) => {
-      const canApprove = item.eligible && !item.executed;
-      const approvalClass = item.executed ? "executed" : item.approval;
-      return `
-        <article class="approval-card ${approvalClass}">
-          <div class="approval-head">
-            <div>
-              <strong>${escapeHtml(item.action_label)}</strong>
-              <p>${escapeHtml(item.decision_title || "No linked decision")}</p>
-            </div>
-            <span class="approval-pill ${approvalClass}">${item.executed ? "Executed" : item.approval}</span>
-          </div>
-          <div class="approval-meta">
-            <span>Decision: <strong>${escapeHtml(item.decision_status || "Pending")}</strong></span>
-            <span>Readiness: <strong>${item.readiness ?? 0}%</strong></span>
-          </div>
-          <p>${escapeHtml(item.summary)}</p>
-          <div class="approval-actions">
-            <button type="button" data-approve="${escapeHtml(item.decision_id)}" ${canApprove ? "" : "disabled"}>Approve</button>
-            <button type="button" data-reject="${escapeHtml(item.decision_id)}" ${canApprove ? "" : "disabled"}>Reject</button>
-          </div>
-        </article>
-      `;
-    })
+    `)
     .join("");
 }
 
 function renderDecisionMatrix() {
-  decisionMatrix.innerHTML = state.decisions
-    .map(
-      (decision) => `
-        <article class="decision-card ${statusClass(decision.status)}">
-          <div class="decision-card-header">
-            <div>
-              <h4>${decision.title}</h4>
-              <p>${decision.description}</p>
-            </div>
-            <span class="status-pill ${statusClass(decision.status)}">${decision.status}</span>
-          </div>
-          <div class="decision-meta">
-            <span>Readiness: <strong>${decision.readiness}%</strong></span>
-            <span>Impact: <strong>${decision.impact}</strong></span>
-            <span>Human approval: <strong>${decision.human_approval ? "Required" : "Optional"}</strong></span>
-          </div>
-          <p class="decision-reason">${decision.reason}</p>
-          <div class="checklist">
-            ${decision.checks
-              .map(
-                (check) => `
-                  <div class="check-row ${check.status}">
-                    <span>${check.status === "found" ? "Found" : check.status === "contradicted" ? "Contradicts" : "Missing"}</span>
-                    <strong>${check.label}</strong>
-                    <button type="button" data-drilldown="${decision.id}:${check.id}">Evidence</button>
+  if (!state.decisions.length) {
+    els.decisionMatrix.innerHTML = `<div class="empty-panel">Run the live judge demo to populate proposed response decisions.</div>`;
+    return;
+  }
+
+  els.decisionMatrix.innerHTML = `
+    <table class="data-table decision-table">
+      <thead>
+        <tr>
+          <th>Decision</th>
+          <th>Impact</th>
+          <th>Evidence score</th>
+          <th>Status</th>
+          <th>Approval</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${state.decisions.map((decision) => {
+          const foundCheck = (decision.checks || []).find((check) => check.status === "found") || (decision.checks || [])[0];
+          const approval = state.approvals.find((item) => item.decision_id === decision.id);
+          const approvalLabel = approval?.approval === "approved"
+            ? "Approved"
+            : approval?.approval === "rejected"
+              ? "Rejected"
+              : decision.requires_human_approval
+                ? "Human review"
+                : "Auto-ready";
+          return `
+            <tr>
+              <td>
+                <div class="decision-name">
+                  <span class="decision-icon">${normalizedStatus(decision.status) === "blocked" ? "!" : "✓"}</span>
+                  <div>
+                    <strong>${escapeHtml(decision.title)}</strong>
+                    <button class="link-button" data-drilldown="${escapeHtml(foundCheck?.id || "")}">Evidence</button>
                   </div>
-                `,
-              )
-              .join("")}
-          </div>
-          <div class="guardrail-box">
-            <strong>Blast radius:</strong> ${decision.blast_radius}
-          </div>
-          <p class="decision-action"><strong>Safe next action:</strong> ${decision.recommended_action}</p>
-        </article>
-      `,
-    )
-    .join("");
+                </div>
+              </td>
+              <td><span class="impact-pill ${escapeHtml(String(decision.impact || "medium").toLowerCase())}">${escapeHtml(decision.impact || "Medium")}</span></td>
+              <td>
+                <div class="score-cell">
+                  <strong>${decision.readiness}%</strong>
+                  <span class="score-bar"><i style="width:${decision.readiness}%"></i></span>
+                </div>
+              </td>
+              <td><span class="status-pill ${readinessTone(decision)}">${statusLabel(decision.status)}</span></td>
+              <td><span class="approval-state ${approval?.approval || ""}">${escapeHtml(approvalLabel)}</span></td>
+            </tr>
+          `;
+        }).join("")}
+      </tbody>
+    </table>
+    <p class="panel-note">Readiness Score = Evidence Confidence × Integrity × Coverage × Safety</p>
+  `;
+}
+
+function thresholdScore(check) {
+  if (check.status === "found") return check.mandatory ? 86 : 82;
+  if (check.status === "contradicted") return 58;
+  return check.mandatory ? 62 : 66;
+}
+
+function renderThresholdMatrix() {
+  const rows = allChecks();
+  if (!rows.length) {
+    els.thresholdMatrix.innerHTML = `<div class="empty-panel">Evidence thresholds will appear after investigation.</div>`;
+    return;
+  }
+
+  els.thresholdMatrix.innerHTML = `
+    <table class="data-table threshold-table">
+      <thead>
+        <tr>
+          <th>Evidence category</th>
+          <th>Threshold</th>
+          <th>Current score</th>
+          <th>Gap</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.slice(0, 7).map(({ decision, check }) => {
+          const threshold = check.mandatory ? 80 : 70;
+          const current = thresholdScore(check);
+          const gap = current - threshold;
+          const status = check.status === "found" ? "Sufficient" : check.status === "contradicted" ? "Insufficient" : "Below Threshold";
+          return `
+            <tr>
+              <td>
+                <strong>${escapeHtml(check.label)}</strong>
+                <span>${escapeHtml(decision.title)}</span>
+              </td>
+              <td>${threshold}</td>
+              <td>${current}</td>
+              <td class="${gap >= 0 ? "positive" : "negative"}">${gap >= 0 ? "+" : ""}${gap}</td>
+              <td>
+                <button class="status-chip ${statusClass(status)}" data-drilldown="${escapeHtml(check.id)}">${status}</button>
+              </td>
+            </tr>
+          `;
+        }).join("")}
+      </tbody>
+    </table>
+    <div class="legend-row">
+      <span><i class="dot good"></i>Sufficient</span>
+      <span><i class="dot warn"></i>Below Threshold</span>
+      <span><i class="dot bad"></i>Insufficient</span>
+    </div>
+  `;
+}
+
+function integrityRows() {
+  const integrity = state.integrity || {};
+  const sourcesChecked = integrity.sources_checked ?? 0;
+  const sourcesExpected = integrity.sources_expected ?? 0;
+  const sourcesMissing = integrity.sources_missing ?? 0;
+  return [
+    ["Evidence Freshness", integrity.evidence_freshness || "Live", "ok"],
+    ["Sources Checked", sourcesExpected ? `${sourcesChecked} / ${sourcesExpected}` : "0 / 0", "ok"],
+    ["Sources Missing", `${sourcesMissing}`, sourcesMissing ? "warn" : "ok"],
+    ["Telemetry Completeness", `${integrity.telemetry_completeness ?? 0}%`, (integrity.telemetry_completeness ?? 0) >= 80 ? "ok" : "warn"],
+    ["Source Trust (Lag)", `${integrity.source_trust ?? 0} / 100`, (integrity.source_trust ?? 0) >= 75 ? "ok" : "warn"],
+    ["Prompt Injection Safety", integrity.prompt_injection_safe === false ? "Review" : "Safe", integrity.prompt_injection_safe === false ? "warn" : "ok"]
+  ];
 }
 
 function renderIntegrity() {
-  const integrity = state.integrity || {};
-  integrityPanel.innerHTML = `
-    <article>
-      <span class="metric-label">Evidence Freshness</span>
-      <strong>${integrity.freshness || "No events streamed"}</strong>
-    </article>
-    <article>
-      <span class="metric-label">Splunk Contract</span>
-      <strong>${state.integration?.incident_id || "INC-001"}</strong>
-      <p>index=${state.integration?.index || "veritas"}, sourcetype=${state.integration?.sourcetype || "veritas:incident"}</p>
-    </article>
-    <article>
-      <span class="metric-label">Sources Checked</span>
-      <strong>${(integrity.sources_checked || []).length}</strong>
-      <p>${(integrity.sources_checked || []).join(", ") || "None yet"}</p>
-    </article>
-    <article>
-      <span class="metric-label">Sources Missing</span>
-      <strong>${(integrity.sources_missing || []).length}</strong>
-      <p>${(integrity.sources_missing || []).join(", ") || "None"}</p>
-    </article>
-    <article>
-      <span class="metric-label">AI Safety</span>
-      <strong>Evidence-bounded</strong>
-      <p>${integrity.prompt_injection_warning || ""}</p>
-    </article>
-    <article class="wide">
-      <span class="metric-label">Missing Telemetry Warning</span>
-      <strong>Do not confuse absence with safety</strong>
-      <p>${integrity.missing_telemetry_warning || ""}</p>
-    </article>
-    <article class="wide">
-      <span class="metric-label">Approval Model</span>
-      <strong>Human approval required</strong>
-      <p>${integrity.human_approval_requirement || ""}</p>
-    </article>
+  els.integrityPanel.innerHTML = `
+    <div class="integrity-list">
+      ${integrityRows().map(([label, value, tone]) => `
+        <div class="integrity-row">
+          <span>${escapeHtml(label)}</span>
+          <strong class="${tone}">${escapeHtml(value)}</strong>
+        </div>
+      `).join("")}
+    </div>
+    <div class="warning-banner">High-impact actions require human approval</div>
   `;
 }
 
 function renderSplGaps() {
-  const gaps = state.decisions.flatMap((decision) =>
-    decision.missing_evidence.map((item) => ({
-      decision: decision.title,
-      label: item.label,
-      spl: item.spl,
-    })),
-  );
-
+  const gaps = missingEvidenceItems();
   if (!gaps.length) {
-    splGapList.innerHTML = `<article class="timeline-item"><strong>No missing evidence gaps</strong><p>All current threshold checks have evidence.</p></article>`;
+    els.splGapList.innerHTML = `<div class="empty-panel good">No active evidence gaps. Required evidence is present for current safe actions.</div>`;
     return;
   }
 
-  splGapList.innerHTML = gaps
-    .slice(0, 8)
-    .map(
-      (gap) => `
-        <article class="timeline-item">
-          <strong>${gap.label}</strong>
-          <p>${gap.decision}</p>
-          <code>${gap.spl}</code>
-        </article>
-      `,
-    )
+  els.splGapList.innerHTML = `
+    ${gaps.slice(0, 4).map(({ decision, check }) => `
+      <div class="gap-card">
+        <div>
+          <strong>${escapeHtml(check.label)}</strong>
+          <span>Evidence category: ${escapeHtml(decision.title)}</span>
+        </div>
+        <button data-drilldown="${escapeHtml(check.id)}">Generate</button>
+      </div>
+    `).join("")}
+    <button class="wide-link">View all missing evidence (${gaps.length})</button>
+  `;
+}
+
+function renderBlastRadius() {
+  const blastItems = state.decisions
+    .filter((decision) => decision.blast_radius)
+    .map((decision) => ({
+      title: decision.blast_radius,
+      decision: decision.title,
+      risk: decision.impact === "high" ? "High Risk" : "Medium Risk",
+      tone: decision.impact === "high" ? "high" : "medium"
+    }));
+
+  if (!blastItems.length) {
+    els.blastRadiusList.innerHTML = `<div class="empty-panel">Blast radius warnings appear once decisions are scored.</div>`;
+    return;
+  }
+
+  els.blastRadiusList.innerHTML = `
+    ${blastItems.slice(0, 3).map((item) => `
+      <div class="blast-card ${item.tone}">
+        <div>
+          <strong>${escapeHtml(item.title)}</strong>
+          <span>${escapeHtml(item.decision)}</span>
+        </div>
+        <em>${escapeHtml(item.risk)}</em>
+      </div>
+    `).join("")}
+    <button class="wide-link">View full blast radius map</button>
+  `;
+}
+
+function renderAuditPreview() {
+  const provider = state.integration?.search_provider || state.integration?.provider || "Splunk REST";
+  const bullets = [
+    `Incident summary and ${state.events.length || "live"} event timeline`,
+    "Evidence considered and scoring breakdown",
+    "Proposed decisions and rationale",
+    `${approvedApprovalCount()} approvals and human-in-the-loop actions`,
+    "Integrity, blind spots, and safety checks",
+    `References to SPL queries and ${provider} data sources`
+  ];
+
+  els.auditPreview.innerHTML = `
+    <p>The audit brief will include:</p>
+    <ul>
+      ${bullets.map((bullet) => `<li>${escapeHtml(bullet)}</li>`).join("")}
+    </ul>
+    <button class="wide-link" id="previewBriefBtn">Preview brief</button>
+  `;
+  document.querySelector("#previewBriefBtn")?.addEventListener("click", exportBrief);
+}
+
+function renderApprovalGate() {
+  if (!state.approvals.length) {
+    els.approvalGate.innerHTML = `<div class="empty-panel">High-impact actions will queue here after threshold checks.</div>`;
+    return;
+  }
+
+  els.approvalGate.innerHTML = state.approvals
+    .map((approval) => `
+      <div class="approval-card ${approval.approval || "pending"}">
+        <div>
+          <span>${escapeHtml(approval.action_label)}</span>
+          <strong>${escapeHtml(approval.decision_title)}</strong>
+          <p>${escapeHtml(approval.summary || "Awaiting analyst decision.")}</p>
+        </div>
+        <div class="approval-meta">
+          <b>${approval.readiness}%</b>
+          <small>${approval.executed ? "Executed" : approval.approval || "Pending"}</small>
+        </div>
+        <div class="approval-actions">
+          <button data-approve="${escapeHtml(approval.decision_id)}" ${approval.approval === "approved" ? "disabled" : ""}>Approve</button>
+          <button data-reject="${escapeHtml(approval.decision_id)}" ${approval.approval === "rejected" ? "disabled" : ""}>Reject</button>
+        </div>
+      </div>
+    `)
     .join("");
+}
+
+function renderDecisionSpotlight() {
+  const critical = state.decisions.find((decision) => normalizedStatus(decision.status) === "blocked")
+    || state.decisions.find((decision) => normalizedStatus(decision.status) === "not-ready")
+    || state.decisions.find((decision) => normalizedStatus(decision.status) === "caution")
+    || state.decisions[0];
+
+  if (!critical) {
+    els.decisionSpotlight.innerHTML = `<div class="empty-panel">Decision assurance summary will appear here.</div>`;
+    return;
+  }
+
+  const missing = (critical.checks || []).filter((check) => check.status !== "found");
+  els.decisionSpotlight.innerHTML = `
+    <div class="spotlight-card ${readinessTone(critical)}">
+      <span>${statusLabel(critical.status)}</span>
+      <strong>${escapeHtml(critical.title)}</strong>
+      <div class="spotlight-score">${critical.readiness}%</div>
+      <p>${escapeHtml(critical.reason || "Evidence threshold is being evaluated.")}</p>
+      ${missing.length ? `
+        <ul>
+          ${missing.slice(0, 3).map((check) => `<li>${escapeHtml(check.label)}</li>`).join("")}
+        </ul>
+      ` : `<p>Evidence threshold has been met for this response decision.</p>`}
+    </div>
+  `;
 }
 
 function renderEvents() {
   if (!state.events.length) {
-    eventStream.innerHTML = `<article class="evidence-item"><p>No evidence loaded yet.</p></article>`;
+    els.eventStream.innerHTML = `<div class="empty-panel">No live incident events yet.</div>`;
     return;
   }
 
-  eventStream.innerHTML = state.events
-    .slice()
-    .reverse()
-    .map(
-      (event) => `
-        <article class="evidence-item ${severityClass(event.severity)}">
-          <div class="evidence-item-header">
-            <strong>${event.id} - ${event.time}</strong>
-            <span class="severity-pill ${severityClass(event.severity)}">${event.severity}</span>
-          </div>
-          <span>${event.source}${event.origin ? ` / ${event.origin}` : ""}</span>
-          <code>${event.query}</code>
-          ${event.splunk_job_id ? `<small>Splunk job: ${event.splunk_job_id}</small>` : ""}
-          <p>${event.summary}</p>
-        </article>
-      `,
-    )
-    .join("");
-}
-
-function renderRunConsole() {
-  runConsole.innerHTML = runLog
-    .map(
-      (entry) => `
-        <article class="run-entry ${entry.type}">
-          <strong>${entry.title}</strong>
-          <p>${entry.detail}</p>
-        </article>
-      `,
-    )
-    .join("");
+  els.eventStream.innerHTML = `
+    <div class="timeline-rail">
+      ${state.events.map((event) => `
+        <div class="timeline-item ${event.severity || "medium"}">
+          <div class="timeline-node">${event.severity === "high" ? "!" : "•"}</div>
+          <time>${formatTime(event.timestamp || event._time)}</time>
+          <strong>${escapeHtml(event.title || event.event_id || event.action || "Security event")}</strong>
+          <span>${escapeHtml(event.description || event.message || event.user || "")}</span>
+          <em>${escapeHtml(event.severity || "medium")}</em>
+        </div>
+      `).join("")}
+    </div>
+  `;
 }
 
 function render() {
   renderMetrics();
   renderDemoSteps();
-  renderDecisionSpotlight();
-  renderApprovalGate();
   renderDecisionMatrix();
+  renderThresholdMatrix();
   renderIntegrity();
   renderSplGaps();
+  renderBlastRadius();
+  renderAuditPreview();
+  renderApprovalGate();
+  renderDecisionSpotlight();
   renderEvents();
-  renderRunConsole();
-  executeSafeBtn.disabled = !hasCheckedThresholds() || approvedApprovalCount() === 0 || completedActionCount() >= 3;
-  judgeModeBtn.disabled = judgeModeRunning;
 }
 
 async function loadState() {
-  setState(await requestJson("/api/sentinel/state"));
+  try {
+    const payload = await requestJson("/state");
+    setState(payload);
+    logEntry("Loaded current Veritas state.");
+  } catch (error) {
+    logEntry(`Backend unavailable: ${error.message}`, "error");
+  }
 }
 
 async function resetLab() {
-  const nextState = await requestJson("/api/sentinel/reset", { method: "POST" });
-  if (judgeModeRunning) {
-    logEntry("ready", "Lab reset", "Evidence has been cleared for the guided judge run.");
-  } else {
-    runLog = [
-      {
-        type: "ready",
-        title: "Lab reset",
-        detail: "Evidence has been cleared. Load the incident evidence to evaluate decisions.",
-      },
-    ];
-  }
-  labStatus.textContent = "Reset complete";
-  setState(nextState);
-}
-
-async function streamNextEvent() {
-  const previousCount = state.events.length;
-  const nextState = await requestJson("/api/sentinel/step", { method: "POST" });
-  const event = nextState.events[nextState.events.length - 1];
-  if (event && nextState.events.length > previousCount) {
-    logEntry("search", `Loaded ${event.id}`, event.summary);
-  }
-  labStatus.textContent =
-    nextState.stage === "attack-complete" ? "Evidence load complete" : "Evidence event loaded";
-  setState(nextState);
+  logEntry("Resetting incident lab.");
+  const payload = await requestJson("/reset", { method: "POST", body: "{}" });
+  setState(payload);
 }
 
 async function loadFromSplunk() {
-  labStatus.textContent = "Pulling indexed evidence";
+  logEntry("Pulling indexed evidence from Splunk.");
   try {
-    const result = await requestJson("/api/sentinel/load-splunk", { method: "POST" });
-    const search = result.search || {};
-    runLog = [
-      {
-        type: "tool",
-        title: "Loaded indexed Splunk evidence",
-        detail: `job=${search.job_id}, mapped=${search.mapped_events}, missing=${(search.missing_events || []).join(", ") || "none"}`,
-      },
-      {
-        type: "search",
-        title: "Live SPL",
-        detail: search.query || "No query returned.",
-      },
-      ...runLog,
-    ].slice(0, 24);
-    labStatus.textContent = `${search.mapped_events || 0} indexed events loaded`;
-    setState(result);
-    return result;
+    await requestJson("/load-splunk", { method: "POST", body: "{}" });
+    const payload = await requestJson("/state");
+    setState(payload);
+    logEntry("Splunk indexed evidence loaded.");
   } catch (error) {
-    labStatus.textContent = error.message;
-    logEntry("error", "Splunk pull failed", error.message);
-    render();
+    logEntry(`Splunk pull failed: ${error.message}`, "error");
     throw error;
   }
 }
 
 async function startAttack() {
-  const started = await requestJson("/api/sentinel/start", { method: "POST" });
-  runLog = [
-    {
-      type: "claim",
-      title: "Incident evidence loading",
-      detail: "Veritas is loading the admin takeover evidence set from Splunk-style telemetry.",
-    },
-  ];
-  labStatus.textContent = "Loading evidence";
-  setState(started);
+  logEntry("Starting admin takeover incident stream.");
+  const payload = await requestJson("/start", { method: "POST", body: "{}" });
+  setState(payload);
+}
 
-  for (let index = 0; index < started.sequence_length; index += 1) {
-    await sleep(420);
-    await streamNextEvent();
-  }
-  return state;
+async function streamNextEvent() {
+  const payload = await requestJson("/step", { method: "POST", body: "{}" });
+  setState(payload);
+  logEntry("Advanced live event stream.");
 }
 
 async function checkThresholds() {
-  labStatus.textContent = "Checking thresholds";
-  const result = await requestJson("/api/sentinel/investigate", { method: "POST" });
-
-  logEntry("claim", "Evidence threshold check complete", result.summary);
-  result.tool_calls.forEach((call) => {
-    const resultText =
-      call.tool === "splunk.search"
-        ? `provider=${call.result.provider}, job=${call.result.job_id}, results=${call.result.result_count}, link=${call.result.link}${
-            call.result.error ? `, fallback=${call.result.error}` : ""
-          }`
-        : JSON.stringify(call.result);
-    logEntry("tool", `MCP ${call.tool}`, `${JSON.stringify(call.arguments)} => ${resultText}`);
-  });
-  result.decisions.forEach((decision) => {
-    logEntry(
-      statusClass(decision.status) === "approved" ? "supported" : statusClass(decision.status),
-      `${decision.title}: ${decision.status}`,
-      `Readiness ${decision.readiness}%. ${decision.reason}`,
-    );
-  });
-
-  labStatus.textContent = `${result.decisions.length} decisions evaluated`;
-  setState(result);
-  return result;
+  logEntry("Checking evidence thresholds.");
+  const payload = await requestJson("/investigate", { method: "POST", body: "{}" });
+  setState(payload);
 }
 
 async function setApproval(decisionId, approval) {
-  const nextState = await requestJson("/api/sentinel/approval", {
+  await requestJson("/approval", {
     method: "POST",
-    body: JSON.stringify({ decision_id: decisionId, approval }),
+    body: JSON.stringify({ decision_id: decisionId, approval })
   });
-  const decision = nextState.decisions.find((item) => item.id === decisionId);
-  logEntry(
-    approval === "approved" ? "supported" : "blocked",
-    `${decision?.title || decisionId}: ${approval}`,
-    approval === "approved"
-      ? "Analyst approval recorded for this evidence-ready action."
-      : "Analyst rejection recorded; Veritas will not execute this action.",
-  );
-  labStatus.textContent = `Decision ${approval}`;
-  setState(nextState);
-  return nextState;
+  const payload = await requestJson("/state");
+  setState(payload);
+  logEntry(`${approval === "approved" ? "Approved" : "Rejected"} ${decisionId}.`);
 }
 
 async function executeApprovedContainment() {
-  if (!hasCheckedThresholds()) {
-    labStatus.textContent = "Check thresholds first";
-    return;
-  }
-
-  labStatus.textContent = "Executing approved containment";
-  let nextState = state;
-  const completed = completedActions();
-  const allowedStatuses = new Set(["Approved", "Caution"]);
+  logEntry("Executing approved containment actions.");
 
   for (const item of actionPlan) {
-    const decision = nextState.decisions.find((candidate) => candidate.id === item.decisionId);
-    const approval = (nextState.approvals || []).find((candidate) => candidate.decision_id === item.decisionId);
-    if (
-      !decision ||
-      !allowedStatuses.has(decision.status) ||
-      approval?.approval !== "approved" ||
-      completed.has(item.actionId)
-    ) {
+    const approval = state.approvals.find((entry) => entry.decision_id === item.decisionId);
+    if (approval?.approval !== "approved") {
+      logEntry(`Skipped ${item.actionId}: approval required.`, "warn");
       continue;
     }
 
-    nextState = await requestJson("/api/sentinel/respond", {
+    const payload = await requestJson("/respond", {
       method: "POST",
-      body: JSON.stringify({ action: item.actionId }),
+      body: JSON.stringify({ action: item.actionId })
     });
-    const action = nextState.actions.find((candidate) => candidate.id === item.actionId);
-    logEntry("supported", `Executed ${action?.label || item.actionId}`, action?.summary || "Containment action completed.");
-    setState(nextState);
-    await sleep(220);
+    setState(payload);
+    logEntry(`Executed ${approval.action_label}.`);
+    await sleep(350);
   }
-
-  const refreshed = await requestJson("/api/sentinel/investigate", { method: "POST" });
-  logEntry(
-    "blocked",
-    "Unsafe closure still blocked",
-    "Containment actions lowered risk, but Veritas still requires post-containment monitoring before closing the incident.",
-  );
-  labStatus.textContent = "Containment executed";
-  setState(refreshed);
-  return refreshed;
 }
-
-function findCheck(decisionId, checkId) {
-  const decision = state.decisions.find((item) => item.id === decisionId);
-  const check = decision?.checks.find((item) => item.id === checkId);
-  return { decision, check };
-}
-
-function showEvidenceDrilldown(decisionId, checkId) {
-  const { decision, check } = findCheck(decisionId, checkId);
-  if (!decision || !check) return;
-
-  evidenceDialogTitle.textContent = `${decision.title} / ${check.label}`;
-  const evidenceRows = (check.evidence || [])
-    .map(
-      (event) => `
-        <article class="drilldown-event">
-          <div class="drilldown-event-head">
-            <strong>${escapeHtml(event.id)} - ${escapeHtml(event.time)}</strong>
-            <span class="severity-pill ${severityClass(event.severity)}">${escapeHtml(event.severity)}</span>
-          </div>
-          <p>${escapeHtml(event.summary)}</p>
-          <dl>
-            <div><dt>Source</dt><dd>${escapeHtml(event.source)}</dd></div>
-            <div><dt>User</dt><dd>${escapeHtml(event.user)}</dd></div>
-            <div><dt>IP</dt><dd>${escapeHtml(event.src_ip)}</dd></div>
-            <div><dt>Job</dt><dd>${escapeHtml(event.splunk_job_id || "mock")}</dd></div>
-          </dl>
-          <code>${escapeHtml(event.query)}</code>
-        </article>
-      `,
-    )
-    .join("");
-
-  evidenceOutput.innerHTML = `
-    <div class="drilldown-summary ${check.status}">
-      <span class="status-pill ${check.status === "found" ? "approved" : check.status === "contradicted" ? "blocked" : "caution"}">
-        ${check.status}
-      </span>
-      <div>
-        <strong>${escapeHtml(check.label)}</strong>
-        <p>${check.mandatory ? "Mandatory evidence threshold item." : "Supporting evidence threshold item."}</p>
-      </div>
-    </div>
-    <section>
-      <p class="section-label">SPL Used To Close This Gap</p>
-      <code>${escapeHtml(check.spl)}</code>
-    </section>
-    <section>
-      <p class="section-label">Matched Evidence</p>
-      ${evidenceRows || `<article class="drilldown-event"><p>No matching evidence has been found yet. Run the SPL above before approving this decision.</p></article>`}
-    </section>
-  `;
-  evidenceDialog.showModal();
-}
-
-approvalGate.addEventListener("click", async (event) => {
-  const approve = event.target.closest("[data-approve]");
-  const reject = event.target.closest("[data-reject]");
-  if (approve) {
-    await setApproval(approve.dataset.approve, "approved");
-  }
-  if (reject) {
-    await setApproval(reject.dataset.reject, "rejected");
-  }
-});
-
-decisionMatrix.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-drilldown]");
-  if (!button) return;
-  const [decisionId, checkId] = button.dataset.drilldown.split(":");
-  showEvidenceDrilldown(decisionId, checkId);
-});
 
 async function exportBrief() {
-  const data = await requestJson("/api/sentinel/brief");
-  briefOutput.textContent = data.brief;
-  briefDialog.showModal();
-  render();
-  return data;
+  logEntry("Generating decision audit brief.");
+  const payload = await requestJson("/brief");
+  els.briefOutput.textContent = payload.brief || JSON.stringify(payload, null, 2);
+  els.briefDialog.showModal();
+}
+
+function showEvidenceDrilldown(checkId) {
+  const result = findCheck(checkId);
+  if (!result) return;
+  const { decision, check } = result;
+  const evidence = check.evidence || [];
+  const spl = check.spl || "No SPL query mapped for this evidence item.";
+
+  els.evidenceDialogTitle.textContent = check.label;
+  els.evidenceOutput.innerHTML = `
+    <div class="drilldown-grid">
+      <section>
+        <span>Decision</span>
+        <strong>${escapeHtml(decision.title)}</strong>
+      </section>
+      <section>
+        <span>Status</span>
+        <strong>${statusLabel(check.status)}</strong>
+      </section>
+      <section>
+        <span>Mandatory</span>
+        <strong>${check.mandatory ? "Yes" : "No"}</strong>
+      </section>
+      <section>
+        <span>Readiness</span>
+        <strong>${decision.readiness}%</strong>
+      </section>
+    </div>
+    <h4>Suggested SPL</h4>
+    <pre>${escapeHtml(spl)}</pre>
+    <h4>Matched Evidence</h4>
+    ${evidence.length ? `
+      <ul class="evidence-list">
+        ${evidence.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+      </ul>
+    ` : `<p class="muted-copy">No matching event is currently indexed for this evidence item.</p>`}
+  `;
+  els.evidenceDialog.showModal();
 }
 
 async function runJudgeMode() {
-  judgeModeRunning = true;
-  render();
+  const buttonLabel = els.judgeModeBtn.textContent;
+  els.judgeModeBtn.disabled = true;
+  els.judgeModeBtn.textContent = "Running...";
+  logEntry("Judge mode started.");
+
   try {
-    runLog = [
-      {
-        type: "claim",
-        title: "Judge Mode started",
-        detail: "Veritas will load evidence, evaluate thresholds, execute safe containment, and open the audit brief.",
-      },
-    ];
-    labStatus.textContent = "Running judge demo";
     await resetLab();
+    await sleep(400);
 
     try {
       await loadFromSplunk();
-      logEntry("supported", "Live Splunk mode", "Indexed evidence was pulled from Splunk REST.");
-    } catch (error) {
-      logEntry("uncertain", "Fallback demo mode", "Splunk was unavailable, so Veritas loaded the deterministic demo evidence path.");
+    } catch {
       await startAttack();
-    }
-
-    await sleep(350);
-    const investigated = await checkThresholds();
-    for (const item of actionPlan) {
-      const decision = investigated.decisions.find((candidate) => candidate.id === item.decisionId);
-      if (decision && ["Approved", "Caution"].includes(decision.status)) {
-        await setApproval(item.decisionId, "approved");
-        await sleep(160);
+      for (let index = 0; index < 5; index += 1) {
+        await sleep(500);
+        await streamNextEvent();
       }
     }
-    await sleep(350);
+
+    await sleep(500);
+    await checkThresholds();
+
+    for (const item of actionPlan) {
+      const approval = state.approvals.find((entry) => entry.decision_id === item.decisionId);
+      if (approval?.eligible !== false) {
+        await sleep(350);
+        await setApproval(item.decisionId, "approved");
+      }
+    }
+
+    await sleep(500);
     await executeApprovedContainment();
-    await sleep(350);
+    await sleep(400);
     await exportBrief();
-    labStatus.textContent = "Judge demo complete";
+    logEntry("Judge mode completed.");
   } catch (error) {
-    labStatus.textContent = error.message;
-    logEntry("error", "Judge Mode failed", error.message);
-    render();
+    logEntry(`Judge mode failed: ${error.message}`, "error");
   } finally {
-    judgeModeRunning = false;
-    render();
+    els.judgeModeBtn.disabled = false;
+    els.judgeModeBtn.textContent = buttonLabel;
   }
 }
 
-judgeModeBtn.addEventListener("click", runJudgeMode);
-startAttackBtn.addEventListener("click", startAttack);
-nextEventBtn.addEventListener("click", streamNextEvent);
-loadSplunkBtn.addEventListener("click", loadFromSplunk);
-investigateBtn.addEventListener("click", checkThresholds);
-resetLabBtn.addEventListener("click", resetLab);
-exportBriefBtn.addEventListener("click", exportBrief);
-executeSafeBtn.addEventListener("click", executeApprovedContainment);
-closeBriefBtn.addEventListener("click", () => briefDialog.close());
-closeEvidenceBtn.addEventListener("click", () => evidenceDialog.close());
+function bindEvents() {
+  els.resetLabBtn.addEventListener("click", () => resetLab().catch((error) => logEntry(error.message, "error")));
+  els.loadSplunkBtn.addEventListener("click", () => loadFromSplunk().catch(() => {}));
+  els.startAttackBtn.addEventListener("click", () => startAttack().catch((error) => logEntry(error.message, "error")));
+  els.nextEventBtn.addEventListener("click", () => streamNextEvent().catch((error) => logEntry(error.message, "error")));
+  els.investigateBtn.addEventListener("click", () => checkThresholds().catch((error) => logEntry(error.message, "error")));
+  els.executeSafeBtn.addEventListener("click", () => executeApprovedContainment().catch((error) => logEntry(error.message, "error")));
+  els.exportBriefBtn.addEventListener("click", () => exportBrief().catch((error) => logEntry(error.message, "error")));
+  els.judgeModeBtn.addEventListener("click", runJudgeMode);
 
+  els.approvalGate.addEventListener("click", (event) => {
+    const approveId = event.target.closest("[data-approve]")?.dataset.approve;
+    const rejectId = event.target.closest("[data-reject]")?.dataset.reject;
+    if (approveId) setApproval(approveId, "approved").catch((error) => logEntry(error.message, "error"));
+    if (rejectId) setApproval(rejectId, "rejected").catch((error) => logEntry(error.message, "error"));
+  });
+
+  document.body.addEventListener("click", (event) => {
+    const drilldownId = event.target.closest("[data-drilldown]")?.dataset.drilldown;
+    if (drilldownId) showEvidenceDrilldown(drilldownId);
+  });
+
+  els.closeBriefBtn.addEventListener("click", () => els.briefDialog.close());
+  els.closeEvidenceBtn.addEventListener("click", () => els.evidenceDialog.close());
+}
+
+bindEvents();
+render();
 loadState();
