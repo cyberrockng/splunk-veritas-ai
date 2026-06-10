@@ -147,10 +147,36 @@ def main():
     assert_equal(custom["integration"]["request"]["title"], "Custom MFA session containment", "custom title")
     assert_equal(len(custom["events"]), 3, "custom event mapping")
     assert_true(custom["risk"] != 12, "custom request should recalculate risk")
+    assert_true(custom["integration"]["request"]["feedback"]["executed"], "custom feedback should mark execution")
+    assert_equal(
+        custom["integration"]["request"]["feedback"]["decision_status"],
+        "Approved",
+        "custom feedback decision status",
+    )
     assert_equal(
         next(item for item in custom["actions"] if item["id"] == "revoke-token")["status"],
         "completed",
         "custom request should execute approved task",
+    )
+
+    weak_custom = request_json(
+        "/api/sentinel/custom-run",
+        method="POST",
+        payload={
+            "title": "Weak evidence block request",
+            "evidence": "Analyst saw one normal admin login and wants to block the source IP.",
+            "action": "block-ip",
+            "execute": True,
+        },
+    )
+    assert_equal(weak_custom["integration"]["provider"], "custom-input", "weak custom provider")
+    assert_true(
+        not weak_custom["integration"]["request"]["feedback"]["executed"],
+        "weak custom request should be held",
+    )
+    assert_true(
+        weak_custom["integration"]["request"]["feedback"]["missing_evidence"],
+        "weak custom request should explain missing evidence",
     )
 
     request_json("/api/sentinel/reset", method="POST", payload={})

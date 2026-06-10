@@ -476,6 +476,29 @@ function renderBlastRadius() {
 
 function renderAuditPreview() {
   const provider = state.integration?.search_provider || state.integration?.provider || "Splunk REST";
+  const customRequest = state.integration?.request;
+  if (customRequest?.feedback) {
+    const feedback = customRequest.feedback;
+    els.auditPreview.innerHTML = `
+      <div class="custom-feedback ${feedback.executed ? "executed" : "held"}">
+        <span>${feedback.executed ? "Executed" : "Held"}</span>
+        <strong>${escapeHtml(feedback.action_label)}</strong>
+        <p>${escapeHtml(feedback.message)}</p>
+        <dl>
+          <div><dt>Decision</dt><dd>${escapeHtml(feedback.decision_title || "Not required")}</dd></div>
+          <div><dt>Status</dt><dd>${escapeHtml(feedback.decision_status)}</dd></div>
+          <div><dt>Readiness</dt><dd>${feedback.readiness ?? "n/a"}%</dd></div>
+          <div><dt>Signals</dt><dd>${customRequest.matched_signals?.length || 0}</dd></div>
+        </dl>
+        ${feedback.missing_evidence?.length ? `
+          <p>Missing: ${feedback.missing_evidence.map((item) => escapeHtml(item.label)).join(", ")}</p>
+        ` : ""}
+      </div>
+      <button class="wide-link" id="previewBriefBtn">Preview brief</button>
+    `;
+    document.querySelector("#previewBriefBtn")?.addEventListener("click", exportBrief);
+    return;
+  }
   const bullets = [
     `Incident summary and ${state.events.length || "live"} event timeline`,
     "Evidence considered and scoring breakdown",
@@ -688,9 +711,17 @@ async function runCustomRequest(event) {
       body: JSON.stringify(payload)
     });
     setState(result);
-    els.customResult.textContent = result.message || "Request executed.";
+    const feedback = result.integration?.request?.feedback;
+    els.customResult.innerHTML = feedback
+      ? `
+        <strong>${feedback.executed ? "Executed" : "Held"}: ${escapeHtml(feedback.action_label)}</strong>
+        <span>${escapeHtml(feedback.message)}</span>
+        <span>Decision: ${escapeHtml(feedback.decision_title || "Not required")} | Status: ${escapeHtml(feedback.decision_status)} | Readiness: ${feedback.readiness ?? "n/a"}%</span>
+        ${feedback.missing_evidence?.length ? `<span>Missing evidence: ${feedback.missing_evidence.map((item) => escapeHtml(item.label)).join(", ")}</span>` : ""}
+        <span>Matched signals: ${result.integration?.request?.matched_signals?.length || 0}</span>
+      `
+      : escapeHtml(result.message || "Request executed.");
     logEntry(result.message || "Custom request executed.");
-    requestAnimationFrame(() => els.customDialog.close());
   } catch (error) {
     els.customResult.textContent = error.message;
     logEntry(`Custom request failed: ${error.message}`, "error");
@@ -791,10 +822,18 @@ function bindEvents() {
   });
   els.resetLabBtn.addEventListener("click", () => resetLab().catch((error) => logEntry(error.message, "error")));
   els.customRequestBtn.addEventListener("click", () => {
-    els.customResult.textContent = "";
+    els.customResult.textContent = "Choose a test scenario or enter your own evidence.";
     els.customDialog.showModal();
   });
   els.closeCustomBtn.addEventListener("click", () => els.customDialog.close());
+  els.customDialog.addEventListener("click", (event) => {
+    const scenario = event.target.closest("[data-scenario]");
+    if (!scenario) return;
+    els.customIncidentTitle.value = scenario.dataset.title;
+    els.customEvidence.value = scenario.dataset.scenario;
+    els.customAction.value = scenario.dataset.action;
+    els.customResult.textContent = "Scenario loaded. Click Run request to execute it.";
+  });
   els.customRequestForm.addEventListener("submit", runCustomRequest);
   els.loadSplunkBtn.addEventListener("click", () => loadFromSplunk().catch(() => {}));
   els.startAttackBtn.addEventListener("click", () => startAttack().catch((error) => logEntry(error.message, "error")));

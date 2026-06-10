@@ -709,6 +709,22 @@ def custom_event_ids(text):
     return ordered
 
 
+def custom_signal_details(event_ids):
+    details = []
+    for event_id in event_ids:
+        prototype = event_prototype(event_id)
+        if prototype:
+            details.append(
+                {
+                    "id": event_id,
+                    "title": prototype["summary"],
+                    "source": prototype["source"],
+                    "severity": prototype["severity"],
+                }
+            )
+    return details
+
+
 def custom_events_from_text(text):
     selected_ids = custom_event_ids(text)
     events = []
@@ -727,6 +743,46 @@ def custom_events_from_text(text):
     return events
 
 
+def custom_decision_feedback(action, decision, executed, message):
+    missing = []
+    status = "not-required"
+    readiness = None
+    decision_title = None
+    if decision:
+        status = decision["status"]
+        readiness = decision["readiness"]
+        decision_title = decision["title"]
+        missing = [
+            {
+                "id": item["id"],
+                "label": item["label"],
+                "status": item["status"],
+                "mandatory": item["mandatory"],
+                "spl": item["spl"],
+            }
+            for item in decision["missing_evidence"]
+        ]
+
+    if executed:
+        next_step = "Action executed. Preserve the evidence timeline and export the decision audit brief."
+    elif missing:
+        next_step = "Action held. Collect the missing evidence and rerun this request."
+    else:
+        next_step = "Action held. Review the decision status before execution."
+
+    return {
+        "action_id": action["id"],
+        "action_label": action["label"],
+        "decision_title": decision_title,
+        "decision_status": status,
+        "readiness": readiness,
+        "executed": executed,
+        "message": message,
+        "missing_evidence": missing,
+        "next_step": next_step,
+    }
+
+
 def run_custom_request(payload):
     title = (payload.get("title") or "Custom incident request").strip()[:120]
     evidence_text = (payload.get("evidence") or payload.get("text") or "").strip()
@@ -739,6 +795,7 @@ def run_custom_request(payload):
     if not evidence_text:
         return {"ok": False, "error": "Evidence text is required"}
 
+    selected_event_ids = custom_event_ids(evidence_text)
     clear_lab_state("custom-request")
     LAB_STATE["events"] = custom_events_from_text(evidence_text)
     run_detections()
@@ -748,6 +805,7 @@ def run_custom_request(payload):
         "action_id": action_id,
         "action_label": action["label"],
         "execute_requested": execute,
+        "matched_signals": custom_signal_details(selected_event_ids),
     }
 
     decisions = decision_lookup()
@@ -774,6 +832,7 @@ def run_custom_request(payload):
 
     LAB_STATE["custom_request"]["executed"] = executed
     LAB_STATE["custom_request"]["message"] = message
+    LAB_STATE["custom_request"]["feedback"] = custom_decision_feedback(action, decision, executed, message)
     return {"ok": True, "message": message, **state_payload()}
 
 

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Veritas AI</title>
-    <link rel="stylesheet" href="styles.css?v=20260610-custom-runner" />
+    <link rel="stylesheet" href="styles.css?v=20260611-custom-feedback" />
   </head>
   <body>
     <div class="app-shell">
@@ -276,6 +276,32 @@
           Evidence / request details
           <textarea id="customEvidence" name="evidence" rows="8">Admin login from a new country, repeated MFA prompts, privilege escalation to super_admin, sensitive patient export endpoint returned 200, and scripted curl download from the admin workstation.</textarea>
         </label>
+        <div class="scenario-row wide" aria-label="Custom request examples">
+          <button
+            type="button"
+            data-scenario="Admin login from a new country with impossible travel and repeated MFA fatigue prompts followed by approval."
+            data-title="Custom MFA session containment"
+            data-action="revoke-token"
+          >
+            Test revoke session
+          </button>
+          <button
+            type="button"
+            data-scenario="Admin login from a new country, privilege escalation to super_admin, sensitive patient export, and scripted curl download from admin workstation."
+            data-title="Custom admin disable decision"
+            data-action="disable-account"
+          >
+            Test disable admin
+          </button>
+          <button
+            type="button"
+            data-scenario="The analyst wants to declare no patient data was accessed, but only has a login event and no export, object storage, or EDR review."
+            data-title="Custom weak evidence hold"
+            data-action="block-ip"
+          >
+            Test insufficient evidence
+          </button>
+        </div>
         <label class="checkline">
           <input id="customExecute" type="checkbox" checked />
           Execute the selected task when the evidence threshold is met
@@ -287,7 +313,7 @@
       </form>
     </dialog>
 
-    <script type="module" src="app.js?v=20260610-custom-runner"></script>
+    <script type="module" src="app.js?v=20260611-custom-feedback"></script>
     <script>
       (function () {
         var canvasWidth = 1500;
