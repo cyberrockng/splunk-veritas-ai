@@ -1,307 +1,395 @@
-const evidenceEvents = [
-  {
-    id: "EVT-1001",
-    time: "09:02:14",
-    source: "splunk:index=deployments",
-    query: 'index=deployments service=patient-portal earliest=-2h | table _time version actor status',
-    summary: "patient-portal v3.8.1 deployed to production 7 minutes before error rate increased.",
-    weight: 0.86,
-    tags: ["deployment", "patient-portal"],
-  },
-  {
-    id: "EVT-1002",
-    time: "09:09:47",
-    source: "splunk:index=apm",
-    query: 'index=apm service=patient-portal status>=500 | timechart count by endpoint',
-    summary: "HTTP 500 errors increased on /appointments/confirm after deployment; database latency stayed normal.",
-    weight: 0.91,
-    tags: ["apm", "appointments"],
-  },
-  {
-    id: "EVT-1003",
-    time: "09:11:02",
-    source: "splunk:index=db_metrics",
-    query: 'index=db_metrics db=patient_records | stats avg(cpu), p95(query_ms), max(conn_pool)',
-    summary: "Database CPU, query latency, and connection pool stayed within normal operating range.",
-    weight: 0.89,
-    tags: ["database"],
-  },
-  {
-    id: "EVT-1004",
-    time: "09:14:33",
-    source: "splunk:index=portal_access",
-    query: 'index=portal_access action=appointment_submit result=failure | stats dc(user_id), count by device',
-    summary: "1,286 patients failed appointment submission, with failures concentrated on mobile clients.",
-    weight: 0.94,
-    tags: ["patient-impact", "mobile"],
-  },
-  {
-    id: "EVT-1005",
-    time: "09:17:26",
-    source: "splunk:index=auth",
-    query: 'index=auth user_type=admin action=login earliest=-1h | anomalydetection user src_ip',
-    summary: "Privileged admin login from unusual ASN occurred during the incident window.",
-    weight: 0.72,
-    tags: ["identity", "security"],
-  },
-  {
-    id: "EVT-1006",
-    time: "09:19:40",
-    source: "splunk:index=api_gateway",
-    query: 'index=api_gateway endpoint=/patient/profile method=GET status=200 | stats count by actor role',
-    summary: "Customer profile endpoint was accessed by the same admin role after the anomalous login.",
-    weight: 0.67,
-    tags: ["data-access", "security"],
-  },
-  {
-    id: "EVT-1007",
-    time: "09:20:18",
-    source: "splunk:index=backups",
-    query: 'index=backups system=patient_records | latest(validation_status), latest(snapshot_id)',
-    summary: "Backup job finished, but no validation success event exists for the latest snapshot.",
-    weight: 0.82,
-    tags: ["backup", "recovery"],
-  },
-  {
-    id: "EVT-1008",
-    time: "09:25:01",
-    source: "splunk:index=migrations",
-    query: 'index=migrations service=patient-portal version=3.8.1 | table irreversible rollback_plan',
-    summary: "Deployment included an irreversible schema migration; rollback plan does not cover appointment token changes.",
-    weight: 0.88,
-    tags: ["rollback", "change"],
-  },
-  {
-    id: "EVT-1009",
-    time: "09:29:49",
-    source: "splunk:index=support",
-    query: 'index=support product=patient_portal | timechart count by topic',
-    summary: "Support contacts increased 43% for appointment confirmation and login-loop complaints.",
-    weight: 0.79,
-    tags: ["support", "patient-impact"],
-  },
-];
-
-const seedClaims = [
-  {
-    id: "CLM-1",
-    text: "The database caused the outage.",
-    verdict: "pending",
-  },
-  {
-    id: "CLM-2",
-    text: "No patients are affected.",
-    verdict: "pending",
-  },
-  {
-    id: "CLM-3",
-    text: "No patient data was accessed.",
-    verdict: "pending",
-  },
-  {
-    id: "CLM-4",
-    text: "Rollback is safe.",
-    verdict: "pending",
-  },
-  {
-    id: "CLM-5",
-    text: "The backup completed successfully.",
-    verdict: "pending",
-  },
-];
-
-const claimRules = [
-  {
-    match: ["database", "db"],
-    verdict: "contradicted",
-    confidence: 87,
-    evidence: ["EVT-1002", "EVT-1003", "EVT-1001"],
-    risk: "High",
-    finding:
-      "The database is a weak explanation. Service errors rose after the portal deployment while DB health stayed normal.",
-    recommendation:
-      "Investigate patient-portal v3.8.1 and appointment confirmation paths before touching the database.",
-  },
-  {
-    match: ["no patients", "no users", "not affected", "no citizen"],
-    verdict: "contradicted",
-    confidence: 94,
-    evidence: ["EVT-1004", "EVT-1009"],
-    risk: "Critical",
-    finding:
-      "Patient impact is confirmed. Appointment submissions are failing and support contacts increased sharply.",
-    recommendation:
-      "Declare patient-impacting incident, notify support, and prioritize appointment confirmation recovery.",
-  },
-  {
-    match: ["no patient data", "no data", "data was not", "data access"],
-    verdict: "uncertain",
-    confidence: 61,
-    evidence: ["EVT-1005", "EVT-1006"],
-    risk: "Critical",
-    finding:
-      "The claim is not proven. There was anomalous privileged access and profile endpoint activity in the incident window.",
-    recommendation:
-      "Do not report no data exposure yet. Pull database audit logs and endpoint telemetry, then verify access scope.",
-  },
-  {
-    match: ["rollback", "roll back", "revert"],
-    verdict: "contradicted",
-    confidence: 83,
-    evidence: ["EVT-1008", "EVT-1001"],
-    risk: "High",
-    finding:
-      "Rollback is risky because the deployment included an irreversible schema migration not covered by the rollback plan.",
-    recommendation:
-      "Use a forward fix or feature-flag disablement for appointment confirmation before rollback.",
-  },
-  {
-    match: ["backup", "restore", "snapshot"],
-    verdict: "uncertain",
-    confidence: 74,
-    evidence: ["EVT-1007"],
-    risk: "High",
-    finding:
-      "The backup job finished, but successful validation is missing. Completion is not the same as recoverability.",
-    recommendation:
-      "Run backup validation before any destructive remediation or public recovery assurance.",
-  },
-  {
-    match: ["vendor", "third party", "external"],
-    verdict: "uncertain",
-    confidence: 52,
-    evidence: ["EVT-1002", "EVT-1004"],
-    risk: "Medium",
-    finding:
-      "Current evidence points to the portal confirmation path, but vendor impact has not been fully ruled out.",
-    recommendation:
-      "Verify upstream appointment API and mobile gateway logs before assigning responsibility to a vendor.",
-  },
-];
-
-let claims = seedClaims.map((claim) => ({ ...claim }));
-let selectedEvidence = null;
-
-const claimCards = document.querySelector("#claimCards");
-const evidenceList = document.querySelector("#evidenceList");
-const timeline = document.querySelector("#timeline");
-const truthScore = document.querySelector("#truthScore");
-const truthSummary = document.querySelector("#truthSummary");
-const claimsChecked = document.querySelector("#claimsChecked");
-const claimsContradicted = document.querySelector("#claimsContradicted");
-const evidenceCount = document.querySelector("#evidenceCount");
-const riskLevel = document.querySelector("#riskLevel");
-const claimForm = document.querySelector("#claimForm");
-const claimInput = document.querySelector("#claimInput");
-const verifyAllBtn = document.querySelector("#verifyAllBtn");
+const riskScore = document.querySelector("#riskScore");
+const riskSummary = document.querySelector("#riskSummary");
+const stageLabel = document.querySelector("#stageLabel");
+const providerLabel = document.querySelector("#providerLabel");
+const eventCount = document.querySelector("#eventCount");
+const readyCount = document.querySelector("#readyCount");
+const blockedCount = document.querySelector("#blockedCount");
+const telemetryScore = document.querySelector("#telemetryScore");
+const startAttackBtn = document.querySelector("#startAttackBtn");
+const nextEventBtn = document.querySelector("#nextEventBtn");
+const loadSplunkBtn = document.querySelector("#loadSplunkBtn");
+const investigateBtn = document.querySelector("#investigateBtn");
+const resetLabBtn = document.querySelector("#resetLabBtn");
 const exportBriefBtn = document.querySelector("#exportBriefBtn");
+const executeSafeBtn = document.querySelector("#executeSafeBtn");
+const labStatus = document.querySelector("#labStatus");
+const demoSteps = document.querySelector("#demoSteps");
+const decisionSpotlight = document.querySelector("#decisionSpotlight");
+const decisionMatrix = document.querySelector("#decisionMatrix");
+const integrityPanel = document.querySelector("#integrityPanel");
+const splGapList = document.querySelector("#splGapList");
+const eventStream = document.querySelector("#eventStream");
+const runConsole = document.querySelector("#runConsole");
 const briefDialog = document.querySelector("#briefDialog");
 const closeBriefBtn = document.querySelector("#closeBriefBtn");
 const briefOutput = document.querySelector("#briefOutput");
 
-function normalize(text) {
-  return text.toLowerCase().replace(/[^a-z0-9\s-]/g, "");
-}
+let state = {
+  stage: "idle",
+  events: [],
+  detections: [],
+  decisions: [],
+  integrity: {},
+  risk: 12,
+  integration: { provider: "mock-mcp" },
+};
 
-function verifyClaim(claim) {
-  const normalized = normalize(claim.text);
-  const rule = claimRules.find((candidate) =>
-    candidate.match.some((phrase) => normalized.includes(phrase)),
-  );
+let runLog = [
+  {
+    type: "ready",
+    title: "Ready",
+    detail: "Load incident evidence, then check whether each proposed response decision is evidence-ready.",
+  },
+];
 
-  if (!rule) {
-    return {
-      ...claim,
-      verdict: "uncertain",
-      confidence: 48,
-      evidence: ["EVT-1001", "EVT-1002"],
-      risk: "Medium",
-      finding:
-        "Veritas does not have enough direct evidence for this claim from the current source set.",
-      recommendation:
-        "Ask a narrower claim or connect the missing Splunk index so the truth card can be verified.",
-    };
+const actionPlan = [
+  {
+    decisionId: "revoke-session",
+    actionId: "revoke-token",
+  },
+  {
+    decisionId: "disable-admin",
+    actionId: "disable-account",
+  },
+  {
+    decisionId: "block-source-ip",
+    actionId: "block-ip",
+  },
+];
+
+async function requestJson(path, options = {}) {
+  const response = await fetch(path, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+    ...options,
+  });
+
+  if (!response.ok) {
+    let message = `Request failed: ${response.status}`;
+    try {
+      const errorBody = await response.json();
+      message = errorBody.error || message;
+    } catch {
+      // Keep the generic HTTP message.
+    }
+    throw new Error(message);
   }
 
-  return {
-    ...claim,
-    verdict: rule.verdict,
-    confidence: rule.confidence,
-    evidence: rule.evidence,
-    risk: rule.risk,
-    finding: rule.finding,
-    recommendation: rule.recommendation,
-  };
+  return response.json();
 }
 
-function verifyAllClaims() {
-  claims = claims.map(verifyClaim);
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function setState(nextState) {
+  state = nextState;
   render();
 }
 
-function getEvidenceById(id) {
-  return evidenceEvents.find((event) => event.id === id);
+function statusClass(status) {
+  return String(status || "").toLowerCase().replace(/\s+/g, "-");
 }
 
-function verdictLabel(verdict) {
-  if (verdict === "supported") return "Supported";
-  if (verdict === "contradicted") return "Contradicted";
-  if (verdict === "uncertain") return "Uncertain";
-  return "Pending";
+function severityClass(value) {
+  return String(value || "").toLowerCase();
 }
 
-function renderClaimCards() {
-  claimCards.innerHTML = claims
-    .map((claim) => {
-      const evidenceButtons = (claim.evidence || [])
-        .map((id) => `<button type="button" data-evidence="${id}">${id}</button>`)
-        .join("");
-      const confidence = claim.confidence ? `${claim.confidence}% confidence` : "Not checked";
-      const finding = claim.finding || "Click Verify claims to check this assumption against evidence.";
-      const recommendation = claim.recommendation || "No recommendation yet.";
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
-      return `
-        <article class="claim-card ${claim.verdict}">
-          <div class="claim-card-header">
-            <blockquote>${claim.text}</blockquote>
-            <span class="verdict-pill ${claim.verdict}">${verdictLabel(claim.verdict)}</span>
+function riskText(score) {
+  if (score >= 80) return "Critical response risk. Unsafe decisions must be blocked.";
+  if (score >= 55) return "High response risk. Evidence supports containment, but statements need care.";
+  if (score >= 30) return "Moderate response risk. Some decisions are ready, others need more evidence.";
+  return "Low risk state. Continue monitoring and preserve evidence.";
+}
+
+function logEntry(type, title, detail) {
+  runLog = [{ type, title, detail }, ...runLog].slice(0, 24);
+}
+
+function completedActions() {
+  return new Set((state.actions || []).filter((item) => item.status === "completed").map((item) => item.id));
+}
+
+function completedActionCount() {
+  return completedActions().size;
+}
+
+function hasCheckedThresholds() {
+  return state.stage === "investigated" || state.stage === "responding" || completedActionCount() > 0;
+}
+
+function demoStepState(step) {
+  const checks = {
+    load: state.events.length === 6,
+    check: hasCheckedThresholds(),
+    act: completedActionCount() >= 3,
+    brief: briefDialog.open,
+  };
+
+  if (checks[step]) return "done";
+  if (step === "load" && state.events.length > 0) return "active";
+  if (step === "check" && checks.load) return "active";
+  if (step === "act" && checks.check) return "active";
+  if (step === "brief" && checks.act) return "active";
+  return "pending";
+}
+
+function renderMetrics() {
+  const approved = state.decisions.filter((item) =>
+    ["Approved", "Caution"].includes(item.status),
+  ).length;
+  const blocked = state.decisions.filter((item) =>
+    ["Blocked", "Not Ready"].includes(item.status),
+  ).length;
+
+  riskScore.textContent = state.risk;
+  riskSummary.textContent = riskText(state.risk);
+  stageLabel.textContent = `Stage: ${state.stage}`;
+  providerLabel.textContent = `Provider: ${state.integration?.provider || "mock-mcp"} / index=${state.integration?.index || "veritas"}`;
+  eventCount.textContent = state.events.length;
+  readyCount.textContent = approved;
+  blockedCount.textContent = blocked;
+  telemetryScore.textContent = `${state.integrity?.telemetry_completeness || 0}%`;
+}
+
+function renderDemoSteps() {
+  const steps = [
+    {
+      id: "load",
+      label: "Load evidence",
+      detail: "Stream demo evidence or pull indexed events from Splunk.",
+    },
+    {
+      id: "check",
+      label: "Check thresholds",
+      detail: "Score each proposed response decision against required evidence.",
+    },
+    {
+      id: "act",
+      label: "Execute safe actions",
+      detail: "Run containment only for decisions that are evidence-ready.",
+    },
+    {
+      id: "brief",
+      label: "Export brief",
+      detail: "Produce the audit-ready decision record.",
+    },
+  ];
+
+  demoSteps.innerHTML = steps
+    .map(
+      (step, index) => `
+        <article class="demo-step ${demoStepState(step.id)}">
+          <span>${index + 1}</span>
+          <div>
+            <strong>${step.label}</strong>
+            <p>${step.detail}</p>
           </div>
-          <div class="claim-details">
-            <p><strong>Finding:</strong> ${finding}</p>
-            <p><strong>Decision risk:</strong> ${claim.risk || "Unknown"} | <strong>${confidence}</strong></p>
-            <p><strong>Recommendation:</strong> ${recommendation}</p>
-          </div>
-          <div class="evidence-tags">${evidenceButtons}</div>
         </article>
-      `;
-    })
+      `,
+    )
     .join("");
 }
 
-function renderEvidenceList() {
-  evidenceList.innerHTML = evidenceEvents
-    .map((event) => {
-      const activeClass = selectedEvidence === event.id ? "active" : "";
-      return `
-        <article class="evidence-item ${activeClass}" id="${event.id}">
-          <strong>${event.id} · ${event.time}</strong>
-          <span>${event.source}</span>
-          <code>${event.query}</code>
-          <p>${event.summary}</p>
+function spotlightDecision() {
+  const dataAccess = state.decisions.find((item) => item.id === "declare-no-data-access");
+  const closeIncident = state.decisions.find((item) => item.id === "close-contained");
+  const disableAdmin = state.decisions.find((item) => item.id === "disable-admin");
+  return dataAccess || closeIncident || disableAdmin || state.decisions[0];
+}
+
+function renderDecisionSpotlight() {
+  if (!state.events.length) {
+    decisionSpotlight.innerHTML = `
+      <article class="spotlight-card">
+        <span class="status-pill not-ready">Waiting</span>
+        <div>
+          <h4>No evidence loaded yet</h4>
+          <p>Load the incident evidence and check thresholds to see Veritas approve safe containment while blocking unsafe statements.</p>
+        </div>
+      </article>
+    `;
+    return;
+  }
+
+  const decision = spotlightDecision();
+  if (!decision) {
+    decisionSpotlight.innerHTML = `
+      <article class="spotlight-card">
+        <span class="status-pill not-ready">Waiting</span>
+        <div>
+          <h4>No decision evaluated yet</h4>
+          <p>Load the evidence and check thresholds to see Veritas approve safe containment while blocking unsafe statements.</p>
+        </div>
+      </article>
+    `;
+    return;
+  }
+
+  const evidenceHits = decision.checks?.filter((item) => item.status !== "missing").length || 0;
+  const missing = decision.missing_evidence?.length || 0;
+  const topGap = decision.missing_evidence?.[0];
+  decisionSpotlight.innerHTML = `
+    <article class="spotlight-card ${statusClass(decision.status)}">
+      <span class="status-pill ${statusClass(decision.status)}">${decision.status}</span>
+      <div>
+        <h4>${escapeHtml(decision.title)}</h4>
+        <p>${escapeHtml(decision.reason)}</p>
+        <div class="spotlight-stats">
+          <span>Readiness <strong>${decision.readiness}%</strong></span>
+          <span>Evidence hits <strong>${evidenceHits}</strong></span>
+          <span>Missing/unsafe <strong>${missing}</strong></span>
+        </div>
+        <p class="spotlight-action"><strong>Safe next action:</strong> ${escapeHtml(decision.recommended_action)}</p>
+        ${
+          topGap
+            ? `<code>${escapeHtml(topGap.spl)}</code>`
+            : `<code>All required evidence for this decision is currently present.</code>`
+        }
+      </div>
+    </article>
+  `;
+}
+
+function renderDecisionMatrix() {
+  decisionMatrix.innerHTML = state.decisions
+    .map(
+      (decision) => `
+        <article class="decision-card ${statusClass(decision.status)}">
+          <div class="decision-card-header">
+            <div>
+              <h4>${decision.title}</h4>
+              <p>${decision.description}</p>
+            </div>
+            <span class="status-pill ${statusClass(decision.status)}">${decision.status}</span>
+          </div>
+          <div class="decision-meta">
+            <span>Readiness: <strong>${decision.readiness}%</strong></span>
+            <span>Impact: <strong>${decision.impact}</strong></span>
+            <span>Human approval: <strong>${decision.human_approval ? "Required" : "Optional"}</strong></span>
+          </div>
+          <p class="decision-reason">${decision.reason}</p>
+          <div class="checklist">
+            ${decision.checks
+              .map(
+                (check) => `
+                  <div class="check-row ${check.status}">
+                    <span>${check.status === "found" ? "Found" : check.status === "contradicted" ? "Contradicts" : "Missing"}</span>
+                    <strong>${check.label}</strong>
+                  </div>
+                `,
+              )
+              .join("")}
+          </div>
+          <div class="guardrail-box">
+            <strong>Blast radius:</strong> ${decision.blast_radius}
+          </div>
+          <p class="decision-action"><strong>Safe next action:</strong> ${decision.recommended_action}</p>
         </article>
-      `;
-    })
+      `,
+    )
     .join("");
 }
 
-function renderTimeline() {
-  timeline.innerHTML = evidenceEvents
+function renderIntegrity() {
+  const integrity = state.integrity || {};
+  integrityPanel.innerHTML = `
+    <article>
+      <span class="metric-label">Evidence Freshness</span>
+      <strong>${integrity.freshness || "No events streamed"}</strong>
+    </article>
+    <article>
+      <span class="metric-label">Splunk Contract</span>
+      <strong>${state.integration?.incident_id || "INC-001"}</strong>
+      <p>index=${state.integration?.index || "veritas"}, sourcetype=${state.integration?.sourcetype || "veritas:incident"}</p>
+    </article>
+    <article>
+      <span class="metric-label">Sources Checked</span>
+      <strong>${(integrity.sources_checked || []).length}</strong>
+      <p>${(integrity.sources_checked || []).join(", ") || "None yet"}</p>
+    </article>
+    <article>
+      <span class="metric-label">Sources Missing</span>
+      <strong>${(integrity.sources_missing || []).length}</strong>
+      <p>${(integrity.sources_missing || []).join(", ") || "None"}</p>
+    </article>
+    <article>
+      <span class="metric-label">AI Safety</span>
+      <strong>Evidence-bounded</strong>
+      <p>${integrity.prompt_injection_warning || ""}</p>
+    </article>
+    <article class="wide">
+      <span class="metric-label">Missing Telemetry Warning</span>
+      <strong>Do not confuse absence with safety</strong>
+      <p>${integrity.missing_telemetry_warning || ""}</p>
+    </article>
+    <article class="wide">
+      <span class="metric-label">Approval Model</span>
+      <strong>Human approval required</strong>
+      <p>${integrity.human_approval_requirement || ""}</p>
+    </article>
+  `;
+}
+
+function renderSplGaps() {
+  const gaps = state.decisions.flatMap((decision) =>
+    decision.missing_evidence.map((item) => ({
+      decision: decision.title,
+      label: item.label,
+      spl: item.spl,
+    })),
+  );
+
+  if (!gaps.length) {
+    splGapList.innerHTML = `<article class="timeline-item"><strong>No missing evidence gaps</strong><p>All current threshold checks have evidence.</p></article>`;
+    return;
+  }
+
+  splGapList.innerHTML = gaps
+    .slice(0, 8)
+    .map(
+      (gap) => `
+        <article class="timeline-item">
+          <strong>${gap.label}</strong>
+          <p>${gap.decision}</p>
+          <code>${gap.spl}</code>
+        </article>
+      `,
+    )
+    .join("");
+}
+
+function renderEvents() {
+  if (!state.events.length) {
+    eventStream.innerHTML = `<article class="evidence-item"><p>No evidence loaded yet.</p></article>`;
+    return;
+  }
+
+  eventStream.innerHTML = state.events
     .slice()
-    .sort((a, b) => a.time.localeCompare(b.time))
+    .reverse()
     .map(
       (event) => `
-        <article class="timeline-item">
-          <strong>${event.time}</strong>
+        <article class="evidence-item ${severityClass(event.severity)}">
+          <div class="evidence-item-header">
+            <strong>${event.id} - ${event.time}</strong>
+            <span class="severity-pill ${severityClass(event.severity)}">${event.severity}</span>
+          </div>
+          <span>${event.source}${event.origin ? ` / ${event.origin}` : ""}</span>
+          <code>${event.query}</code>
+          ${event.splunk_job_id ? `<small>Splunk job: ${event.splunk_job_id}</small>` : ""}
           <p>${event.summary}</p>
         </article>
       `,
@@ -309,112 +397,182 @@ function renderTimeline() {
     .join("");
 }
 
-function renderMetrics() {
-  const checked = claims.filter((claim) => claim.verdict !== "pending");
-  const contradicted = claims.filter((claim) => claim.verdict === "contradicted");
-  const uncertain = claims.filter((claim) => claim.verdict === "uncertain");
-  const supported = claims.filter((claim) => claim.verdict === "supported");
-  const score = Math.max(
-    0,
-    Math.round(100 - contradicted.length * 18 - uncertain.length * 11 + supported.length * 4),
-  );
-
-  truthScore.textContent = checked.length ? score : 0;
-  claimsChecked.textContent = checked.length;
-  claimsContradicted.textContent = contradicted.length;
-  evidenceCount.textContent = evidenceEvents.length;
-  riskLevel.textContent = contradicted.length >= 2 || uncertain.length >= 2 ? "Critical" : "Medium";
-  truthSummary.textContent = checked.length
-    ? `${contradicted.length} claim(s) contradicted and ${uncertain.length} need more evidence before leadership acts.`
-    : "Waiting for verification.";
+function renderRunConsole() {
+  runConsole.innerHTML = runLog
+    .map(
+      (entry) => `
+        <article class="run-entry ${entry.type}">
+          <strong>${entry.title}</strong>
+          <p>${entry.detail}</p>
+        </article>
+      `,
+    )
+    .join("");
 }
 
 function render() {
-  renderClaimCards();
-  renderEvidenceList();
-  renderTimeline();
   renderMetrics();
+  renderDemoSteps();
+  renderDecisionSpotlight();
+  renderDecisionMatrix();
+  renderIntegrity();
+  renderSplGaps();
+  renderEvents();
+  renderRunConsole();
+  executeSafeBtn.disabled = !hasCheckedThresholds() || completedActionCount() >= 3;
 }
 
-function selectEvidence(id) {
-  selectedEvidence = id;
-  renderEvidenceList();
-  const target = document.getElementById(id);
-  if (target) {
-    target.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }
+async function loadState() {
+  setState(await requestJson("/api/sentinel/state"));
 }
 
-function createBrief() {
-  const checked = claims.filter((claim) => claim.verdict !== "pending");
-  const contradicted = checked.filter((claim) => claim.verdict === "contradicted");
-  const uncertain = checked.filter((claim) => claim.verdict === "uncertain");
-
-  const cards = checked
-    .map(
-      (claim) => `- ${claim.text}
-  Verdict: ${verdictLabel(claim.verdict)} (${claim.confidence}%)
-  Risk if wrong: ${claim.risk}
-  Finding: ${claim.finding}
-  Recommendation: ${claim.recommendation}
-  Evidence: ${(claim.evidence || []).join(", ")}`,
-    )
-    .join("\n\n");
-
-  return `Splunk Veritas AI Decision Brief
-
-Incident: Hospital patient portal degradation
-Mode: War Room Truth Verification
-
-Executive Summary:
-Veritas checked ${checked.length} operational claim(s). ${contradicted.length} were contradicted by Splunk evidence and ${uncertain.length} remain unsafe to assert publicly. The safest next move is to treat this as patient-impacting, avoid database remediation, verify data access scope, and avoid rollback until migration risk is resolved.
-
-Truth Cards:
-${cards}
-
-Recommended Next Actions:
-1. Prioritize patient-portal appointment confirmation path.
-2. Validate backup recoverability before destructive remediation.
-3. Pull database audit logs before claiming no patient data exposure.
-4. Avoid rollback until irreversible schema migration is addressed.
-5. Publish support guidance acknowledging appointment submission failures.
-
-Splunk Evidence Used:
-${evidenceEvents.map((event) => `- ${event.id}: ${event.summary}`).join("\n")}`;
-}
-
-claimCards.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-evidence]");
-  if (!button) return;
-  selectEvidence(button.dataset.evidence);
-});
-
-claimForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const text = claimInput.value.trim();
-  if (!text) return;
-  claims = [
+async function resetLab() {
+  const nextState = await requestJson("/api/sentinel/reset", { method: "POST" });
+  runLog = [
     {
-      id: `CLM-${claims.length + 1}`,
-      text,
-      verdict: "pending",
+      type: "ready",
+      title: "Lab reset",
+      detail: "Evidence has been cleared. Load the incident evidence to evaluate decisions.",
     },
-    ...claims,
-  ].map((claim, index) => (index === 0 ? verifyClaim(claim) : claim));
-  claimInput.value = "";
-  render();
-});
+  ];
+  labStatus.textContent = "Reset complete";
+  setState(nextState);
+}
 
-verifyAllBtn.addEventListener("click", verifyAllClaims);
-
-exportBriefBtn.addEventListener("click", () => {
-  if (!claims.some((claim) => claim.verdict !== "pending")) {
-    verifyAllClaims();
+async function streamNextEvent() {
+  const previousCount = state.events.length;
+  const nextState = await requestJson("/api/sentinel/step", { method: "POST" });
+  const event = nextState.events[nextState.events.length - 1];
+  if (event && nextState.events.length > previousCount) {
+    logEntry("search", `Loaded ${event.id}`, event.summary);
   }
-  briefOutput.textContent = createBrief();
-  briefDialog.showModal();
-});
+  labStatus.textContent =
+    nextState.stage === "attack-complete" ? "Evidence load complete" : "Evidence event loaded";
+  setState(nextState);
+}
 
+async function loadFromSplunk() {
+  labStatus.textContent = "Pulling indexed evidence";
+  try {
+    const result = await requestJson("/api/sentinel/load-splunk", { method: "POST" });
+    const search = result.search || {};
+    runLog = [
+      {
+        type: "tool",
+        title: "Loaded indexed Splunk evidence",
+        detail: `job=${search.job_id}, mapped=${search.mapped_events}, missing=${(search.missing_events || []).join(", ") || "none"}`,
+      },
+      {
+        type: "search",
+        title: "Live SPL",
+        detail: search.query || "No query returned.",
+      },
+      ...runLog,
+    ].slice(0, 24);
+    labStatus.textContent = `${search.mapped_events || 0} indexed events loaded`;
+    setState(result);
+  } catch (error) {
+    labStatus.textContent = error.message;
+    logEntry("error", "Splunk pull failed", error.message);
+    render();
+  }
+}
+
+async function startAttack() {
+  const started = await requestJson("/api/sentinel/start", { method: "POST" });
+  runLog = [
+    {
+      type: "claim",
+      title: "Incident evidence loading",
+      detail: "Veritas is loading the admin takeover evidence set from Splunk-style telemetry.",
+    },
+  ];
+  labStatus.textContent = "Loading evidence";
+  setState(started);
+
+  for (let index = 0; index < started.sequence_length; index += 1) {
+    await sleep(420);
+    await streamNextEvent();
+  }
+}
+
+async function checkThresholds() {
+  labStatus.textContent = "Checking thresholds";
+  const result = await requestJson("/api/sentinel/investigate", { method: "POST" });
+
+  logEntry("claim", "Evidence threshold check complete", result.summary);
+  result.tool_calls.forEach((call) => {
+    const resultText =
+      call.tool === "splunk.search"
+        ? `provider=${call.result.provider}, job=${call.result.job_id}, results=${call.result.result_count}, link=${call.result.link}${
+            call.result.error ? `, fallback=${call.result.error}` : ""
+          }`
+        : JSON.stringify(call.result);
+    logEntry("tool", `MCP ${call.tool}`, `${JSON.stringify(call.arguments)} => ${resultText}`);
+  });
+  result.decisions.forEach((decision) => {
+    logEntry(
+      statusClass(decision.status) === "approved" ? "supported" : statusClass(decision.status),
+      `${decision.title}: ${decision.status}`,
+      `Readiness ${decision.readiness}%. ${decision.reason}`,
+    );
+  });
+
+  labStatus.textContent = `${result.decisions.length} decisions evaluated`;
+  setState(result);
+}
+
+async function executeApprovedContainment() {
+  if (!hasCheckedThresholds()) {
+    labStatus.textContent = "Check thresholds first";
+    return;
+  }
+
+  labStatus.textContent = "Executing approved containment";
+  let nextState = state;
+  const completed = completedActions();
+  const allowedStatuses = new Set(["Approved", "Caution"]);
+
+  for (const item of actionPlan) {
+    const decision = nextState.decisions.find((candidate) => candidate.id === item.decisionId);
+    if (!decision || !allowedStatuses.has(decision.status) || completed.has(item.actionId)) {
+      continue;
+    }
+
+    nextState = await requestJson("/api/sentinel/respond", {
+      method: "POST",
+      body: JSON.stringify({ action: item.actionId }),
+    });
+    const action = nextState.actions.find((candidate) => candidate.id === item.actionId);
+    logEntry("supported", `Executed ${action?.label || item.actionId}`, action?.summary || "Containment action completed.");
+    setState(nextState);
+    await sleep(220);
+  }
+
+  const refreshed = await requestJson("/api/sentinel/investigate", { method: "POST" });
+  logEntry(
+    "blocked",
+    "Unsafe closure still blocked",
+    "Containment actions lowered risk, but Veritas still requires post-containment monitoring before closing the incident.",
+  );
+  labStatus.textContent = "Containment executed";
+  setState(refreshed);
+}
+
+async function exportBrief() {
+  const data = await requestJson("/api/sentinel/brief");
+  briefOutput.textContent = data.brief;
+  briefDialog.showModal();
+  render();
+}
+
+startAttackBtn.addEventListener("click", startAttack);
+nextEventBtn.addEventListener("click", streamNextEvent);
+loadSplunkBtn.addEventListener("click", loadFromSplunk);
+investigateBtn.addEventListener("click", checkThresholds);
+resetLabBtn.addEventListener("click", resetLab);
+exportBriefBtn.addEventListener("click", exportBrief);
+executeSafeBtn.addEventListener("click", executeApprovedContainment);
 closeBriefBtn.addEventListener("click", () => briefDialog.close());
 
-render();
+loadState();

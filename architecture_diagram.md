@@ -2,63 +2,38 @@
 
 ```mermaid
 flowchart LR
-  subgraph Sources["Operational Evidence Sources"]
-    A["Splunk Auth Logs"]
-    B["Splunk APM and Metrics"]
-    C["Deployment Events"]
-    D["Backup Validation Logs"]
-    E["Support and Impact Events"]
-  end
-
-  subgraph Splunk["Splunk Platform"]
-    F["Indexes and Saved Searches"]
-    G["Splunk MCP Server"]
-    H["Splunk AI Assistant for SPL"]
-    I["Splunk AI Toolkit and Hosted Models"]
-  end
-
-  subgraph Veritas["Splunk Veritas AI"]
-    J["Claim Intake"]
-    K["Evidence Retrieval Agent"]
-    L["Truth Verification Engine"]
-    M["Risk and Confidence Scorer"]
-    N["Truth Cards"]
-    O["Decision Brief Generator"]
-  end
-
-  subgraph Users["Users and Workflows"]
-    P["Incident Commander"]
-    Q["SOC Analyst"]
-    R["SRE or Developer"]
-    S["Executive or Auditor"]
-  end
-
-  A --> F
-  B --> F
-  C --> F
-  D --> F
-  E --> F
-  F --> G
-  G --> K
-  H --> K
-  I --> M
-  J --> K
-  K --> L
+  A["Veritas Incident Events"] --> B["Splunk HEC Ingestion"]
+  B --> C["Splunk index=veritas"]
+  D["Mock MCP Evidence"] --> G["Evidence API"]
+  C --> E["Splunk REST Search"]
+  E --> G
+  F["Veritas Frontend"] --> G
+  G --> H["Verification Engine"]
+  H --> I["Evidence Threshold Matrix"]
+  H --> J["Evidence Integrity & Blind Spots"]
+  H --> K["Missing Evidence To SPL"]
+  H --> L["Blast Radius Warning"]
+  I --> M["Decision Readiness Score"]
+  J --> M
+  K --> M
   L --> M
-  M --> N
-  N --> O
-  N --> P
-  N --> Q
-  N --> R
-  O --> S
+  M --> N["Approve / Caution / Block / Not Ready"]
+  N --> O["Evidence-Gated Containment"]
+  N --> P["Decision Audit Brief"]
 ```
 
 ## Data Flow
 
-1. Users or AI agents submit claims from a war room, SOC queue, change review, or incident thread.
-2. Veritas AI converts each claim into evidence questions and SPL search intents.
-3. Splunk MCP Server retrieves relevant events, metrics, traces, deployment records, and security logs.
-4. The verification engine classifies each claim as supported, contradicted, uncertain, or untestable.
-5. The risk scorer estimates confidence and the cost of acting on a false claim.
-6. The UI presents Truth Cards with direct evidence links and recommended next actions.
-7. The brief generator produces an evidence-backed report for leaders, auditors, and incident records.
+1. `ingest_to_splunk.py` sends Veritas incident events to Splunk HEC.
+2. Splunk stores them in `index=veritas`, `sourcetype=veritas:incident`.
+3. The user clicks **Pull indexed evidence**.
+4. The backend runs Splunk REST searches for `incident_id=INC-001`.
+5. Veritas maps returned rows into evidence objects.
+6. The verification engine evaluates each proposed response decision.
+7. Each decision is scored against a required evidence threshold.
+8. Veritas executes only evidence-ready containment actions.
+9. Veritas exports a decision audit brief with search and decision context.
+
+## Core Principle
+
+Veritas does not ask only whether an alert is real. It asks whether the proposed response decision is justified by the available Splunk evidence.

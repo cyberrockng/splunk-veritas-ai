@@ -1,80 +1,135 @@
-# Splunk Veritas AI
+# Veritas AI
 
-Splunk Veritas AI is a real-time truth engine for digital operations. It checks claims made by humans or AI agents against Splunk evidence before teams make risky operational or security decisions.
+Veritas AI is an **Evidence Threshold Engine for Splunk**. It helps incident response teams decide whether they have enough evidence to safely act, escalate, contain, stand down, or brief leadership.
 
-## Problem
+It is not a generic SOC automation tool, not a false-positive detector, and not a normal SOAR playbook demo. The core product is **response decision assurance**.
 
-Incident rooms, SOC investigations, change reviews, and executive briefings are full of assumptions:
+## Core Question
 
-- "The database caused it."
-- "No users are affected."
-- "No customer data was accessed."
-- "Rollback is safe."
-- "The backup completed successfully."
+Before the team takes a high-impact incident response action, has the required Splunk evidence threshold been met?
 
-Wrong assumptions waste response time and can create legal, security, operational, and trust risk.
+## Demo Scenario
 
-## Solution
+The demo uses an admin account takeover incident. Splunk-style events show:
 
-Veritas AI creates a Truth Card for every claim:
+- suspicious impossible-travel login
+- MFA anomaly
+- privilege escalation
+- sensitive API access
+- scripted download tooling
 
-- Verdict: supported, contradicted, uncertain, or pending
-- Confidence score
-- Splunk evidence links
-- Missing evidence
-- Risk if the claim is wrong
-- Recommended next action
+Veritas evaluates five proposed response decisions:
 
-The current MVP uses synthetic Splunk-style data for a hospital patient portal incident. The architecture is designed so the local evidence adapter can be replaced by Splunk MCP Server or Splunk SDK searches.
+- Revoke session token
+- Disable admin account
+- Block source IP
+- Declare no sensitive data accessed
+- Close incident as contained
 
-## Hackathon Fit
+Some decisions are approved or caution-ready. Others are blocked because the evidence threshold has not been met.
 
-This project aligns with the Splunk Agentic Ops Hackathon by using AI-style agentic verification workflows to enhance security operations and observability decision-making with Splunk data.
+## Why This Is Different
 
-Best-fit track: **Security**
+False-positive detection asks: "Is this alert real?"
 
-Bonus prize target: **Best Use of Splunk MCP Server**
+Veritas asks: "Is this response decision justified by evidence?"
+
+That matters because unsafe incident decisions can cause business disruption, legal exposure, missed attackers, or premature containment claims.
+
+## Key Features
+
+- Evidence Threshold Matrix
+- Decision Readiness Score
+- Evidence Integrity & Blind Spot Panel
+- Missing Evidence to SPL Queries
+- Blast Radius Warnings
+- Judge Demo Flow with live decision spotlight
+- Evidence-gated containment execution
+- Real Splunk HEC ingestion path
+- Live Splunk REST evidence pull
+- MCP-shaped Splunk tool-call output
+- Decision Audit Brief export
+
+## Security Principles
+
+- Missing logs are not proof of safety.
+- Logs are untrusted evidence, not instructions.
+- Veritas does not invent evidence.
+- High-impact actions require evidence threshold plus human approval.
+- The demo uses deterministic evidence-bounded logic.
 
 ## Run Locally
 
-No build step is required.
-
 ```powershell
-python -m http.server 5173
+python server.py
 ```
 
 Then open:
 
 ```text
-http://localhost:5173
+http://127.0.0.1:5173
 ```
+
+Optional Splunk REST configuration:
+
+```powershell
+$env:SPLUNK_HOST="https://localhost:8089"
+$env:SPLUNK_TOKEN="admin:VeritasPass123!"
+$env:SPLUNK_AUTH_SCHEME="Basic"
+$env:SPLUNK_VERIFY_SSL="false"
+$env:VERITAS_SPLUNK_INDEX="veritas"
+$env:VERITAS_INCIDENT_ID="INC-001"
+python server.py
+```
+
+For bearer-token auth, set `SPLUNK_AUTH_SCHEME="Bearer"` and use the token value in `SPLUNK_TOKEN`.
+Without Splunk credentials, the app runs in `mock-mcp` mode.
+
+To ingest real demo evidence into Splunk first:
+
+```powershell
+$env:SPLUNK_HEC_URL="https://localhost:8088/services/collector/event"
+$env:SPLUNK_HEC_TOKEN="<hec-token>"
+$env:SPLUNK_VERIFY_SSL="false"
+python ingest_to_splunk.py
+```
+
+See `SPLUNK_REAL_DATA.md` for the full real-data runbook.
 
 ## Demo Flow
 
-1. Open the War Room Truth Board.
-2. Click **Verify claims**.
-3. Show how Veritas contradicts dangerous assumptions:
-   - Database caused the outage
-   - No patients are affected
-   - Rollback is safe
-4. Add a new custom claim such as `The vendor caused this`.
-5. Click **Export brief** to generate an evidence-backed decision brief.
+1. Click **Reset**.
+2. Click **Load incident evidence** for mock mode, or **Pull indexed evidence** for Splunk-backed mode.
+3. Click **Check thresholds**.
+4. Show the Evidence Threshold Matrix.
+5. Show approved/caution decisions.
+6. Show blocked decisions, especially **Declare no sensitive data accessed**.
+7. Show missing evidence and recommended SPL.
+8. Click **Execute approved containment**.
+9. Show that risk drops while unsafe closure/no-data-access claims remain blocked.
+10. Show the Evidence Integrity & Blind Spot Panel.
+11. Export the Decision Audit Brief.
 
-## Future Splunk Integration
+## Test
 
-Planned production integrations:
+With `python server.py` running:
 
-- Splunk MCP Server for AI-agent access to Splunk searches
-- Splunk AI Assistant for SPL generation and search explanation
-- Splunk AI Toolkit for anomaly detection and confidence scoring
-- Splunk Hosted Models for timeline summarization and risk classification
-- Splunk dashboards or custom app packaging for in-platform deployment
+```powershell
+python smoke_tests.py
+```
 
 ## Repository Contents
 
-- `index.html` - App shell and UI structure
+- `index.html` - Veritas app shell
 - `styles.css` - Responsive dashboard styling
-- `app.js` - Claim verification engine and synthetic evidence adapter
-- `sample_splunk_events.json` - Demo evidence dataset
+- `app.js` - Frontend workflow controller
+- `server.py` - Static app server plus Veritas evidence threshold API
+- `ingest_to_splunk.py` - Sends Veritas incident evidence into Splunk HEC
+- `SPLUNK_REAL_DATA.md` - Real Splunk ingestion and search runbook
 - `architecture_diagram.md` - Data flow and component architecture
+- `ROADMAP.md` - Follow-up build plan
+- `DEMO_SCRIPT.md` - Two-minute judging walkthrough
+- `JUDGING_NOTES.md` - Submission positioning and judging notes
+- `smoke_tests.py` - Backend smoke tests
+- `sample_splunk_events.json` - Legacy sample evidence file from the original MVP
 - `LICENSE` - Open source license
