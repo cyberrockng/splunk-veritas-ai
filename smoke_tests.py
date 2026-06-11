@@ -85,6 +85,32 @@ def main():
         assert_equal(status, 200, f"{image_path} image status")
         assert_true(len(body) > 1000, f"{image_path} image content")
 
+    catalog = request_json("/api/sentinel/incidents")
+    assert_true(len(catalog["incident_catalog"]) >= 3, "Tier 3 incident catalog")
+    assert_true(len(catalog["policy_catalog"]) >= 3, "Tier 3 policy catalog")
+
+    cloud_profile = request_json(
+        "/api/sentinel/select-incident",
+        method="POST",
+        payload={"incident_id": "cloud-key-abuse", "load": True},
+    )
+    assert_equal(cloud_profile["incident"]["id"], "cloud-key-abuse", "selected cloud incident")
+    assert_equal(cloud_profile["policy"]["id"], "strict", "cloud incident recommended policy")
+    assert_true(cloud_profile["events"], "selected incident should load events")
+
+    emergency_policy = request_json(
+        "/api/sentinel/policy",
+        method="POST",
+        payload={"profile": "emergency"},
+    )
+    assert_equal(emergency_policy["policy"]["id"], "emergency", "policy profile switch")
+
+    request_json(
+        "/api/sentinel/select-incident",
+        method="POST",
+        payload={"incident_id": "admin-takeover", "load": False},
+    )
+
     initial_state = request_json("/api/sentinel/state")
     assert_equal(len(initial_state["decisions"]), 5, "state endpoint decision count")
     assert_true("integration" in initial_state, "state endpoint should include integration metadata")

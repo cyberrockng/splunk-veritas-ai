@@ -94,3 +94,17 @@
 - Prepare safe `vercel.json` without deploying.
 - Document Vercel options and stop before actual deployment.
 - Keep mock mode as the deterministic default when Splunk is not configured.
+
+## Passed: Phase 13 - Tier 3 Response Governance
+
+- Added incident queue with multiple selectable incident profiles.
+- Added policy builder with Standard, Strict, and Emergency evidence governance modes.
+- Policy profile affects readiness scoring and approval/caution behavior.
+- Added decision simulation summary to show how evidence and policy affect action readiness.
+- Smoke tests cover incident catalog, profile switching, and policy switching.
+
+## Next: Phase 14 - Tier 3 Expansion
+
+- Add distinct evidence packs for ransomware, insider risk, and cloud key compromise.
+- Add editable checklist weights and mandatory/optional threshold toggles.
+- Add an audit archive for prior incident runs.

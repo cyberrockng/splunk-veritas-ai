@@ -451,6 +451,65 @@ h3 {
   white-space: nowrap;
 }
 
+.tier3-strip {
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) minmax(300px, 1fr) minmax(420px, 1.4fr);
+  gap: 8px;
+  border: 1.5px solid var(--line);
+  border-radius: 6px;
+  padding: 10px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.tier3-block,
+.tier3-summary {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  min-width: 0;
+}
+
+.tier3-block {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.tier3-block span {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.tier3-block select {
+  min-width: 0;
+  border: 1px solid #a9c6f8;
+  border-radius: 5px;
+  padding: 0 9px;
+  color: var(--ink);
+  background: #f7fbff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.tier3-summary {
+  border-left: 1px solid var(--soft-line);
+  padding-left: 10px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.tier3-summary strong,
+.tier3-summary span {
+  display: block;
+}
+
+.tier3-summary strong {
+  color: var(--ink);
+}
+
 .primary-btn {
   border: 1px solid var(--blue);
   color: #ffffff;

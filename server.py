@@ -101,6 +101,55 @@ ATTACK_EVENTS = [
     },
 ]
 
+INCIDENT_PROFILES = [
+    {
+        "id": "admin-takeover",
+        "title": "ADMIN ACCOUNT TAKEOVER",
+        "display_incident_id": VERITAS_DISPLAY_INCIDENT_ID,
+        "summary": "Impossible travel, MFA fatigue, privilege escalation, and patient export attempt.",
+        "event_ids": ["SEC-3001", "SEC-3002", "SEC-3003", "SEC-3004", "SEC-3005", "SEC-3006"],
+        "recommended_policy": "standard",
+    },
+    {
+        "id": "cloud-key-abuse",
+        "title": "CLOUD API KEY ABUSE",
+        "display_incident_id": "INC-2025-0002",
+        "summary": "Suspicious identity activity and sensitive API access with incomplete exfil telemetry.",
+        "event_ids": ["SEC-3001", "SEC-3002", "SEC-3005"],
+        "recommended_policy": "strict",
+    },
+    {
+        "id": "ransomware-containment",
+        "title": "RANSOMWARE CONTAINMENT DRILL",
+        "display_incident_id": "INC-2025-0003",
+        "summary": "Identity anomaly plus endpoint automation where fast containment may be necessary.",
+        "event_ids": ["SEC-3001", "SEC-3003", "SEC-3006"],
+        "recommended_policy": "emergency",
+    },
+]
+
+
+POLICY_PROFILES = {
+    "standard": {
+        "label": "Standard",
+        "description": "Balanced response governance for normal incident response.",
+        "score_adjustment": 0,
+        "approved_to_caution": False,
+    },
+    "strict": {
+        "label": "Strict",
+        "description": "Raises scrutiny for legal, compliance, and business-impact decisions.",
+        "score_adjustment": -8,
+        "approved_to_caution": True,
+    },
+    "emergency": {
+        "label": "Emergency",
+        "description": "Allows fast reversible containment while still blocking unsafe declarations.",
+        "score_adjustment": 6,
+        "approved_to_caution": False,
+    },
+}
+
 
 DETECTION_RULES = [
     {
@@ -369,6 +418,8 @@ DECISION_POLICIES = [
 
 LAB_STATE = {
     "stage": "idle",
+    "incident_key": "admin-takeover",
+    "policy_profile": "standard",
     "events": [],
     "detections": [],
     "actions": [],
@@ -404,6 +455,21 @@ def action_status():
     ]
 
 
+def incident_profile(profile_id=None):
+    key = profile_id or LAB_STATE.get("incident_key") or "admin-takeover"
+    return next((profile for profile in INCIDENT_PROFILES if profile["id"] == key), INCIDENT_PROFILES[0])
+
+
+def active_attack_events():
+    wanted = set(incident_profile()["event_ids"])
+    return [event for event in ATTACK_EVENTS if event["id"] in wanted]
+
+
+def policy_profile(profile_id=None):
+    key = profile_id or LAB_STATE.get("policy_profile") or "standard"
+    return POLICY_PROFILES.get(key, POLICY_PROFILES["standard"])
+
+
 def completed_action_ids():
     return {action["id"] for action in LAB_STATE["actions"]}
 
@@ -417,6 +483,26 @@ def clear_lab_state(stage="idle"):
     LAB_STATE["last_splunk_load"] = None
     LAB_STATE["last_investigation"] = None
     LAB_STATE["custom_request"] = None
+
+
+def select_incident(profile_id, load=False):
+    if not any(profile["id"] == profile_id for profile in INCIDENT_PROFILES):
+        return {"ok": False, "error": "Unknown incident profile"}
+    LAB_STATE["incident_key"] = profile_id
+    LAB_STATE["policy_profile"] = incident_profile(profile_id).get("recommended_policy", "standard")
+    clear_lab_state("idle")
+    if load:
+        LAB_STATE["events"] = active_attack_events()
+        LAB_STATE["stage"] = "attack-complete"
+        run_detections()
+    return {"ok": True, **state_payload()}
+
+
+def set_policy_profile(profile_id):
+    if profile_id not in POLICY_PROFILES:
+        return {"ok": False, "error": "Unknown policy profile"}
+    LAB_STATE["policy_profile"] = profile_id
+    return {"ok": True, **state_payload()}
 
 
 def decision_lookup():
@@ -618,12 +704,28 @@ def evaluate_decision(policy):
     if policy["id"] == "close-contained" and status == "Approved":
         status = "Caution"
 
+    active_policy = policy_profile()
+    if active_policy["score_adjustment"]:
+        score = max(0, min(100, score + active_policy["score_adjustment"]))
+    if active_policy["approved_to_caution"] and status == "Approved" and policy["human_approval"]:
+        status = "Caution"
+    if LAB_STATE.get("policy_profile") == "emergency" and policy["id"] == "revoke-session" and not contradicted and score >= 67:
+        status = "Approved"
+        score = max(score, 84)
+    if policy["id"] == "declare-no-data-access" and status != "Blocked":
+        status = "Blocked"
+        score = min(score, 38)
+
     reason = {
         "Approved": "Evidence threshold is met for this response decision.",
         "Caution": "Most evidence is present, but blast radius or residual uncertainty requires human review.",
         "Blocked": "This decision is unsafe because evidence contradicts it or mandatory evidence is missing.",
         "Not Ready": "Not enough required evidence has been collected yet.",
     }[status]
+    if LAB_STATE.get("policy_profile") == "strict" and status == "Caution":
+        reason = f"{reason} Strict policy mode requires extra analyst scrutiny."
+    if LAB_STATE.get("policy_profile") == "emergency" and policy["id"] == "revoke-session":
+        reason = f"{reason} Emergency policy mode favors reversible session containment."
 
     return {
         "id": policy["id"],
@@ -640,6 +742,7 @@ def evaluate_decision(policy):
         "found_evidence": [item for item in checks if item["status"] == "found"],
         "missing_evidence": missing + contradicted,
         "recommended_spl": [item["spl"] for item in missing + contradicted],
+        "policy_profile": LAB_STATE.get("policy_profile", "standard"),
     }
 
 
@@ -1020,7 +1123,7 @@ def load_splunk_evidence():
             "error": "Splunk REST is not configured. Set SPLUNK_HOST and SPLUNK_TOKEN, then restart the server.",
         }
 
-    event_ids = [event["id"] for event in ATTACK_EVENTS]
+    event_ids = [event["id"] for event in active_attack_events()]
     query = veritas_event_search(event_ids)
     search_result = splunk_search(
         query,
@@ -1074,6 +1177,13 @@ def state_payload():
             "request": LAB_STATE["custom_request"],
         }
     return {
+        "incident": incident_profile(),
+        "policy": {"id": LAB_STATE.get("policy_profile", "standard"), **policy_profile()},
+        "incident_catalog": INCIDENT_PROFILES,
+        "policy_catalog": [
+            {"id": profile_id, **profile}
+            for profile_id, profile in POLICY_PROFILES.items()
+        ],
         "stage": LAB_STATE["stage"],
         "events": LAB_STATE["events"],
         "detections": LAB_STATE["detections"],
@@ -1266,14 +1376,16 @@ def brief_text():
 
     return f"""Veritas AI Decision Audit Brief
 
-Incident: Admin account takeover and patient export attempt
+Incident: {incident_profile()["title"]}
 Generated by Veritas AI
 Generated at: {datetime.now(timezone.utc).isoformat()}
 Adapter mode: Backend API
 Search provider: {splunk_status()["provider"]}
 Splunk index: {splunk_status()["index"]}
 Incident ID: {splunk_status()["display_incident_id"]}
+Display incident ID: {incident_profile()["display_incident_id"]}
 Splunk search incident id: {splunk_status()["incident_id"]}
+Policy profile: {policy_profile()["label"]}
 Risk score: {calculate_risk()}/100
 MCP tool calls: splunk.search, splunk.notable_event, splunk.risk_score
 
@@ -1380,6 +1492,20 @@ class VeritasHandler(SimpleHTTPRequestHandler):
             self.send_json(splunk_status())
             return
 
+        if path == "/api/sentinel/incidents":
+            self.send_json(
+                {
+                    "incident_catalog": INCIDENT_PROFILES,
+                    "active_incident": incident_profile(),
+                    "policy_catalog": [
+                        {"id": profile_id, **profile}
+                        for profile_id, profile in POLICY_PROFILES.items()
+                    ],
+                    "active_policy": {"id": LAB_STATE.get("policy_profile", "standard"), **policy_profile()},
+                }
+            )
+            return
+
         if path == "/api/sentinel/brief":
             self.send_json({"brief": brief_text()})
             return
@@ -1402,7 +1528,31 @@ class VeritasHandler(SimpleHTTPRequestHandler):
 
         if path == "/api/sentinel/start":
             clear_lab_state("attack-running")
-            self.send_json({**state_payload(), "sequence_length": len(ATTACK_EVENTS)})
+            self.send_json({**state_payload(), "sequence_length": len(active_attack_events())})
+            return
+
+        if path == "/api/sentinel/incidents":
+            self.send_json(
+                {
+                    "incident_catalog": INCIDENT_PROFILES,
+                    "active_incident": incident_profile(),
+                    "policy_catalog": [
+                        {"id": profile_id, **profile}
+                        for profile_id, profile in POLICY_PROFILES.items()
+                    ],
+                    "active_policy": {"id": LAB_STATE.get("policy_profile", "standard"), **policy_profile()},
+                }
+            )
+            return
+
+        if path == "/api/sentinel/select-incident":
+            result = select_incident(payload.get("incident_id") or payload.get("id"), bool(payload.get("load")))
+            self.send_json(result, status=200 if result.get("ok") else 400)
+            return
+
+        if path == "/api/sentinel/policy":
+            result = set_policy_profile(payload.get("profile") or payload.get("id"))
+            self.send_json(result, status=200 if result.get("ok") else 400)
             return
 
         if path == "/api/sentinel/load-splunk":
@@ -1416,11 +1566,12 @@ class VeritasHandler(SimpleHTTPRequestHandler):
             return
 
         if path == "/api/sentinel/step":
+            event_stream = active_attack_events()
             if LAB_STATE["stage"] == "idle":
                 LAB_STATE["stage"] = "attack-running"
-            if len(LAB_STATE["events"]) < len(ATTACK_EVENTS):
-                LAB_STATE["events"].append(ATTACK_EVENTS[len(LAB_STATE["events"])])
-            if len(LAB_STATE["events"]) == len(ATTACK_EVENTS):
+            if len(LAB_STATE["events"]) < len(event_stream):
+                LAB_STATE["events"].append(event_stream[len(LAB_STATE["events"])])
+            if len(LAB_STATE["events"]) == len(event_stream):
                 LAB_STATE["stage"] = "attack-complete"
             self.send_json(state_payload())
             return

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Veritas AI</title>
-    <link rel="stylesheet" href="styles.css?v=20260611-sidebar-fill" />
+    <link rel="stylesheet" href="styles.css?v=20260611-tier3" />
   </head>
   <body>
     <div class="app-shell">
@@ -94,6 +94,22 @@
           <button id="resetLabBtn" class="secondary-btn" type="button">Reset</button>
           <p id="labStatus" class="copy-status" aria-live="polite"></p>
           <div id="demoSteps" class="demo-steps"></div>
+        </section>
+
+        <section class="tier3-strip" aria-label="Tier 3 response governance controls">
+          <div class="tier3-block">
+            <span>Incident Queue</span>
+            <select id="incidentSelector" aria-label="Select incident profile"></select>
+            <button id="loadIncidentProfileBtn" class="secondary-btn" type="button">Load profile</button>
+          </div>
+          <div class="tier3-block">
+            <span>Policy Builder</span>
+            <select id="policySelector" aria-label="Select policy profile"></select>
+            <button id="applyPolicyBtn" class="secondary-btn" type="button">Apply policy</button>
+          </div>
+          <div class="tier3-summary" id="tier3Summary">
+            Tier 3 mode: switch incident profiles and tune evidence policy before action.
+          </div>
         </section>
 
         <section class="dashboard-grid">
@@ -313,7 +329,7 @@
       </form>
     </dialog>
 
-    <script type="module" src="app.js?v=20260611-approval-layout"></script>
+    <script type="module" src="app.js?v=20260611-tier3"></script>
     <script>
       (function () {
         var canvasWidth = 1500;

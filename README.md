@@ -59,6 +59,9 @@ That makes it incident response decision governance, not another alert triage or
 - Decision Audit Brief with provider, timestamp, readiness, found/missing evidence, blast radius, and next action
 - Optional Splunk HEC ingestion and REST search
 - Reliable mock mode for local judging without Splunk credentials
+- Tier 3 incident queue with multiple incident profiles
+- Tier 3 policy builder with Standard, Strict, and Emergency evidence-governance modes
+- Decision simulation summary showing how policy and evidence change readiness before action
 
 ## Local Setup
 
@@ -123,6 +126,14 @@ Custom request path:
 3. Select a proposed response action.
 4. Choose evaluate-only or execute-if-justified.
 5. Review readiness, blocked decisions, missing evidence, SPL, and recommended next action.
+
+Tier 3 path:
+
+1. Choose an incident profile from **Incident Queue**.
+2. Click **Load profile** to load that scenario's evidence into the engine.
+3. Choose a governance mode from **Policy Builder**: Standard, Strict, or Emergency.
+4. Click **Apply policy** and watch readiness, status, blocked decisions, and simulation text update.
+5. Continue to approval, containment, and audit brief export.
 
 ## Detail Pages
 
@@ -273,6 +284,7 @@ python smoke_tests.py
 - Prepare final Devpost copy.
 - Decide whether Vercel should use serverless API functions, static mock mode, or a separate backend.
 - Add true Splunk MCP Server integration only if the event calls are implemented and verified.
+- Expand Tier 3 incident profiles with fully distinct evidence packs and decision policies.
 
 ## Repository Contents
 

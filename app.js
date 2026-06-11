@@ -34,6 +34,11 @@ const els = {
   investigateBtn: document.querySelector("#investigateBtn"),
   executeSafeBtn: document.querySelector("#executeSafeBtn"),
   resetLabBtn: document.querySelector("#resetLabBtn"),
+  incidentSelector: document.querySelector("#incidentSelector"),
+  loadIncidentProfileBtn: document.querySelector("#loadIncidentProfileBtn"),
+  policySelector: document.querySelector("#policySelector"),
+  applyPolicyBtn: document.querySelector("#applyPolicyBtn"),
+  tier3Summary: document.querySelector("#tier3Summary"),
   exportBriefBtn: document.querySelector("#exportBriefBtn"),
   customRequestBtn: document.querySelector("#customRequestBtn"),
   customDialog: document.querySelector("#customDialog"),
@@ -67,6 +72,10 @@ let state = {
   incident_id: "INC-001",
   stage: "Ready",
   risk: 0,
+  incident: {},
+  policy: {},
+  incident_catalog: [],
+  policy_catalog: [],
   events: [],
   detections: [],
   decisions: [],
@@ -251,9 +260,9 @@ function renderMetrics() {
 
   els.riskScore.textContent = risk;
   els.riskSummary.textContent = `${riskText} | Trend (15m): ${trend}`;
-  els.incidentTitle.textContent = customRequest?.title || "ADMIN ACCOUNT TAKEOVER";
+  els.incidentTitle.textContent = customRequest?.title || state.incident?.title || "ADMIN ACCOUNT TAKEOVER";
   if (els.incidentIdLabel) {
-    els.incidentIdLabel.textContent = state.integration?.display_incident_id || "INC-2025-0001";
+    els.incidentIdLabel.textContent = state.incident?.display_incident_id || state.integration?.display_incident_id || "INC-2025-0001";
   }
   els.stageLabel.textContent = state.stage || "Ready";
   els.providerLabel.textContent = provider;
@@ -264,6 +273,38 @@ function renderMetrics() {
 
   document.documentElement.style.setProperty("--risk-value", `${Math.min(risk, 100) * 1.8}deg`);
   document.documentElement.dataset.riskTone = riskTone(risk);
+}
+
+function renderTier3Controls() {
+  if (els.incidentSelector && state.incident_catalog?.length) {
+    els.incidentSelector.innerHTML = state.incident_catalog
+      .map((incident) => `
+        <option value="${escapeHtml(incident.id)}" ${incident.id === state.incident?.id ? "selected" : ""}>
+          ${escapeHtml(incident.title)}
+        </option>
+      `)
+      .join("");
+  }
+
+  if (els.policySelector && state.policy_catalog?.length) {
+    els.policySelector.innerHTML = state.policy_catalog
+      .map((policy) => `
+        <option value="${escapeHtml(policy.id)}" ${policy.id === state.policy?.id ? "selected" : ""}>
+          ${escapeHtml(policy.label)}
+        </option>
+      `)
+      .join("");
+  }
+
+  if (els.tier3Summary) {
+    const topDecision = [...state.decisions].sort((a, b) => (b.readiness || 0) - (a.readiness || 0))[0];
+    const blocked = state.decisions.filter((decision) => ["blocked", "not-ready"].includes(normalizedStatus(decision.status))).length;
+    els.tier3Summary.innerHTML = `
+      <strong>${escapeHtml(state.incident?.summary || "Tier 3 decision governance")}</strong>
+      <span>Policy: ${escapeHtml(state.policy?.label || "Standard")} - ${escapeHtml(state.policy?.description || "Balanced evidence thresholds.")}</span>
+      <span>Simulation: ${topDecision ? `${escapeHtml(topDecision.title)} is ${escapeHtml(topDecision.status)} at ${topDecision.readiness}% readiness` : "Load evidence to simulate readiness."} ${blocked ? `${blocked} decision(s) still blocked or not ready.` : ""}</span>
+    `;
+  }
 }
 
 function renderDemoSteps() {
@@ -612,6 +653,7 @@ function renderEvents() {
 
 function render() {
   renderMetrics();
+  renderTier3Controls();
   renderDemoSteps();
   renderDecisionMatrix();
   renderThresholdMatrix();
@@ -657,6 +699,27 @@ async function loadFromSplunk() {
 async function startAttack() {
   logEntry("Starting admin takeover incident stream.");
   const payload = await requestJson("/start", { method: "POST", body: "{}" });
+  setState(payload);
+}
+
+async function loadIncidentProfile() {
+  const incidentId = els.incidentSelector?.value || state.incident?.id || "admin-takeover";
+  logEntry(`Loading incident profile: ${incidentId}.`);
+  const payload = await requestJson("/select-incident", {
+    method: "POST",
+    body: JSON.stringify({ incident_id: incidentId, load: true })
+  });
+  setState(payload);
+  await checkThresholds();
+}
+
+async function applyPolicyProfile() {
+  const profile = els.policySelector?.value || state.policy?.id || "standard";
+  logEntry(`Applying policy profile: ${profile}.`);
+  const payload = await requestJson("/policy", {
+    method: "POST",
+    body: JSON.stringify({ profile })
+  });
   setState(payload);
 }
 
@@ -856,6 +919,8 @@ function bindEvents() {
   els.executeSafeBtn.addEventListener("click", () => executeApprovedContainment().catch((error) => logEntry(error.message, "error")));
   els.exportBriefBtn.addEventListener("click", () => exportBrief().catch((error) => logEntry(error.message, "error")));
   els.judgeModeBtn.addEventListener("click", runJudgeMode);
+  els.loadIncidentProfileBtn?.addEventListener("click", () => loadIncidentProfile().catch((error) => logEntry(error.message, "error")));
+  els.applyPolicyBtn?.addEventListener("click", () => applyPolicyProfile().catch((error) => logEntry(error.message, "error")));
 
   els.approvalGate.addEventListener("click", (event) => {
     const approveId = event.target.closest("[data-approve]")?.dataset.approve;

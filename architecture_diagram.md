@@ -9,6 +9,8 @@ flowchart LR
   E --> G
   F["Veritas Frontend"] --> G
   S["Custom Request Runner"] --> G
+  U["Incident Queue"] --> G
+  V["Policy Builder"] --> H
   G --> H["Verification Engine"]
   H --> I["Evidence Threshold Matrix"]
   H --> J["Evidence Integrity & Blind Spots"]
@@ -42,7 +44,8 @@ flowchart LR
 10. Veritas executes only approved, evidence-ready containment actions.
 11. Users can open functional detail pages for risk, decisions, matrix, blind spots, missing evidence, blast radius, audit, and timeline.
 12. Users can feed analyst-provided evidence into the custom request runner for a testable response decision.
-13. Veritas exports a decision audit brief with search, evidence, approval, and action context.
+13. Tier 3 controls let users switch incident profiles and apply evidence-governance policy modes.
+14. Veritas exports a decision audit brief with search, evidence, approval, and action context.
 
 ## Core Principle
 
