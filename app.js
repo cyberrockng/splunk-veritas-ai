@@ -189,12 +189,8 @@ function setState(nextState) {
 }
 
 function fitExecutiveCanvas() {
-  const canvas = document.querySelector(".app-shell");
-  if (!canvas) return;
-  const availableWidth = Math.max(320, (document.documentElement.clientWidth || window.innerWidth) - 2);
-  const scale = Math.min(1, availableWidth / EXECUTIVE_CANVAS_WIDTH);
-  document.documentElement.style.setProperty("--fit-scale", scale.toFixed(4));
-  document.body.style.minHeight = `${Math.ceil(canvas.scrollHeight * scale)}px`;
+  document.documentElement.style.setProperty("--fit-scale", "1");
+  document.body.style.minHeight = "";
 }
 
 function logEntry(message, type = "info") {

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Veritas AI</title>
-    <link rel="stylesheet" href="styles.css?v=20260611-page-scroll" />
+    <link rel="stylesheet" href="styles.css?v=20260611-natural-scroll" />
   </head>
   <body>
     <div class="app-shell">
@@ -225,7 +225,7 @@
 
           <article class="panel event-panel" data-detail="timeline">
             <div class="panel-heading">
-              <span class="panel-number">7</span>
+              <span class="panel-number">9</span>
               <div>
                 <p class="section-label">Attack Path Timeline</p>
                 <h3>Reconstructs the attacker path before response decisions are approved.</h3>
@@ -347,17 +347,12 @@
       </form>
     </dialog>
 
-    <script type="module" src="app.js?v=20260611-scroll-fix"></script>
+    <script type="module" src="app.js?v=20260611-natural-scroll"></script>
     <script>
       (function () {
-        var canvasWidth = 1500;
         function fitExecutiveCanvas() {
-          var canvas = document.querySelector(".app-shell");
-          if (!canvas) return;
-          var available = Math.max(320, (document.documentElement.clientWidth || window.innerWidth) - 2);
-          var scale = Math.min(1, available / canvasWidth);
-          document.documentElement.style.setProperty("--fit-scale", scale.toFixed(4));
-          document.body.style.minHeight = Math.ceil(canvas.scrollHeight * scale) + "px";
+          document.documentElement.style.setProperty("--fit-scale", "1");
+          document.body.style.minHeight = "";
         }
         window.addEventListener("resize", fitExecutiveCanvas);
         window.addEventListener("load", fitExecutiveCanvas);
