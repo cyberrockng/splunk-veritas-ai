@@ -48,6 +48,9 @@ That matters because unsafe incident decisions can cause business disruption, le
 - Evidence-gated containment execution
 - Analyst Approval Gate for approve/reject before action
 - Evidence Drilldown for each threshold checklist item
+- Clickable indicator detail pages for risk, decisions, matrix, blind spots, missing evidence, blast radius, audit brief, and timeline
+- Executable custom request runner for analyst-provided incident details
+- Functional detail pages that can refresh live evidence, run custom requests, approve/execute actions, and export briefs
 - Real Splunk HEC ingestion path
 - Live Splunk REST evidence pull
 - MCP-shaped Splunk tool-call output
@@ -71,6 +74,19 @@ Then open:
 
 ```text
 http://127.0.0.1:5173
+```
+
+The dashboard indicators open functional pages:
+
+```text
+http://127.0.0.1:5173/detail.html?view=risk
+http://127.0.0.1:5173/detail.html?view=decisions
+http://127.0.0.1:5173/detail.html?view=matrix
+http://127.0.0.1:5173/detail.html?view=integrity
+http://127.0.0.1:5173/detail.html?view=missing
+http://127.0.0.1:5173/detail.html?view=blast
+http://127.0.0.1:5173/detail.html?view=audit
+http://127.0.0.1:5173/detail.html?view=timeline
 ```
 
 Optional Splunk REST configuration:
@@ -118,6 +134,16 @@ Manual path:
 8. Show the Evidence Integrity & Blind Spot Panel.
 9. Export the Decision Audit Brief.
 
+Executable custom-request path:
+
+1. Open **Investigations** or any indicator detail page.
+2. Enter a proposed response task, such as disabling an admin account, blocking an IP, or declaring no sensitive data accessed.
+3. Paste incident evidence in plain language.
+4. Choose whether the request should execute approved actions or only evaluate readiness.
+5. Run the request and review Veritas feedback, readiness changes, blocked decisions, missing SPL evidence, and recommended next action.
+
+This makes the project testable beyond the default demo scenario: judges can feed in their own incident facts and see the system evaluate, approve, block, or hold the response decision.
+
 ## Test
 
 With `python server.py` running:
@@ -129,8 +155,10 @@ python smoke_tests.py
 ## Repository Contents
 
 - `index.html` - Veritas app shell
+- `detail.html` - Functional detail page shell for dashboard indicators
 - `styles.css` - Responsive dashboard styling
 - `app.js` - Frontend workflow controller
+- `detail.js` - Detail page controller for live state, custom requests, approvals, actions, and briefs
 - `server.py` - Static app server plus Veritas evidence threshold API
 - `ingest_to_splunk.py` - Sends Veritas incident evidence into Splunk HEC
 - `SPLUNK_REAL_DATA.md` - Real Splunk ingestion and search runbook
