@@ -326,11 +326,11 @@ function renderReadinessStrip() {
 
   els.readinessStrip.innerHTML = state.decisions
     .map((decision) => `
-      <button class="readiness-card ${readinessTone(decision)}" data-detail="decisions" type="button">
+      <a class="readiness-card ${readinessTone(decision)}" href="detail.html?view=decisions&decision=${encodeURIComponent(decision.id)}">
         <span>${escapeHtml(shortDecisionName(decision.title))}</span>
         <strong>${decision.readiness}%</strong>
         <em>${escapeHtml(statusLabel(decision.status))}</em>
-      </button>
+      </a>
     `)
     .join("");
 }

@@ -517,6 +517,7 @@ h3 {
   padding: 8px;
   background: #fbfdff;
   text-align: left;
+  text-decoration: none;
 }
 
 .readiness-card {
@@ -1833,8 +1834,12 @@ dialog::backdrop {
 }
 
 .detail-body {
+  min-height: 100dvh;
   min-width: 0;
+  overflow-y: auto;
   overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
 }
 
 .detail-shell {
@@ -1842,7 +1847,7 @@ dialog::backdrop {
   gap: 14px;
   width: min(1280px, calc(100vw - 28px));
   margin: 0 auto;
-  padding: 18px 0 32px;
+  padding: 18px 0 120px;
 }
 
 .detail-hero,
