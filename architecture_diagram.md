@@ -14,8 +14,8 @@ flowchart LR
   G --> H["Verification Engine"]
   H --> I["Evidence Threshold Matrix"]
   H --> J["Evidence Integrity & Blind Spots"]
-  H --> K["Missing Evidence To SPL"]
-  H --> L["Blast Radius Warning"]
+  H --> K["Investigation Gaps to SPL"]
+  H --> L["Blast Radius & Decision Risk"]
   H --> Q["Evidence Drilldown"]
   I --> M["Decision Readiness Score"]
   J --> M
@@ -24,7 +24,7 @@ flowchart LR
   M --> N["Approve / Caution / Block / Not Ready"]
   N --> R["Analyst Approval Gate"]
   R --> O["Evidence-Gated Containment"]
-  N --> P["Decision Audit Brief"]
+  N --> P["Tier 3 Decision Audit Brief"]
   Q --> P
   R --> P
   T["Clickable Detail Pages"] --> G

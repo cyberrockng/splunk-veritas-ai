@@ -11,14 +11,14 @@ const decisionFilter = params.get("decision");
 
 const titles = {
   incident: ["Incident Overview", "Current incident state, evidence source, and action readiness."],
-  risk: ["Overall Risk Score", "Risk movement, decision readiness, and containment effect."],
-  decisions: ["Proposed Response Decisions", "Approve, hold, or inspect response decisions with evidence."],
+  risk: ["Residual Risk Score", "Risk movement, decision readiness, and containment effect."],
+  decisions: ["Response Decision Queue", "Approve, hold, or inspect response decisions with evidence."],
   matrix: ["Evidence Threshold Matrix", "Every evidence requirement, status, SPL query, and matched evidence."],
   integrity: ["Evidence Integrity & Blind Spots", "Evidence quality, source coverage, and missing telemetry."],
-  missing: ["Missing Evidence To SPL", "Run the right Splunk searches to close evidence gaps."],
-  blast: ["Blast Radius Warning", "What could go wrong before an action is approved."],
-  audit: ["Decision Audit Brief", "Exportable governance record and custom request result."],
-  timeline: ["Live Event Timeline", "Chronological evidence from Splunk or custom input."],
+  missing: ["Investigation Gaps to SPL", "Run the right Splunk searches to close evidence gaps."],
+  blast: ["Blast Radius & Decision Risk", "What could go wrong before an action is approved."],
+  audit: ["Tier 3 Decision Audit Brief", "Exportable governance record and custom request result."],
+  timeline: ["Attack Path Timeline", "Chronological evidence from Splunk or custom input."],
 };
 
 const actionMap = {
@@ -89,7 +89,7 @@ async function requestJson(path, options = {}) {
 
 function setHeader() {
   const [title, subtitle] = titles[view] || titles.risk;
-  els.eyebrow.textContent = `Indicator Detail / ${providerLabel()}`;
+  els.eyebrow.textContent = `Tier 3 Decision Detail / ${providerLabel()}`;
   els.title.textContent = title;
   els.subtitle.textContent = subtitle;
   els.risk.textContent = state?.risk ?? "--";

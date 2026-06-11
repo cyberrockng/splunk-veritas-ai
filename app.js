@@ -16,6 +16,7 @@ const els = {
   readyCount: document.querySelector("#readyCount"),
   blockedCount: document.querySelector("#blockedCount"),
   telemetryScore: document.querySelector("#telemetryScore"),
+  readinessStrip: document.querySelector("#readinessStrip"),
   demoSteps: document.querySelector("#demoSteps"),
   decisionMatrix: document.querySelector("#decisionMatrix"),
   thresholdMatrix: document.querySelector("#thresholdMatrix"),
@@ -307,6 +308,33 @@ function renderTier3Controls() {
   }
 }
 
+function shortDecisionName(title = "") {
+  return title
+    .replace("Revoke session token", "Revoke Token")
+    .replace("Disable admin account", "Disable Admin")
+    .replace("Block source IP", "Block IP")
+    .replace("Declare no sensitive data accessed", "No Data Accessed")
+    .replace("Close incident as contained", "Close Incident");
+}
+
+function renderReadinessStrip() {
+  if (!els.readinessStrip) return;
+  if (!state.decisions.length) {
+    els.readinessStrip.innerHTML = `<div class="readiness-empty">Load evidence to score the five response decisions.</div>`;
+    return;
+  }
+
+  els.readinessStrip.innerHTML = state.decisions
+    .map((decision) => `
+      <button class="readiness-card ${readinessTone(decision)}" data-detail="decisions" type="button">
+        <span>${escapeHtml(shortDecisionName(decision.title))}</span>
+        <strong>${decision.readiness}%</strong>
+        <em>${escapeHtml(statusLabel(decision.status))}</em>
+      </button>
+    `)
+    .join("");
+}
+
 function renderDemoSteps() {
   const steps = [
     { label: "Pull indexed evidence", done: (state.integration?.search_provider || state.integration?.provider) === "splunk-rest" },
@@ -363,6 +391,7 @@ function renderDecisionMatrix() {
                   <div>
                     <strong>${escapeHtml(decision.title)}</strong>
                     <button class="link-button" data-drilldown="${escapeHtml(foundCheck?.id || "")}">Evidence</button>
+                    ${["blocked", "not-ready"].includes(readinessTone(decision)) ? `<small>${escapeHtml(blockedReason(decision))}</small>` : ""}
                   </div>
                 </div>
               </td>
@@ -382,6 +411,20 @@ function renderDecisionMatrix() {
     </table>
     <p class="panel-note">Readiness Score = Evidence Confidence x Integrity x Coverage x Safety</p>
   `;
+}
+
+function blockedReason(decision) {
+  const missing = (decision.missing_evidence || []).map((item) => item.label).slice(0, 3);
+  if (decision.id === "declare-no-data-access") {
+    return "Evidence threshold not met. Export/download, object storage, and exfiltration evidence remain incomplete.";
+  }
+  if (decision.id === "close-contained") {
+    return "Evidence threshold not met. Containment and post-containment monitoring remain incomplete.";
+  }
+  if (missing.length) {
+    return `Evidence threshold not met. Missing: ${missing.join(", ")}.`;
+  }
+  return "Evidence threshold not met.";
 }
 
 function thresholdScore(check) {
@@ -654,6 +697,7 @@ function renderEvents() {
 function render() {
   renderMetrics();
   renderTier3Controls();
+  renderReadinessStrip();
   renderDemoSteps();
   renderDecisionMatrix();
   renderThresholdMatrix();

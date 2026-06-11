@@ -26,7 +26,7 @@
 - Missing telemetry warning.
 - Human approval requirement.
 
-## Passed: Phase 4 - Decision Audit Brief
+## Passed: Phase 4 - Tier 3 Decision Audit Brief
 
 - Exports decision readiness.
 - Includes missing evidence and SPL queries.

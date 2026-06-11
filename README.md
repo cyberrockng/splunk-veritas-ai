@@ -2,7 +2,7 @@
 
 **Know when you have enough evidence to act.**
 
-Veritas AI is a response decision assurance layer for Splunk. It verifies whether required evidence thresholds are met before approving high-impact incident response decisions.
+Veritas AI is a **Tier 3 response decision assurance layer for Splunk**. It helps senior incident responders verify whether the required evidence threshold has been met before approving high-impact incident-response decisions.
 
 Veritas focuses on the dangerous moment before a team acts, escalates, contains, stands down, or briefs leadership.
 
@@ -37,11 +37,11 @@ Safe containment actions may be approved or require review. Dangerous conclusion
 
 ## Why It Is Different
 
-Basic alert validation asks: "Is this alert real?"
+Most SOC tools ask, "Is this alert real?"
 
-Veritas asks: "Is this response decision justified by evidence?"
+Veritas asks, "Are we justified to act?"
 
-That makes it incident response decision governance, not another alert triage or SOAR automation demo.
+That makes it response decision governance: evidence-gated incident response before high-impact action.
 
 ## Features
 
@@ -50,18 +50,22 @@ That makes it incident response decision governance, not another alert triage or
 - Decision Readiness Score
 - Evidence Integrity & Blind Spot Panel
 - Missing Evidence to SPL queries
-- Blast Radius Warnings
+- Blast Radius & Decision Risk
 - Analyst Approval Gate
 - Evidence-gated simulated containment
 - One-click judge demo
 - Clickable functional detail pages
 - Executable custom request runner
-- Decision Audit Brief with provider, timestamp, readiness, found/missing evidence, blast radius, and next action
+- Tier 3 Decision Audit Brief with provider, timestamp, readiness, found/missing evidence, blast radius, and next action
 - Optional Splunk HEC ingestion and REST search
 - Reliable mock mode for local judging without Splunk credentials
 - Tier 3 incident queue with multiple incident profiles
 - Tier 3 policy builder with Standard, Strict, and Emergency evidence-governance modes
 - Decision simulation summary showing how policy and evidence change readiness before action
+
+## Why this can win
+
+Most security demos focus on detection or automated response. Veritas focuses on the decision point before response: whether the team has enough evidence to act. It gives Tier 3 responders a readiness score, evidence threshold matrix, investigation gaps, SPL queries, blast-radius warnings, and an audit-ready decision brief.
 
 ## Local Setup
 
@@ -117,7 +121,7 @@ Manual path:
 4. Drill into evidence and SPL gaps.
 5. Approve eligible actions.
 6. Click **Execute approved containment**.
-7. Export the Decision Audit Brief.
+7. Export the Tier 3 Decision Audit Brief.
 
 Custom request path:
 
@@ -219,7 +223,9 @@ Screenshot targets live in `assets/`:
 
 ![Veritas AI dashboard](assets/dashboard.png)
 
-![Evidence threshold matrix](assets/threshold-matrix.png)
+![Decision readiness strip](assets/decision-readiness-strip.png)
+
+![Evidence threshold matrix](assets/evidence-threshold-matrix.png)
 
 ![Decision audit brief](assets/audit-brief.png)
 

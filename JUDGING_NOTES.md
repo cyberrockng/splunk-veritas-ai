@@ -8,19 +8,15 @@ Bonus target: **Best Splunk Integration / MCP-ready workflow**
 
 ## Positioning
 
-Veritas AI is a response decision assurance layer for Splunk.
-
-Tagline: **Know when you have enough evidence to act.**
-
-It is not:
-
-- a generic SOC assistant
-- a false-positive detector
-- a normal SOAR automation demo
+Veritas AI is a **Tier 3 response decision assurance layer for Splunk**.
 
 It answers:
 
 "Before the team acts, has the required Splunk evidence threshold been met?"
+
+Short value statement:
+
+"Most SOC tools ask, 'Is this alert real?' Veritas asks, 'Are we justified to act?'"
 
 ## Why It Matters
 
@@ -35,19 +31,16 @@ Veritas makes those decisions evidence-bound and auditable.
 
 ## Differentiators
 
+- Decision Readiness Strip
 - Evidence Threshold Matrix
-- Decision Readiness Score
-- Missing Evidence To SPL
-- Blast Radius Warning
+- Tier 3 incident queue
+- Policy Builder with Standard, Strict, and Emergency modes
+- Investigation Gaps to SPL
+- Blast Radius & Decision Risk
 - Evidence Integrity & Blind Spot Panel
-- Real Splunk HEC ingestion path
-- Live Splunk REST evidence pull
-- One-click Judge Mode
 - Analyst Approval Gate
-- Evidence Drilldown
-- Clickable functional detail pages
-- Executable custom request runner for judge-provided evidence
-- Decision Audit Brief with Splunk search provenance
+- Evidence drilldown
+- Tier 3 Decision Audit Brief with Splunk search provenance
 
 ## Security Maturity
 
@@ -56,7 +49,7 @@ Veritas explicitly states:
 - Missing logs are not proof of safety.
 - Logs are untrusted evidence, not instructions.
 - High-impact actions require human approval.
-- The demo uses deterministic evidence-bounded logic.
+- Demo containment is simulated and deterministic.
 
 ## Splunk Fit
 
@@ -66,15 +59,8 @@ The app uses Splunk-style evidence, HEC ingestion, REST search, and MCP-shaped t
 - `splunk.notable_event`
 - `splunk.risk_score`
 
-It can run in `mock-mcp` mode for reliable judging, or in `splunk-rest` mode after:
+The default demo runs in safe `mock-mcp` mode with deterministic Splunk-style evidence. Optional Splunk REST and HEC ingestion are included for real indexed evidence. The backend boundary is designed for Splunk MCP Server integration.
 
-- `python ingest_to_splunk.py`
-- setting `SPLUNK_HOST`
-- setting `SPLUNK_TOKEN`
-- clicking **Pull indexed evidence**
-
-For presentation, click **Run live judge demo** to execute the complete evidence -> decision -> containment -> audit flow.
+For presentation, click **Run Live Judge Demo** to execute the evidence -> decision -> approval -> containment -> audit flow.
 
 Judges can also click any major indicator or navigation item to open a functional detail page, then feed their own incident facts into the custom request runner. Veritas recalculates readiness, blocks unsafe decisions, and simulates only approved containment.
-
-Important wording: the default demo uses safe deterministic `mock-mcp` evidence. Optional Splunk REST and HEC ingestion are implemented for real indexed evidence. The backend boundary is designed for Splunk MCP Server integration, but the project should not claim live Splunk MCP Server calls unless that integration is added and verified.

@@ -1,80 +1,71 @@
 # Veritas AI Under-Three-Minute Demo Script
 
-## 0:00 - 0:20: Positioning
+## 0:00 - 0:20: Problem
 
-"Veritas AI is an Evidence Threshold Engine for Splunk. It does not just detect alerts or automate playbooks. It checks whether the team has enough evidence to safely make a response decision."
+"During incidents, teams often act before the evidence threshold is met. They may disable the wrong admin, block a shared IP, declare no data accessed too early, or close an incident while attacker activity remains unresolved."
 
-Point to:
+Point to the tagline:
 
-- Know when you have enough evidence to act
-- Decision Risk
-- Principles panel
+**Know when you have enough evidence to act.**
 
-## 0:20 - 0:45: Run Judge Mode
+## 0:20 - 0:40: Product
 
-Click **Run live judge demo**.
-
-Say:
-
-"The incident is an admin account takeover. Judge Mode uses deterministic Splunk-style evidence by default, or indexed Splunk events when REST credentials are configured. It evaluates evidence thresholds, executes only approved simulated containment, and opens the audit brief."
+"Veritas AI is a Tier 3 response decision assurance layer for Splunk. It checks whether the team has enough Splunk evidence before approving high-impact incident-response decisions."
 
 Show:
 
-- Evidence events loaded
-- Timeline
-- Telemetry completeness
-- Provider badge: `mock-mcp` or `splunk-rest`
+- Residual Risk Score
+- Decision Readiness Strip
+- Tier 3 incident/policy controls
 
-## 0:45 - 1:20: Check Thresholds
+## 0:40 - 1:05: Start Incident
 
-Point to the Evidence Threshold Matrix and Live Decision Spotlight.
+Click **Run Live Judge Demo**.
 
 Say:
 
-"Veritas evaluates five proposed response decisions. It approves or cautions containment actions, but blocks unsafe statements when evidence is missing or contradictory."
+"The scenario is an admin account takeover: impossible travel, MFA anomaly, privilege escalation, admin API access, scripted download, and cloud export."
+
+Show the **Attack Path Timeline**.
+
+## 1:05 - 1:35: Decision Assurance
+
+Point to the **Decision Readiness Strip** and **Evidence Threshold Matrix**.
+
+Say:
+
+"Veritas does not ask only whether the alert is real. It asks whether we are justified to act."
 
 Show:
 
-- Revoke session token: Approved
-- Disable admin account: Approved or Caution
-- Block source IP: Caution
-- Declare no sensitive data accessed: Blocked
-- Close incident as contained: Not Ready or Blocked
-- Click any **Evidence** button to show matched Splunk events, SPL, and job IDs
+- Revoke session token approved when active session risk is present
+- Disable admin account requires human approval
+- Block source IP is caution because of blast radius
+- No-data-access and incident-closed conclusions remain blocked
 
-## 1:20 - 1:40: Execute Only Evidence-Ready Actions
+## 1:35 - 2:05: Gaps, Approval, And Containment
 
-Say:
-
-"Veritas does not blindly automate every action. The analyst approval gate records approval before containment executes, then Veritas keeps blocking premature closure and no-data-access statements."
-
-Show:
-
-- Analyst Approval Gate
-- Risk score drops after containment
-- Live Decision Spotlight remains blocked for unsafe statements
-- Close incident still needs post-containment monitoring
-
-## 1:40 - 1:55: Explain The Differentiator
+Show **Investigation Gaps to SPL**.
 
 Say:
 
-"This is not false-positive detection. The question is not just whether the alert is valid. The question is whether the response decision is justified by evidence."
+"For every missing evidence item, Veritas gives the SPL needed to close the gap."
 
-Show:
+Then show:
 
-- Evidence Threshold Matrix
-- Missing Evidence To SPL
-- Evidence Integrity & Blind Spot Panel
-- MCP-shaped tool calls in the audit console
-- Splunk job IDs when running in real Splunk mode
+- Human approval requirement
+- Execute approved mock containment
+- Residual risk drops only after approved containment
+- Unsafe conclusions remain blocked
 
-## 1:55 - 2:00: Export Brief
+## 2:05 - 2:40: Audit Brief
+
+Export the **Tier 3 Decision Audit Brief**.
 
 Say:
 
-"The output is an auditable decision brief: what was approved, what was blocked, why, which Splunk jobs supported the decision, what evidence is missing, and what SPL should be run next."
+"The output is a professional decision record: readiness, status, evidence found, evidence missing, SPL gaps, blast radius, approval state, provider, timestamp, and safety notes."
 
-Close with:
+## Closing
 
-"Veritas AI tells teams when they have enough evidence to act."
+"Veritas AI tells Tier 3 responders when they have enough evidence to act."

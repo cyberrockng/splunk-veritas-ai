@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Veritas AI</title>
-    <link rel="stylesheet" href="styles.css?v=20260611-tier3" />
+    <link rel="stylesheet" href="styles.css?v=20260611-final-touch" />
   </head>
   <body>
     <div class="app-shell">
@@ -21,23 +21,23 @@
 
         <nav class="side-nav" aria-label="Application sections">
           <a class="active" href="index.html?v=custom-feedback-final"><span class="nav-icon icon-grid"></span>Overview</a>
-          <a href="detail.html?view=incident"><span class="nav-icon icon-shield"></span>Incidents</a>
-          <a href="detail.html?view=matrix"><span class="nav-icon icon-matrix"></span>Evidence Matrix</a>
-          <a href="detail.html?view=decisions"><span class="nav-icon icon-check"></span>Decisions</a>
+          <a href="detail.html?view=incident"><span class="nav-icon icon-shield"></span>Active Incident</a>
+          <a href="detail.html?view=matrix"><span class="nav-icon icon-matrix"></span>Evidence Thresholds</a>
+          <a href="detail.html?view=decisions"><span class="nav-icon icon-check"></span>Decision Queue</a>
+          <a href="detail.html?view=timeline"><span class="nav-icon icon-search"></span>Attack Path</a>
           <a href="detail.html?view=blast"><span class="nav-icon icon-target"></span>Blast Radius</a>
-          <a href="detail.html?view=timeline"><span class="nav-icon icon-search"></span>Investigations</a>
-          <a href="detail.html?view=decisions"><span class="nav-icon icon-case"></span>Automation</a>
-          <a href="detail.html?view=audit"><span class="nav-icon icon-report"></span>Reports</a>
+          <a href="detail.html?view=decisions"><span class="nav-icon icon-case"></span>Tier 3 Review</a>
+          <a href="detail.html?view=audit"><span class="nav-icon icon-report"></span>Audit Briefs</a>
           <a href="detail.html?view=missing"><span class="nav-icon icon-clip"></span>Playbooks</a>
-          <a href="detail.html?view=integrity"><span class="nav-icon icon-gear"></span>Settings</a>
           <a href="detail.html?view=integrity"><span class="nav-icon icon-plug"></span>Integrations</a>
+          <a href="detail.html?view=integrity"><span class="nav-icon icon-gear"></span>Settings</a>
         </nav>
 
         <div class="analyst-card">
           <div class="avatar">SO</div>
           <div>
-            <strong>SOC Analyst</strong>
-            <p>Tier 2</p>
+            <strong>Tier 3 Incident Responder</strong>
+            <p>Security Operations</p>
             <small><span></span>Online</small>
           </div>
         </div>
@@ -50,11 +50,12 @@
             <div class="incident-title">
               <p>ACTIVE INCIDENT</p>
               <h2 id="incidentTitle">ADMIN ACCOUNT TAKEOVER</h2>
+              <p class="hero-subtitle">Tier 3 response decision assurance for high-impact incident actions.</p>
               <div class="incident-meta">
                 <span>Incident ID: <b id="incidentIdLabel">INC-2025-0001</b></span>
                 <span>Status: <b id="stageLabel">idle</b></span>
                 <span>Started: live Splunk session</span>
-                <span>Owner: SOC Tier 2</span>
+                <span>Owner: Tier 3 Response Lead</span>
                 <span>Provider: <b id="providerLabel">mock-mcp</b></span>
               </div>
             </div>
@@ -63,7 +64,7 @@
           <article class="panel risk-panel" data-detail="risk">
             <div class="panel-heading compact">
               <div>
-                <p class="section-label">Overall Risk Score</p>
+                <p class="section-label">Residual Risk Score</p>
               </div>
             </div>
             <div class="risk-gauge">
@@ -84,14 +85,23 @@
         </section>
 
         <section class="control-strip" aria-label="Incident controls">
-          <button id="judgeModeBtn" class="primary-btn judge-btn" type="button">Run live judge demo</button>
-          <button id="customRequestBtn" class="primary-btn" type="button">Run custom request</button>
-          <button id="loadSplunkBtn" class="secondary-btn" type="button">Pull indexed evidence</button>
-          <button id="startAttackBtn" class="secondary-btn" type="button">Load demo evidence</button>
-          <button id="nextEventBtn" class="secondary-btn" type="button">Add next event</button>
-          <button id="investigateBtn" class="secondary-btn" type="button">Check thresholds</button>
-          <button id="executeSafeBtn" class="primary-btn" type="button">Execute approved containment</button>
-          <button id="resetLabBtn" class="secondary-btn" type="button">Reset</button>
+          <div class="action-group primary-action-group">
+            <span>Primary Demo</span>
+            <button id="judgeModeBtn" class="primary-btn judge-btn" type="button">Run Live Judge Demo</button>
+          </div>
+          <div class="action-group">
+            <span>Investigation</span>
+            <button id="startAttackBtn" class="secondary-btn" type="button">Load Demo Evidence</button>
+            <button id="loadSplunkBtn" class="secondary-btn" type="button">Pull Indexed Evidence</button>
+            <button id="nextEventBtn" class="secondary-btn" type="button">Add Next Event</button>
+            <button id="investigateBtn" class="secondary-btn" type="button">Run Tier 3 Evidence Review</button>
+          </div>
+          <div class="action-group">
+            <span>Response & Admin</span>
+            <button id="executeSafeBtn" class="primary-btn" type="button">Execute Approved Containment</button>
+            <button id="customRequestBtn" class="secondary-btn" type="button">Run Custom Request</button>
+            <button id="resetLabBtn" class="secondary-btn" type="button">Reset Lab</button>
+          </div>
           <p id="labStatus" class="copy-status" aria-live="polite"></p>
           <div id="demoSteps" class="demo-steps"></div>
         </section>
@@ -112,19 +122,27 @@
           </div>
         </section>
 
+        <section class="readiness-strip" aria-label="Decision Readiness Strip">
+          <div>
+            <p class="section-label">Decision Readiness Strip</p>
+            <h3>Are we justified to act?</h3>
+          </div>
+          <div id="readinessStrip" class="readiness-strip-grid"></div>
+        </section>
+
         <section class="dashboard-grid">
-          <article class="panel panel-decisions" id="decisions" data-detail="decisions">
+          <article class="panel dashboard-card strong-border panel-decisions" id="decisions" data-detail="decisions">
             <div class="panel-heading">
               <span class="panel-number">1</span>
               <div>
-                <p class="section-label">Proposed Response Decisions</p>
+                <p class="section-label">Response Decision Queue</p>
                 <h3>Actions Veritas will approve, block, or hold</h3>
               </div>
             </div>
             <div id="decisionMatrix" class="decision-matrix"></div>
           </article>
 
-          <article class="panel panel-threshold" id="matrix" data-detail="matrix">
+          <article class="panel dashboard-card strong-border panel-threshold" id="matrix" data-detail="matrix">
             <div class="panel-heading">
               <span class="panel-number">2</span>
               <div>
@@ -135,7 +153,7 @@
             <div id="thresholdMatrix" class="threshold-table"></div>
           </article>
 
-          <article class="panel integrity-panel" data-detail="integrity">
+          <article class="panel dashboard-card strong-border integrity-panel" data-detail="integrity">
             <div class="panel-heading">
               <span class="panel-number">3</span>
               <div>
@@ -146,38 +164,38 @@
             <div id="integrityPanel" class="integrity-grid"></div>
           </article>
 
-          <article class="panel missing-panel" data-detail="missing">
+          <article class="panel dashboard-card strong-border missing-panel" data-detail="missing">
             <div class="panel-heading">
               <span class="panel-number">4</span>
               <div>
-                <p class="section-label">Missing Evidence To SPL</p>
+                <p class="section-label">Investigation Gaps to SPL</p>
                 <h3>Generate SPL queries to collect missing evidence</h3>
               </div>
             </div>
             <div id="splGapList" class="missing-list"></div>
           </article>
 
-          <article class="panel blast-panel" id="blast" data-detail="blast">
+          <article class="panel dashboard-card strong-border blast-panel" id="blast" data-detail="blast">
             <div class="panel-heading">
               <span class="panel-number">5</span>
               <div>
-                <p class="section-label">Blast Radius Warning</p>
+                <p class="section-label">Blast Radius & Decision Risk</p>
                 <h3>What could go wrong if the team acts</h3>
               </div>
             </div>
             <div id="blastRadiusList" class="blast-list"></div>
           </article>
 
-          <article class="panel brief-panel" data-detail="audit">
+          <article class="panel dashboard-card strong-border brief-panel" data-detail="audit">
             <div class="panel-heading">
               <span class="panel-number">6</span>
               <div>
-                <p class="section-label">Decision Audit Brief</p>
+                <p class="section-label">Tier 3 Decision Audit Brief</p>
                 <h3>Evidence-backed response governance</h3>
               </div>
               <button id="exportBriefBtn" class="secondary-btn" type="button">
                 <span>Doc</span>
-                Export Brief
+                Export Tier 3 Decision Audit Brief
               </button>
             </div>
             <div id="auditPreview" class="audit-preview"></div>
@@ -209,8 +227,8 @@
             <div class="panel-heading">
               <span class="panel-number">7</span>
               <div>
-                <p class="section-label">Live Event Timeline</p>
-                <h3>Recent Splunk evidence</h3>
+                <p class="section-label">Attack Path Timeline</p>
+                <h3>Reconstructs the attacker path before response decisions are approved.</h3>
               </div>
               <span class="live-pill">Live</span>
             </div>
@@ -236,7 +254,7 @@
     <dialog id="briefDialog">
       <div class="dialog-header">
         <div>
-          <p class="section-label">Decision Audit Brief</p>
+          <p class="section-label">Tier 3 Decision Audit Brief</p>
           <h3>Evidence-backed response governance</h3>
         </div>
         <button id="closeBriefBtn" class="icon-btn" type="button" aria-label="Close brief">
@@ -329,7 +347,7 @@
       </form>
     </dialog>
 
-    <script type="module" src="app.js?v=20260611-tier3"></script>
+    <script type="module" src="app.js?v=20260611-final-touch"></script>
     <script>
       (function () {
         var canvasWidth = 1500;
