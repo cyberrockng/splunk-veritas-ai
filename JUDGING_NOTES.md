@@ -4,7 +4,7 @@
 
 Primary track: **Security**
 
-Bonus target: **Best Use of Splunk MCP Server**
+Bonus target: **Best Splunk Integration / MCP-ready workflow**
 
 ## Positioning
 
@@ -60,7 +60,7 @@ Veritas explicitly states:
 
 ## Splunk Fit
 
-The app uses Splunk-style evidence, HEC ingestion, REST search, and MCP-shaped tool calls:
+The app uses Splunk-style evidence, HEC ingestion, REST search, and MCP-shaped tool-call output:
 
 - `splunk.search`
 - `splunk.notable_event`
@@ -76,3 +76,5 @@ It can run in `mock-mcp` mode for reliable judging, or in `splunk-rest` mode aft
 For presentation, click **Run live judge demo** to execute the complete evidence -> decision -> containment -> audit flow.
 
 Judges can also click any major indicator or navigation item to open a functional detail page, then feed their own incident facts into the custom request runner. Veritas recalculates readiness, blocks unsafe decisions, and simulates only approved containment.
+
+Important wording: the default demo uses safe deterministic `mock-mcp` evidence. Optional Splunk REST and HEC ingestion are implemented for real indexed evidence. The backend boundary is designed for Splunk MCP Server integration, but the project should not claim live Splunk MCP Server calls unless that integration is added and verified.

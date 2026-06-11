@@ -47,3 +47,7 @@ flowchart LR
 ## Core Principle
 
 Veritas does not ask only whether an alert is real. It asks whether the proposed response decision is justified by the available Splunk evidence.
+
+## Deployment Boundary
+
+The current implementation is optimized for local demo reliability with `python server.py`. The frontend now uses same-origin API calls by default, with an optional API-origin override for future hosting. Vercel preparation is limited to safe static configuration and documentation; no production deployment is performed without maintainer approval.

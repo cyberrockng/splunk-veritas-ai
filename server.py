@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 PORT = int(os.environ.get("PORT", "5173"))
+APP_VERSION = os.environ.get("VERITAS_VERSION", "1.0.0")
 SPLUNK_HOST = os.environ.get("SPLUNK_HOST", "").rstrip("/")
 SPLUNK_TOKEN = os.environ.get("SPLUNK_TOKEN", "")
 SPLUNK_AUTH_SCHEME = os.environ.get("SPLUNK_AUTH_SCHEME", "Bearer")
@@ -1358,7 +1359,17 @@ class VeritasHandler(SimpleHTTPRequestHandler):
         path = urlparse(self.path).path
 
         if path == "/api/health":
-            self.send_json({"ok": True, "adapter": "backend-api", "mode": "veritas-threshold-engine"})
+            self.send_json(
+                {
+                    "ok": True,
+                    "status": "ok",
+                    "app": "Veritas AI",
+                    "product": "Evidence Threshold Engine for Splunk",
+                    "mode": splunk_status()["provider"],
+                    "splunk_configured": splunk_configured(),
+                    "version": APP_VERSION,
+                }
+            )
             return
 
         if path == "/api/sentinel/state":
@@ -1444,7 +1455,13 @@ class VeritasHandler(SimpleHTTPRequestHandler):
                 return
             decision_id = ACTION_DECISION_MAP.get(action_id)
             if decision_id and LAB_STATE["approvals"].get(decision_id) != "approved":
-                self.send_json({"error": "Analyst approval is required before this action can execute"}, status=409)
+                self.send_json(
+                    {
+                        "ok": False,
+                        "error": "Human approval required before this action can execute.",
+                    },
+                    status=409,
+                )
                 return
             if action_id not in {item["id"] for item in LAB_STATE["actions"]}:
                 LAB_STATE["actions"].append(action)

@@ -1,4 +1,9 @@
-const API_BASE = "http://127.0.0.1:8001/api/sentinel";
+const API_ORIGIN = (
+  window.VERITAS_API_ORIGIN
+  || new URLSearchParams(window.location.search).get("api")
+  || ""
+).replace(/\/$/, "");
+const API_BASE = `${API_ORIGIN}/api/sentinel`;
 
 const params = new URLSearchParams(window.location.search);
 const view = params.get("view") || "risk";

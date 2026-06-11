@@ -16,7 +16,7 @@ Click **Run live judge demo**.
 
 Say:
 
-"The incident is an admin account takeover. Judge Mode pulls indexed events from Splunk, evaluates evidence thresholds, executes only evidence-ready containment, and opens the audit brief. If Splunk is unavailable, it falls back to the deterministic demo path."
+"The incident is an admin account takeover. Judge Mode uses deterministic Splunk-style evidence by default, or indexed Splunk events when REST credentials are configured. It evaluates evidence thresholds, executes only approved simulated containment, and opens the audit brief."
 
 Show:
 

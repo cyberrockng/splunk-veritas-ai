@@ -79,9 +79,18 @@
 - Added clickable functional detail pages for risk, decisions, matrix, integrity, missing evidence, blast radius, audit, and timeline.
 - Detail pages can refresh state, run custom requests, approve/execute eligible actions, and export briefs.
 
-## Current: Phase 11 - Submission Package
+## Passed: Phase 11 - Submission Package
 
 - Capture screenshots or short GIF.
 - Record two-minute walkthrough.
 - Prepare final Devpost copy.
 - Add sample Splunk data ingestion notes.
+
+## Current: Phase 12 - Deployment Readiness
+
+- Add `.env.example` without secrets.
+- Keep local `python server.py` demo reliable.
+- Add health check response for deployment monitors.
+- Prepare safe `vercel.json` without deploying.
+- Document Vercel options and stop before actual deployment.
+- Keep mock mode as the deterministic default when Splunk is not configured.
