@@ -347,7 +347,7 @@ h3 {
   align-content: start;
   gap: 8px;
   min-width: 0;
-  padding-bottom: 84px;
+  padding-bottom: 24px;
 }
 
 .top-grid {
@@ -419,11 +419,8 @@ h3 {
 }
 
 .control-strip {
-  position: fixed;
-  z-index: 20;
-  right: 14px;
-  bottom: 14px;
-  left: 266px;
+  position: static;
+  z-index: 1;
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
@@ -431,9 +428,8 @@ h3 {
   border: 1px solid rgba(7, 26, 68, 0.18);
   border-radius: 7px;
   padding: 9px;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 16px 42px rgba(7, 26, 68, 0.18);
-  backdrop-filter: blur(14px);
+  background: var(--panel);
+  box-shadow: var(--shadow);
 }
 
 .action-group {

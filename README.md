@@ -46,6 +46,7 @@ That makes it response decision governance: evidence-gated incident response bef
 ## Features
 
 - UI-H Light Executive dashboard
+- Judge-friendly page-flow navigation from the incident header through the seven dashboard cards
 - Evidence Threshold Matrix
 - Decision Readiness Score
 - Evidence Integrity & Blind Spot Panel
