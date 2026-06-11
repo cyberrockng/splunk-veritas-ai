@@ -306,9 +306,9 @@ function renderDecisionMatrix() {
             ? "Approved"
             : approval?.approval === "rejected"
               ? "Rejected"
-              : decision.requires_human_approval
-                ? "Human review"
-                : "Auto-ready";
+              : decision.human_approval
+                ? "Human"
+                : "Auto";
           return `
             <tr class="decision-row ${readinessTone(decision)}" style="--i:${index}">
               <td>
