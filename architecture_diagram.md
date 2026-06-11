@@ -8,6 +8,7 @@ flowchart LR
   C --> E["Splunk REST Search"]
   E --> G
   F["Veritas Frontend"] --> G
+  S["Custom Request Runner"] --> G
   G --> H["Verification Engine"]
   H --> I["Evidence Threshold Matrix"]
   H --> J["Evidence Integrity & Blind Spots"]
@@ -24,6 +25,7 @@ flowchart LR
   N --> P["Decision Audit Brief"]
   Q --> P
   R --> P
+  T["Clickable Detail Pages"] --> G
 ```
 
 ## Data Flow
@@ -38,7 +40,9 @@ flowchart LR
 8. Analysts drill into threshold evidence and review the SPL/job context.
 9. Analysts approve or reject eligible high-impact actions.
 10. Veritas executes only approved, evidence-ready containment actions.
-11. Veritas exports a decision audit brief with search, evidence, approval, and action context.
+11. Users can open functional detail pages for risk, decisions, matrix, blind spots, missing evidence, blast radius, audit, and timeline.
+12. Users can feed analyst-provided evidence into the custom request runner for a testable response decision.
+13. Veritas exports a decision audit brief with search, evidence, approval, and action context.
 
 ## Core Principle
 

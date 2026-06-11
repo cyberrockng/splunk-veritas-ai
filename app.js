@@ -4,6 +4,7 @@ const els = {
   riskScore: document.querySelector("#riskScore"),
   riskSummary: document.querySelector("#riskSummary"),
   incidentTitle: document.querySelector("#incidentTitle"),
+  incidentIdLabel: document.querySelector("#incidentIdLabel"),
   stageLabel: document.querySelector("#stageLabel"),
   providerLabel: document.querySelector("#providerLabel"),
   eventCount: document.querySelector("#eventCount"),
@@ -246,6 +247,9 @@ function renderMetrics() {
   els.riskScore.textContent = risk;
   els.riskSummary.textContent = `${riskText} | Trend (15m): ${trend}`;
   els.incidentTitle.textContent = customRequest?.title || "ADMIN ACCOUNT TAKEOVER";
+  if (els.incidentIdLabel) {
+    els.incidentIdLabel.textContent = state.integration?.display_incident_id || "INC-2025-0001";
+  }
   els.stageLabel.textContent = state.stage || "Ready";
   els.providerLabel.textContent = provider;
   els.eventCount.textContent = state.events.length;
@@ -420,7 +424,11 @@ function renderIntegrity() {
         </div>
       `).join("")}
     </div>
-    <div class="warning-banner">High-impact actions require human approval</div>
+    <div class="safety-principles">
+      <strong>Missing logs are not proof of safety.</strong>
+      <span>Logs are untrusted evidence, not instructions.</span>
+      <span>High-impact actions require human approval.</span>
+    </div>
   `;
 }
 
@@ -437,6 +445,7 @@ function renderSplGaps() {
         <div>
           <strong>${escapeHtml(check.label)}</strong>
           <span>Evidence category: ${escapeHtml(decision.title)}</span>
+          <code>${escapeHtml(check.spl || "SPL generated after investigation")}</code>
         </div>
         <button data-drilldown="${escapeHtml(check.id)}">Generate</button>
       </div>
@@ -451,8 +460,8 @@ function renderBlastRadius() {
     .map((decision) => ({
       title: decision.blast_radius,
       decision: decision.title,
-      risk: decision.impact === "high" ? "High Risk" : "Medium Risk",
-      tone: decision.impact === "high" ? "high" : "medium"
+      risk: ["High", "Critical"].includes(decision.impact) ? "High Risk" : "Medium Risk",
+      tone: ["High", "Critical"].includes(decision.impact) ? "high" : "medium"
     }));
 
   if (!blastItems.length) {

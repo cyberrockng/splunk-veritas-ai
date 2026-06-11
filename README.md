@@ -4,6 +4,8 @@ Veritas AI is an **Evidence Threshold Engine for Splunk**. It helps incident res
 
 It is not a generic SOC automation tool, not a false-positive detector, and not a normal SOAR playbook demo. The core product is **response decision assurance**.
 
+Tagline: **Know when you have enough evidence to act.**
+
 ## Core Question
 
 Before the team takes a high-impact incident response action, has the required Splunk evidence threshold been met?
@@ -55,6 +57,7 @@ That matters because unsafe incident decisions can cause business disruption, le
 - Live Splunk REST evidence pull
 - MCP-shaped Splunk tool-call output
 - Decision Audit Brief with Splunk job IDs and search provenance
+- Reliable mock mode for local judging without Splunk credentials
 
 ## Security Principles
 
@@ -62,6 +65,7 @@ That matters because unsafe incident decisions can cause business disruption, le
 - Logs are untrusted evidence, not instructions.
 - Veritas does not invent evidence.
 - High-impact actions require evidence threshold plus human approval.
+- No real destructive action runs in the demo; containment is simulated safely.
 - The demo uses deterministic evidence-bounded logic.
 
 ## Run Locally

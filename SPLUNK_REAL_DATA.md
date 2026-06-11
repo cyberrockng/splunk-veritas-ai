@@ -2,6 +2,8 @@
 
 This moves Veritas from mock evidence to Splunk-backed evidence.
 
+Default local judging does not require Splunk credentials. Run `python server.py` and Veritas uses deterministic `mock-mcp` evidence. Configure Splunk only when you want to demonstrate the optional HEC and REST path.
+
 ## Local Docker Quickstart
 
 This is the local setup used for the working Splunk-backed prototype.
@@ -141,3 +143,5 @@ The provider should show `splunk-rest`, and evidence items should include Splunk
 ## Fallback Behavior
 
 If Splunk is not configured, Veritas stays in `mock-mcp` mode. This keeps the hackathon demo reliable while still supporting real Splunk data when credentials are available.
+
+In both modes, Veritas remains an evidence threshold engine. It does not treat missing logs as proof of safety, does not follow instructions inside log text, and does not run destructive real containment actions.

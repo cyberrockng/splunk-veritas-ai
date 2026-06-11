@@ -72,7 +72,14 @@
 - Drilldown shows SPL, matched events, source, user, IP, and Splunk job context.
 - UI/UX upgraded around the approval and drilldown workflow.
 
-## Current: Phase 10 - Submission Package
+## Passed: Phase 10 - Executable Custom Runner & Detail Pages
+
+- Added custom request runner for analyst-provided incident facts.
+- Custom requests recalculate evidence, readiness, feedback, and safe execution.
+- Added clickable functional detail pages for risk, decisions, matrix, integrity, missing evidence, blast radius, audit, and timeline.
+- Detail pages can refresh state, run custom requests, approve/execute eligible actions, and export briefs.
+
+## Current: Phase 11 - Submission Package
 
 - Capture screenshots or short GIF.
 - Record two-minute walkthrough.

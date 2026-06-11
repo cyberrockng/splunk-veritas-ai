@@ -1,4 +1,4 @@
-# Veritas AI Two-Minute Demo Script
+# Veritas AI Under-Three-Minute Demo Script
 
 ## 0:00 - 0:20: Positioning
 
@@ -74,3 +74,7 @@ Show:
 Say:
 
 "The output is an auditable decision brief: what was approved, what was blocked, why, which Splunk jobs supported the decision, what evidence is missing, and what SPL should be run next."
+
+Close with:
+
+"Veritas AI tells teams when they have enough evidence to act."
