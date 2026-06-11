@@ -128,7 +128,7 @@ h3 {
   top: 7px;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 14px);
+  min-height: max(calc(100vh - 14px), 860px);
   padding: 22px 17px;
   border-color: rgba(255, 255, 255, 0.14);
   background: linear-gradient(180deg, var(--sidebar), var(--sidebar-2));
