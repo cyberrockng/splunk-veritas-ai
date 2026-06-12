@@ -2,7 +2,7 @@
 
 This folder is reserved for final Devpost and README screenshots.
 
-Recommended images:
+Captured images:
 
 - `dashboard.png` - UI-H Light Executive overview dashboard
 - `threshold-matrix.png` - Evidence Threshold Matrix and missing SPL workflow

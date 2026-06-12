@@ -235,7 +235,15 @@ Expected mock health:
 
 ## Proof Screenshots For Devpost
 
-Capture these after the real Splunk run. Avoid any screen that shows token values.
+Captured after the real Splunk run. Avoid any screen that shows token values.
+
+![Splunk indexed Veritas events](assets/splunk-indexed-events.png)
+
+![Veritas health showing Splunk REST mode](assets/veritas-health-splunk-rest.png)
+
+![Veritas dashboard showing real indexed evidence](assets/veritas-dashboard-splunk-rest.png)
+
+![Veritas audit brief with Splunk evidence](assets/veritas-audit-brief.png)
 
 - `assets/splunk-indexed-events.png` - Splunk Search showing `index=veritas`
 - `assets/veritas-health-splunk-rest.png` - `/api/health` showing `splunk_configured: true`

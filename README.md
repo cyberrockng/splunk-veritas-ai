@@ -2,26 +2,11 @@
 
 **Know when you have enough evidence to act.**
 
-Veritas AI is a **Tier 3 response decision assurance layer for Splunk**. It helps senior incident responders verify whether the required evidence threshold has been met before approving high-impact incident-response decisions.
+Veritas AI is a Tier 3 response decision assurance layer for Splunk. It helps senior incident responders decide whether the evidence threshold is strong enough before approving high-impact actions such as revoking sessions, disabling accounts, blocking source IPs, briefing leadership, or closing an incident.
 
-Veritas focuses on the dangerous moment before a team acts, escalates, contains, stands down, or briefs leadership.
+Most SOC tools ask, "Is this alert real?"
 
-## Problem
-
-Incident response teams often make high-impact decisions with incomplete evidence:
-
-- Disable the wrong admin account and disrupt recovery
-- Block a shared source IP and affect legitimate users
-- Declare no sensitive data accessed before export and object access logs are reviewed
-- Close an incident while attacker sessions or persistence remain active
-
-## Solution
-
-Veritas AI checks the evidence threshold for each proposed response decision. It approves, cautions, blocks, or holds decisions based on available Splunk-style evidence, telemetry completeness, blast radius, and human approval requirements.
-
-The default demo runs in safe `mock-mcp` mode with deterministic Splunk-style evidence. Optional Splunk REST and HEC ingestion are included for real indexed evidence. The backend boundary is designed for Splunk MCP Server integration, but this repository does not claim true MCP Server calls unless that integration is added.
-
-The current implementation uses an evidence-bounded deterministic decision engine. This is intentional for demo reliability and safety: Veritas does not invent evidence. Future AI/LLM support should be limited to evidence-bounded summaries and audit-brief drafting.
+Veritas asks, "Are we justified to act?"
 
 ## Demo Scenario
 
@@ -35,38 +20,37 @@ Veritas evaluates five proposed response decisions:
 4. Declare no sensitive data accessed
 5. Close incident as contained
 
-Safe containment actions may be approved or require review. Dangerous conclusions remain blocked unless the evidence threshold is truly met.
+Safe containment actions may be approved or require review. Dangerous conclusions remain blocked until Splunk evidence clears the threshold.
 
-## Why It Is Different
+## Why It Matters
 
-Most SOC tools ask, "Is this alert real?"
+Incident response teams often make high-impact decisions with incomplete evidence:
 
-Veritas asks, "Are we justified to act?"
+- Disable the wrong admin account and disrupt recovery.
+- Block a shared source IP and affect legitimate users.
+- Declare no sensitive data accessed before export and object access logs are reviewed.
+- Close an incident while attacker sessions or persistence remain active.
 
-That makes it response decision governance: evidence-gated incident response before high-impact action.
+Veritas turns that uncertainty into a governed decision workflow: readiness score, required evidence, missing SPL, blast-radius warning, human approval, and audit-ready record.
 
-## Features
+## What Veritas Does
 
-- UI-H Light Executive dashboard
-- Judge-friendly page-flow navigation from the incident header through all Tier 3 dashboard sections
-- Evidence Threshold Matrix
-- Decision Readiness Score
-- Evidence Integrity & Blind Spot Panel
-- Missing Evidence to SPL queries
-- Blast Radius & Decision Risk
-- Analyst Approval Gate
-- Evidence-gated simulated containment
-- One-click judge demo
-- Clickable functional detail pages
-- Executable custom request runner
-- Tier 3 Decision Audit Brief with provider, timestamp, readiness, found/missing evidence, blast radius, and next action
-- Optional Splunk HEC ingestion and REST search
-- Reliable mock mode for local judging without Splunk credentials
-- Tier 3 incident queue with multiple incident profiles
-- Tier 3 policy builder with Standard, Strict, and Emergency evidence-governance modes
-- Decision simulation summary showing how policy and evidence change readiness before action
+- UI-H Light Executive dashboard for Tier 3 response review.
+- Evidence Threshold Matrix for each proposed decision.
+- Decision Readiness Score with Approved, Caution, Blocked, and Not Ready states.
+- Evidence Integrity and Blind Spot panel.
+- Missing evidence mapped to SPL queries.
+- Blast radius and residual-risk context.
+- Analyst approval gate for high-impact actions.
+- Evidence-gated simulated containment.
+- Functional detail pages for risk, decisions, matrix, integrity, missing evidence, blast radius, audit, and timeline.
+- Executable custom request runner.
+- Tier 3 Decision Audit Brief with provider, timestamp, readiness, found/missing evidence, blast radius, and next action.
+- Optional Splunk HEC ingestion and Splunk REST search.
+- Reliable mock mode for judging without Splunk credentials.
+- Incident queue and policy builder with Standard, Strict, and Emergency governance modes.
 
-## What is real vs simulated
+## Implementation Status
 
 ### Real
 
@@ -82,36 +66,26 @@ That makes it response decision governance: evidence-gated incident response bef
 
 ### Simulated
 
-- Default mock-mcp evidence.
+- Default `mock-mcp` evidence.
 - Containment actions are safe mock actions only.
 - MCP-shaped tool-call envelopes.
 
-### Not implemented yet
+### Not Implemented Yet
 
-- True Splunk MCP Server call, unless added later.
+- True Splunk MCP Server calls, unless added later.
 - Real destructive containment actions.
 - Autonomous unbounded AI agent.
 - Production multi-user state isolation.
 
-## Mock mode vs Splunk REST mode
+## Operating Modes
 
 - `mock-mcp`: safe deterministic demo mode. It uses Splunk-style evidence bundled with the project and is the default fallback when Splunk credentials are absent.
 - `splunk-rest`: real indexed evidence mode. It requires `SPLUNK_HOST`, `SPLUNK_TOKEN`, and indexed Veritas events in Splunk.
 - `mock-mcp-fallback`: safe fallback when Splunk is configured but a search fails. It must be described as fallback, not real Splunk proof.
 
-## MCP readiness
-
-The default demo runs in safe mock-mcp mode with deterministic Splunk-style evidence. Optional Splunk REST and HEC ingestion are included for real indexed evidence. The backend boundary is designed for Splunk MCP Server integration, but true Splunk MCP Server calls are not claimed unless implemented.
-
-## AI implementation note
-
 The current implementation uses an evidence-bounded deterministic decision engine. This is intentional for demo reliability and safety: Veritas does not invent evidence. Future AI/LLM support should be limited to evidence-bounded summaries and audit-brief drafting.
 
-## Why this can win
-
-Most security demos focus on detection or automated response. Veritas focuses on the decision point before response: whether the team has enough evidence to act. It gives Tier 3 responders a readiness score, evidence threshold matrix, investigation gaps, SPL queries, blast-radius warnings, and an audit-ready decision brief.
-
-## Local Setup
+## Quick Start
 
 Run:
 
@@ -133,7 +107,7 @@ The app defaults to safe `mock-mcp` mode when Splunk is not configured.
 http://127.0.0.1:5173/api/health
 ```
 
-Expected shape:
+Expected mock response shape:
 
 ```json
 {
@@ -150,37 +124,37 @@ The health response never exposes Splunk tokens or secrets.
 
 ## Demo Flow
 
-Fast path:
+### Fast Path
 
-1. Click **Run live judge demo**.
+1. Click **Run Live Judge Demo**.
 2. Veritas loads evidence, checks thresholds, records approvals, executes safe simulated containment, and opens the audit brief.
 3. Show that risk drops after approved containment.
 4. Show that unsafe no-data-access and premature closure decisions remain blocked.
 
-Manual path:
+### Manual Path
 
-1. Click **Reset**.
-2. Click **Load demo evidence** or **Pull indexed evidence**.
-3. Click **Check thresholds**.
+1. Click **Reset Lab**.
+2. Click **Load Demo Evidence** or **Pull Indexed Evidence**.
+3. Click **Check Thresholds**.
 4. Drill into evidence and SPL gaps.
 5. Approve eligible actions.
-6. Click **Execute approved containment**.
+6. Click **Execute Approved Containment**.
 7. Export the Tier 3 Decision Audit Brief.
 
-Custom request path:
+### Custom Request Path
 
-1. Open **Run custom request** or any detail page.
+1. Open **Run Custom Request** or any detail page.
 2. Enter incident facts in plain language.
 3. Select a proposed response action.
 4. Choose evaluate-only or execute-if-justified.
 5. Review readiness, blocked decisions, missing evidence, SPL, and recommended next action.
 
-Tier 3 path:
+### Tier 3 Path
 
 1. Choose an incident profile from **Incident Queue**.
-2. Click **Load profile** to load that scenario's evidence into the engine.
+2. Click **Load Profile**.
 3. Choose a governance mode from **Policy Builder**: Standard, Strict, or Emergency.
-4. Click **Apply policy** and watch readiness, status, blocked decisions, and simulation text update.
+4. Click **Apply Policy** and watch readiness, status, blocked decisions, and simulation text update.
 5. Continue to approval, containment, and audit brief export.
 
 ## Detail Pages
@@ -198,37 +172,38 @@ Dashboard indicators open functional pages:
 /detail.html?view=timeline
 ```
 
-## Real Splunk Enterprise Trial Integration
+## Real Splunk Integration
 
-My local Splunk Enterprise Web UI runs at:
+The default Veritas demo runs in safe `mock-mcp` mode. For stronger judging proof, Veritas can ingest the same admin account takeover evidence into a local Splunk Enterprise trial and query indexed evidence through the optional Splunk REST path.
 
-`http://Cyberrockng:8001`
+Local Splunk Enterprise Web UI:
 
-The default Veritas demo runs in safe mock-mcp mode. For stronger judging proof, Veritas can ingest the same admin account takeover evidence into a local Splunk Enterprise trial and query indexed evidence through the optional Splunk REST path.
+```text
+http://Cyberrockng:8001
+```
 
-### Important Ports
+### Local Ports
 
 - Splunk Web UI: `http://Cyberrockng:8001`
-- Splunk REST API: `https://Cyberrockng:8090` for this local install (`mgmtHostPort=8090`)
+- Splunk REST API: `https://Cyberrockng:8090`
 - Splunk HEC: `https://Cyberrockng:8088/services/collector`
 
 Splunk Enterprise commonly uses management port `8089`; this Windows trial is configured as `mgmtHostPort=8090`. Use the port shown in Splunk **Settings -> Server settings -> General settings** for `SPLUNK_HOST`.
 
-### Steps
+Developer License status: active for the local hackathon Splunk instance. Confirm in Splunk Web under **Settings -> Licensing** before final judging screenshots; expected quota is 10 GB/day with no license violation.
+
+### Splunk Setup Checklist
 
 1. Open Splunk Web at `http://Cyberrockng:8001`.
 2. Create index `veritas`.
 3. Enable HTTP Event Collector.
 4. Create HEC token `veritas-hec`.
-5. Configure environment variables.
-6. Run `python ingest_to_splunk.py`.
-7. Run `python server.py`.
-8. Confirm `/api/health` shows `splunk_configured: true`.
-9. Search `index=veritas` in Splunk.
-
-Developer License status: active for the local hackathon Splunk instance. Confirm in Splunk Web under **Settings -> Licensing** before final judging screenshots; expected quota is 10 GB/day with no license violation.
-
-The default demo runs in safe mock-mcp mode with deterministic Splunk-style evidence. Optional Splunk REST and HEC ingestion are included for real indexed evidence. The backend boundary is designed for Splunk MCP Server integration.
+5. Confirm the token can write to index `veritas`.
+6. Configure environment variables.
+7. Run `python ingest_to_splunk.py`.
+8. Run `python server.py`.
+9. Confirm `/api/health` shows `splunk_configured: true`.
+10. Search `index=veritas` in Splunk.
 
 Copy `.env.example` to `.env` for local use only. Never commit real Splunk tokens.
 
@@ -268,6 +243,41 @@ python server.py
 
 See `SPLUNK_REAL_DATA.md` for the full runbook.
 
+## Splunk Proof
+
+Splunk proof captured after a real HEC ingestion and Splunk REST load:
+
+![Splunk indexed Veritas events](assets/splunk-indexed-events.png)
+
+![Veritas health showing Splunk REST mode](assets/veritas-health-splunk-rest.png)
+
+![Veritas dashboard showing real indexed evidence](assets/veritas-dashboard-splunk-rest.png)
+
+![Veritas audit brief with Splunk evidence](assets/veritas-audit-brief.png)
+
+Proof files:
+
+- `assets/splunk-indexed-events.png` - Splunk Search showing `index=veritas`.
+- `assets/veritas-health-splunk-rest.png` - `/api/health` showing `splunk_configured: true`.
+- `assets/veritas-dashboard-splunk-rest.png` - dashboard provider showing `splunk-rest`.
+- `assets/veritas-audit-brief.png` - audit brief referencing Splunk evidence.
+
+Screenshots must not contain real credentials, real patient data, real customer data, or live tokens.
+
+## Screenshots
+
+Core demo screenshots live in `assets/`:
+
+![Veritas AI dashboard](assets/dashboard.png)
+
+![Decision readiness strip](assets/decision-readiness-strip.png)
+
+![Evidence threshold matrix](assets/evidence-threshold-matrix.png)
+
+![Decision audit brief](assets/audit-brief.png)
+
+![Splunk mode readiness](assets/splunk-mode.png)
+
 ## Tests
 
 With `python server.py` running:
@@ -297,93 +307,24 @@ The smoke tests verify health, static assets, state/reset/start/investigation, a
 - The project is MCP-ready in shape, but does not claim live Splunk MCP Server calls.
 - Vercel deployment is prepared but not executed.
 
-## Public deployment note
+## Deployment Notes
 
-The current project is optimized for local demo mode with `python server.py`. A static Vercel deployment will not run the Python API by itself. For public hosting, use one of these paths:
+The current project is optimized for local demo mode with:
+
+```powershell
+python server.py
+```
+
+A static Vercel deployment will not run the Python API by itself. For public hosting, use one of these paths:
 
 1. Convert API endpoints to Vercel serverless functions.
 2. Host the Python backend separately and point the frontend to it.
 3. Use static demo mode with mock evidence only.
 
-Do not claim a production deployment unless the selected path is implemented and tested.
-
-## Screenshots
-
-Screenshot targets live in `assets/`:
-
-![Veritas AI dashboard](assets/dashboard.png)
-
-![Decision readiness strip](assets/decision-readiness-strip.png)
-
-![Evidence threshold matrix](assets/evidence-threshold-matrix.png)
-
-![Decision audit brief](assets/audit-brief.png)
-
-![Splunk mode readiness](assets/splunk-mode.png)
-
-Screenshots must not contain real credentials, real patient data, real customer data, or live tokens.
-
-For Devpost Splunk proof, capture these after a real Splunk run:
-
-- `assets/splunk-indexed-events.png` - Splunk Search showing `index=veritas`
-- `assets/veritas-health-splunk-rest.png` - `/api/health` showing `splunk_configured: true`
-- `assets/veritas-dashboard-splunk-rest.png` - dashboard provider showing `splunk-rest`
-- `assets/veritas-audit-brief.png` - audit brief referencing Splunk evidence
-
-## Future Vercel Deployment
-
-The project is currently optimized for local demo mode with:
-
-```powershell
-python server.py
-```
-
-After final polish, it can be hosted on Vercel using one of three options:
-
-1. Static frontend plus Vercel serverless API functions
-2. Static frontend demo mode with mock evidence
-3. Vercel frontend plus a separate Python backend
-
-The default demo must remain safe and deterministic without real Splunk credentials.
-
-Do not deploy until the maintainer explicitly approves the deployment stage.
-
-## Deployment Notes
-
-### Local Demo
-
-```powershell
-python server.py
-```
-
-Open:
-
-```text
-http://127.0.0.1:5173
-```
-
-### Health Check
-
-```text
-http://127.0.0.1:5173/api/health
-```
-
-### Tests
-
-```powershell
-python smoke_tests.py
-```
-
-### Optional Splunk-Backed Demo
-
-1. Configure `.env` locally.
-2. Ingest evidence with `ingest_to_splunk.py`.
-3. Start the server.
-4. Confirm `/api/health` reports `splunk_configured: true`.
+Do not claim a production deployment unless the selected path is implemented and tested. Do not deploy until the maintainer explicitly approves the deployment stage.
 
 ## Roadmap
 
-- Capture final screenshots or a short demo GIF.
 - Prepare final Devpost copy.
 - Decide whether Vercel should use serverless API functions, static mock mode, or a separate backend.
 - Add true Splunk MCP Server integration only if the event calls are implemented and verified.
@@ -399,6 +340,7 @@ python smoke_tests.py
 - `server.py` - Static file server plus Veritas API
 - `smoke_tests.py` - Local smoke tests
 - `ingest_to_splunk.py` - Splunk HEC demo evidence ingestion
+- `sample_splunk_events.json` - Demo evidence payloads
 - `SPLUNK_REAL_DATA.md` - Splunk runbook
 - `DEMO_SCRIPT.md` - Under-three-minute walkthrough
 - `JUDGING_NOTES.md` - Submission positioning
@@ -407,4 +349,4 @@ python smoke_tests.py
 - `.env.example` - Local environment template with no secrets
 - `requirements.txt` - Python dependency manifest; current local demo uses standard library only
 - `vercel.json` - Safe starter Vercel config
-- `assets/` - Screenshot targets
+- `assets/` - Screenshots and proof images
