@@ -67,16 +67,16 @@ See `REAL_VS_SIMULATED.md` for the full implementation boundary.
 - Smoke tests.
 - HEC ingestion script.
 - Optional Splunk REST search path.
+- Stdio MCP server for Splunk REST search and HEC ingestion tools.
 
 ### Simulated
 
 - Default `mock-mcp` evidence.
 - Containment actions are safe mock actions only.
-- Integration-ready Splunk tool labels.
+- Dashboard integration labels when the dashboard itself is not launched through an MCP host.
 
 ### Not Implemented Yet
 
-- Live Splunk MCP Server calls, unless added later.
 - Real destructive containment actions.
 - Autonomous unbounded AI agent.
 - Production multi-user state isolation.
@@ -85,6 +85,7 @@ See `REAL_VS_SIMULATED.md` for the full implementation boundary.
 
 - `mock-mcp`: safe deterministic demo mode. It uses Splunk-style evidence bundled with the project and is the default fallback when Splunk credentials are absent.
 - `splunk-rest`: real indexed evidence mode. It requires `SPLUNK_HOST`, `SPLUNK_TOKEN`, and indexed Veritas events in Splunk.
+- `splunk-mcp`: real stdio MCP server mode through `splunk_mcp_server.py`. It exposes Splunk REST/HEC tools to an MCP-compatible host.
 - `mock-mcp-fallback`: safe fallback when Splunk is configured but a search fails. It must be described as fallback, not real Splunk proof.
 
 The current implementation uses an evidence-bounded deterministic decision engine. This is intentional for demo reliability and safety: Veritas does not invent evidence. The product name includes AI, but this build does not use an autonomous AI agent. Future AI/LLM support should be limited to evidence-bounded summaries and audit-brief drafting.
@@ -247,6 +248,37 @@ python server.py
 
 See `SPLUNK_REAL_DATA.md` for the full runbook.
 
+## True Splunk MCP Server
+
+This repository now includes a real stdio MCP server:
+
+```powershell
+python splunk_mcp_server.py
+```
+
+It implements the MCP initialize lifecycle, newline-delimited JSON-RPC stdio transport, `tools/list`, and `tools/call`.
+
+Exposed MCP tools:
+
+- `splunk.status`: reports Splunk REST/HEC configuration without exposing tokens.
+- `splunk.search`: dispatches a real Splunk REST search job and returns rows, job ID, dispatch state, and a Splunk result link.
+- `splunk.veritas_evidence`: searches indexed Veritas incident evidence in Splunk.
+- `splunk.hec_ingest_event`: writes one explicit event through Splunk HEC.
+- `veritas.ingest_demo_evidence`: writes the six Veritas demo evidence events through Splunk HEC.
+
+The MCP server requires the same environment variables as the REST/HEC path:
+
+```powershell
+$env:SPLUNK_HOST="https://Cyberrockng:8090"
+$env:SPLUNK_TOKEN="<your-splunk-rest-token-or-session-key>"
+$env:SPLUNK_AUTH_SCHEME="Bearer"
+$env:SPLUNK_VERIFY_SSL="false"
+$env:SPLUNK_HEC_URL="https://Cyberrockng:8088/services/collector"
+$env:SPLUNK_HEC_TOKEN="<your-hec-token>"
+```
+
+Important boundary: the web dashboard still uses its local Python API. The MCP server is a separate tool server for MCP-compatible hosts. Do not claim the dashboard itself is using MCP unless it is actually launched through an MCP client connected to `splunk_mcp_server.py`.
+
 ## Splunk Proof
 
 Splunk proof captured after a real HEC ingestion and Splunk REST load:
@@ -309,7 +341,7 @@ The smoke tests verify health, static assets, state/reset/start/investigation, a
 - The default demo uses deterministic mock evidence for judging reliability.
 - Optional Splunk REST/HEC requires a configured Splunk instance and credentials.
 - Current containment actions are simulated and intentionally non-destructive.
-- The project is structured for future MCP integration, but does not claim live Splunk MCP Server calls.
+- A true stdio Splunk MCP server is available in `splunk_mcp_server.py`, but the dashboard does not automatically route through MCP.
 - Vercel deployment is prepared but not executed.
 
 ## Deployment Status
@@ -336,7 +368,7 @@ Do not claim a production deployment unless the selected path is implemented and
 
 - Prepare final Devpost copy.
 - Decide whether Vercel should use serverless API functions, static mock mode, or a separate backend.
-- Add live Splunk MCP Server integration only if the event calls are implemented and verified.
+- Optionally add dashboard-to-MCP routing if final judging requires the browser UI to call an MCP client directly.
 - Expand Tier 3 incident profiles with fully distinct evidence packs and decision policies.
 
 ## Repository Contents
@@ -348,6 +380,8 @@ Do not claim a production deployment unless the selected path is implemented and
 - `detail.js` - Detail page controller
 - `server.py` - Static file server plus Veritas API
 - `smoke_tests.py` - Local smoke tests
+- `splunk_mcp_server.py` - Stdio MCP server exposing real Splunk REST/HEC tools
+- `mcp_smoke_tests.py` - MCP protocol smoke test
 - `browser_smoke_tests.py` - Browser-facing demo smoke tests
 - `ingest_to_splunk.py` - Splunk HEC demo evidence ingestion
 - `sample_splunk_events.json` - Demo evidence payloads

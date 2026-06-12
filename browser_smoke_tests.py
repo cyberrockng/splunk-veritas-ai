@@ -142,7 +142,8 @@ def run_demo_flow():
     for expected in (
         "Veritas AI Tier 3 Decision Audit Brief",
         "Search provider:",
-        "Integration-ready Splunk tool labels:",
+        "Dashboard tool envelopes:",
+        "True MCP server tools:",
         "Missing logs are not proof of safety.",
         "Declare no sensitive data accessed: Blocked",
     ):

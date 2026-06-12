@@ -254,6 +254,6 @@ Developer License status: active for the local hackathon Splunk instance. Confir
 
 ## Honest Positioning
 
-The default demo runs in safe `mock-mcp` mode with deterministic Splunk-style evidence. Optional Splunk REST and HEC ingestion are included for real indexed evidence. The backend boundary is structured for future Splunk MCP Server integration, but this runbook does not claim live MCP Server calls.
+The default dashboard demo runs in safe `mock-mcp` mode with deterministic Splunk-style evidence. Optional Splunk REST and HEC ingestion are included for real indexed evidence.
 
-Do not claim live Splunk MCP Server usage unless a real MCP Server call is implemented and verified.
+This repository also includes a real stdio Splunk MCP server in `splunk_mcp_server.py`. It exposes Splunk REST search and HEC ingestion tools to MCP-compatible hosts. Do not claim the browser dashboard itself uses MCP unless a dashboard-to-MCP client path is implemented and verified.

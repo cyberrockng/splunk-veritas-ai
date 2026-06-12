@@ -201,7 +201,7 @@ def main():
     investigation = request_json("/api/sentinel/investigate", method="POST", payload={})
     assert_equal(len(investigation["detections"]), 4, "detection count")
     assert_equal(len(investigation["decisions"]), 5, "decision count after investigation")
-    assert_true(investigation["tool_calls"], "integration-ready Splunk tool calls should be present")
+    assert_true(investigation["tool_calls"], "dashboard tool envelopes should be present")
 
     revoke = decision_by_title(investigation, "Revoke session token")
     disable = decision_by_title(investigation, "Disable admin account")

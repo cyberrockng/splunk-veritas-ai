@@ -29,7 +29,7 @@ jobs:
           python -m pip install -r requirements.txt
 
       - name: Python compile
-        run: python -m py_compile server.py smoke_tests.py browser_smoke_tests.py ingest_to_splunk.py
+        run: python -m py_compile server.py smoke_tests.py browser_smoke_tests.py ingest_to_splunk.py splunk_mcp_server.py mcp_smoke_tests.py
 
       - name: JavaScript syntax check
         run: |
@@ -80,3 +80,11 @@ jobs:
 
           python smoke_tests.py
           python browser_smoke_tests.py
+
+      - name: MCP protocol smoke tests
+        env:
+          SPLUNK_HOST: ""
+          SPLUNK_TOKEN: ""
+          SPLUNK_HEC_URL: ""
+          SPLUNK_HEC_TOKEN: ""
+        run: python mcp_smoke_tests.py

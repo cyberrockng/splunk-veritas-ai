@@ -1111,7 +1111,7 @@ def search_job_id(detection_id, index):
     return f"sid_veritas_{detection_id.lower()}_{index:03d}"
 
 
-def mcp_tool_call(tool, arguments, result):
+def dashboard_tool_envelope(tool, arguments, result):
     return {
         "tool": tool,
         "arguments": arguments,
@@ -1272,7 +1272,7 @@ def investigation_payload():
             }
         )
         tool_calls.append(
-            mcp_tool_call(
+            dashboard_tool_envelope(
                 "splunk.search",
                 {
                     "query": query,
@@ -1292,8 +1292,8 @@ def investigation_payload():
 
     for detection in LAB_STATE["detections"]:
         tool_calls.append(
-            mcp_tool_call(
-                "splunk.notable_event",
+            dashboard_tool_envelope(
+                "veritas.demo_notable_event",
                 {
                     "rule": detection["name"],
                     "severity": detection["severity"],
@@ -1307,8 +1307,8 @@ def investigation_payload():
         )
 
     tool_calls.append(
-        mcp_tool_call(
-            "splunk.risk_score",
+        dashboard_tool_envelope(
+            "veritas.demo_risk_score",
             {
                 "entity": "admin@northstar.health",
                 "detections": [detection["id"] for detection in LAB_STATE["detections"]],
@@ -1442,7 +1442,8 @@ Display incident ID: {incident_profile()["display_incident_id"]}
 Splunk search incident id: {splunk_status()["incident_id"]}
 Policy profile: {policy_profile()["label"]}
 Risk score: {calculate_risk()}/100
-Integration-ready Splunk tool labels: splunk.search, splunk.notable_event, splunk.risk_score
+Dashboard tool envelopes: splunk.search, veritas.demo_notable_event, veritas.demo_risk_score
+True MCP server tools: splunk.status, splunk.search, splunk.veritas_evidence, splunk.hec_ingest_event, veritas.ingest_demo_evidence
 
 Executive decision summary:
 - Containment actions were approved where the evidence threshold was met.

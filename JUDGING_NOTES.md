@@ -4,7 +4,7 @@
 
 Primary track: **Security**
 
-Bonus target: **Best Splunk Integration / future MCP-ready workflow**
+Bonus target: **Best Splunk Integration / MCP-enabled workflow**
 
 ## Positioning
 
@@ -60,24 +60,26 @@ Real:
 - Audit brief generation.
 - Smoke tests.
 - Optional Splunk HEC ingestion and Splunk REST search path.
+- True stdio Splunk MCP server for REST search and HEC ingestion tools.
 
 Simulated:
 
 - Default mock evidence for reliable judging without credentials.
 - Containment actions, which are safe mock actions only.
-- Integration-ready Splunk tool labels, which are not live Splunk MCP Server calls yet.
+- Browser dashboard routing, which still uses the local Python API rather than an MCP client.
 
 See `REAL_VS_SIMULATED.md` for the full boundary.
 
 ## Splunk Fit
 
-The app uses Splunk-style evidence, HEC ingestion, REST search, and integration-ready Splunk tool labels:
+The app uses Splunk-style evidence, HEC ingestion, REST search, and a separate stdio MCP server exposing real Splunk tools:
 
 - `splunk.search`
-- `splunk.notable_event`
-- `splunk.risk_score`
+- `splunk.veritas_evidence`
+- `splunk.hec_ingest_event`
+- `veritas.ingest_demo_evidence`
 
-The default demo runs in safe `mock-mcp` mode with deterministic Splunk-style evidence. Optional Splunk REST and HEC ingestion are included for real indexed evidence. The backend boundary is structured for future Splunk MCP Server integration, but this build does not claim live MCP Server calls.
+The default dashboard demo runs in safe `mock-mcp` mode with deterministic Splunk-style evidence. Optional Splunk REST and HEC ingestion are included for real indexed evidence. The MCP server is real, but it is a separate stdio tool server for MCP-compatible hosts; do not say the browser dashboard itself uses MCP unless a dashboard-to-MCP client path is added.
 
 For presentation, click **Run Live Judge Demo** to execute the evidence -> decision -> approval -> containment -> audit flow.
 

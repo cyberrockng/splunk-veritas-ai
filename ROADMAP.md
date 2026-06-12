@@ -103,7 +103,14 @@
 - Added decision simulation summary to show how evidence and policy affect action readiness.
 - Smoke tests cover incident catalog, profile switching, and policy switching.
 
-## Next: Phase 14 - Tier 3 Expansion
+## Passed: Phase 14 - True Splunk MCP Server
+
+- Added `splunk_mcp_server.py` as a newline-delimited JSON-RPC stdio MCP server.
+- Added real MCP tools for Splunk status, REST search, Veritas evidence search, HEC event ingestion, and demo evidence ingestion.
+- Added `mcp_smoke_tests.py` to verify initialize, `tools/list`, and `tools/call`.
+- Documented that the browser dashboard still uses the local Python API unless a dashboard-to-MCP client path is added.
+
+## Next: Phase 15 - Tier 3 Expansion
 
 - Add distinct evidence packs for ransomware, insider risk, and cloud key compromise.
 - Add editable checklist weights and mandatory/optional threshold toggles.
