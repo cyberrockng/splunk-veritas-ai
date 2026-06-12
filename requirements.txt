@@ -1,2 +1,8 @@
-# Veritas AI currently uses Python standard library only for local demo mode.
-# Optional Splunk integrations should be documented separately if external packages are added.
+# Veritas AI has no external Python runtime dependencies.
+#
+# The local server, smoke tests, and Splunk HEC/REST helpers use only the
+# Python standard library. Keep this file so CI and reviewers can run:
+#
+#   python -m pip install -r requirements.txt
+#
+# Add pinned packages here only when a future feature requires them.
