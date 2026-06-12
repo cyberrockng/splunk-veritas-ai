@@ -1143,7 +1143,7 @@ def load_splunk_evidence():
         }
         return {
             "ok": False,
-            "error": "Splunk REST search failed. Verify https://Cyberrockng:8089, credentials, SSL settings, and indexed Veritas events.",
+            "error": f"Splunk REST search failed. Verify {SPLUNK_HOST or 'SPLUNK_HOST'}, credentials, SSL settings, and indexed Veritas events.",
             "search": LAB_STATE["last_splunk_load"],
         }
     events_by_id = {}

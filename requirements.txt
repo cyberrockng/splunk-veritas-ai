@@ -1,0 +1,2 @@
+# Veritas AI currently uses Python standard library only for local demo mode.
+# Optional Splunk integrations should be documented separately if external packages are added.

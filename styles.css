@@ -430,6 +430,28 @@ h3 {
   color: var(--red);
 }
 
+.mode-badge {
+  border: 1px solid var(--soft-line);
+  border-radius: 999px;
+  padding: 2px 9px !important;
+  font-weight: 850;
+}
+
+.mode-mock {
+  color: #23466f;
+  background: var(--blue-soft);
+}
+
+.mode-real {
+  color: #08723e;
+  background: var(--green-soft);
+}
+
+.mode-fallback {
+  color: #8a5600;
+  background: var(--amber-soft);
+}
+
 .control-strip {
   position: static;
   z-index: 1;
@@ -465,6 +487,37 @@ h3 {
 .primary-action-group {
   border-color: rgba(0, 92, 230, 0.35);
   background: #eef5ff;
+}
+
+.judge-explainer {
+  flex: 1 1 320px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.advanced-controls {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+.advanced-controls summary {
+  width: max-content;
+  border: 1px solid var(--soft-line);
+  border-radius: 5px;
+  padding: 7px 10px;
+  color: var(--blue-dark);
+  background: #fbfdff;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.advanced-control-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 7px;
 }
 
 .primary-btn,

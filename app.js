@@ -11,6 +11,7 @@ const els = {
   incidentTitle: document.querySelector("#incidentTitle"),
   incidentIdLabel: document.querySelector("#incidentIdLabel"),
   evidenceSourceLabel: document.querySelector("#evidenceSourceLabel"),
+  modeLabel: document.querySelector("#modeLabel"),
   stageLabel: document.querySelector("#stageLabel"),
   providerLabel: document.querySelector("#providerLabel"),
   eventCount: document.querySelector("#eventCount"),
@@ -192,6 +193,7 @@ function setState(nextState) {
 function fitExecutiveCanvas() {
   document.documentElement.style.setProperty("--fit-scale", "1");
   document.body.style.minHeight = "";
+  document.body.style.overflow = "";
 }
 
 function logEntry(message, type = "info") {
@@ -269,6 +271,16 @@ function renderMetrics() {
         ? "Evidence source: mock fallback"
         : `Evidence source: ${provider}`;
     els.evidenceSourceLabel.textContent = sourceLabel;
+  }
+  if (els.modeLabel) {
+    const modeText = provider === "splunk-rest"
+      ? "Mode: Real indexed evidence"
+      : provider === "mock-mcp-fallback"
+        ? "Mode: Splunk unavailable; safe fallback active"
+        : "Mode: Safe deterministic demo";
+    const tone = provider === "splunk-rest" ? "real" : provider === "mock-mcp-fallback" ? "fallback" : "mock";
+    els.modeLabel.textContent = modeText;
+    els.modeLabel.className = `mode-badge mode-${tone}`;
   }
   els.stageLabel.textContent = state.stage || "Ready";
   els.providerLabel.textContent = provider;
@@ -908,10 +920,13 @@ function renderEvidenceItem(item) {
   const metadata = [
     fieldLine("ID", item.id || item.event_id),
     fieldLine("Source", item.source),
+    fieldLine("Sourcetype", item.sourcetype),
     fieldLine("User", item.user),
     fieldLine("IP", item.src_ip),
     fieldLine("Severity", item.severity),
+    fieldLine("Category", item.evidence_category),
     fieldLine("Action", item.action),
+    fieldLine("Provider", item.provider || item.origin),
     fieldLine("Job", item.splunk_job_id)
   ].filter(Boolean).join("");
 

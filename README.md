@@ -21,6 +21,8 @@ Veritas AI checks the evidence threshold for each proposed response decision. It
 
 The default demo runs in safe `mock-mcp` mode with deterministic Splunk-style evidence. Optional Splunk REST and HEC ingestion are included for real indexed evidence. The backend boundary is designed for Splunk MCP Server integration, but this repository does not claim true MCP Server calls unless that integration is added.
 
+The current implementation uses an evidence-bounded deterministic decision engine. This is intentional for demo reliability and safety: Veritas does not invent evidence. Future AI/LLM support should be limited to evidence-bounded summaries and audit-brief drafting.
+
 ## Demo Scenario
 
 The demo incident is **ADMIN ACCOUNT TAKEOVER**.
@@ -63,6 +65,47 @@ That makes it response decision governance: evidence-gated incident response bef
 - Tier 3 incident queue with multiple incident profiles
 - Tier 3 policy builder with Standard, Strict, and Emergency evidence-governance modes
 - Decision simulation summary showing how policy and evidence change readiness before action
+
+## What is real vs simulated
+
+### Real
+
+- Local Python API.
+- Evidence threshold engine.
+- Response decision queue.
+- Analyst approval gate.
+- Simulated containment state transitions.
+- Audit brief generation.
+- Smoke tests.
+- HEC ingestion script.
+- Optional Splunk REST search path.
+
+### Simulated
+
+- Default mock-mcp evidence.
+- Containment actions are safe mock actions only.
+- MCP-shaped tool-call envelopes.
+
+### Not implemented yet
+
+- True Splunk MCP Server call, unless added later.
+- Real destructive containment actions.
+- Autonomous unbounded AI agent.
+- Production multi-user state isolation.
+
+## Mock mode vs Splunk REST mode
+
+- `mock-mcp`: safe deterministic demo mode. It uses Splunk-style evidence bundled with the project and is the default fallback when Splunk credentials are absent.
+- `splunk-rest`: real indexed evidence mode. It requires `SPLUNK_HOST`, `SPLUNK_TOKEN`, and indexed Veritas events in Splunk.
+- `mock-mcp-fallback`: safe fallback when Splunk is configured but a search fails. It must be described as fallback, not real Splunk proof.
+
+## MCP readiness
+
+The default demo runs in safe mock-mcp mode with deterministic Splunk-style evidence. Optional Splunk REST and HEC ingestion are included for real indexed evidence. The backend boundary is designed for Splunk MCP Server integration, but true Splunk MCP Server calls are not claimed unless implemented.
+
+## AI implementation note
+
+The current implementation uses an evidence-bounded deterministic decision engine. This is intentional for demo reliability and safety: Veritas does not invent evidence. Future AI/LLM support should be limited to evidence-bounded summaries and audit-brief drafting.
 
 ## Why this can win
 
@@ -169,6 +212,8 @@ The default Veritas demo runs in safe mock-mcp mode. For stronger judging proof,
 - Splunk REST API: `https://Cyberrockng:8090` for this local install (`mgmtHostPort=8090`)
 - Splunk HEC: `https://Cyberrockng:8088/services/collector`
 
+Splunk Enterprise commonly uses management port `8089`; this Windows trial is configured as `mgmtHostPort=8090`. Use the port shown in Splunk **Settings -> Server settings -> General settings** for `SPLUNK_HOST`.
+
 ### Steps
 
 1. Open Splunk Web at `http://Cyberrockng:8001`.
@@ -251,6 +296,16 @@ The smoke tests verify health, static assets, state/reset/start/investigation, a
 - Current containment actions are simulated and intentionally non-destructive.
 - The project is MCP-ready in shape, but does not claim live Splunk MCP Server calls.
 - Vercel deployment is prepared but not executed.
+
+## Public deployment note
+
+The current project is optimized for local demo mode with `python server.py`. A static Vercel deployment will not run the Python API by itself. For public hosting, use one of these paths:
+
+1. Convert API endpoints to Vercel serverless functions.
+2. Host the Python backend separately and point the frontend to it.
+3. Use static demo mode with mock evidence only.
+
+Do not claim a production deployment unless the selected path is implemented and tested.
 
 ## Screenshots
 
@@ -350,5 +405,6 @@ python smoke_tests.py
 - `ROADMAP.md` - Build roadmap
 - `architecture_diagram.md` - Data flow diagram
 - `.env.example` - Local environment template with no secrets
+- `requirements.txt` - Python dependency manifest; current local demo uses standard library only
 - `vercel.json` - Safe starter Vercel config
 - `assets/` - Screenshot targets

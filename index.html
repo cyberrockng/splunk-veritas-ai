@@ -55,6 +55,7 @@
                 <span>Incident ID: <b id="incidentIdLabel">INC-2025-0001</b></span>
                 <span>Status: <b id="stageLabel">idle</b></span>
                 <span id="evidenceSourceLabel">Evidence source: mock-mcp</span>
+                <span id="modeLabel" class="mode-badge mode-mock">Mode: Safe deterministic demo</span>
                 <span>Owner: Tier 3 Response Lead</span>
                 <span>Provider: <b id="providerLabel">mock-mcp</b></span>
               </div>
@@ -89,21 +90,35 @@
             <span>Primary Demo</span>
             <button id="judgeModeBtn" class="primary-btn judge-btn" type="button">Run Live Judge Demo</button>
           </div>
-          <div class="action-group">
-            <span>Investigation</span>
-            <button id="startAttackBtn" class="secondary-btn" type="button">Load Demo Evidence</button>
-            <button id="loadSplunkBtn" class="secondary-btn" type="button">Pull Indexed Evidence</button>
-            <button id="nextEventBtn" class="secondary-btn" type="button">Add Next Event</button>
-            <button id="investigateBtn" class="secondary-btn" type="button">Run Tier 3 Evidence Review</button>
-          </div>
-          <div class="action-group">
-            <span>Response & Admin</span>
-            <button id="executeSafeBtn" class="primary-btn" type="button">Execute Approved Containment</button>
-            <button id="customRequestBtn" class="secondary-btn" type="button">Run Custom Request</button>
-            <button id="resetLabBtn" class="secondary-btn" type="button">Reset Lab</button>
-          </div>
+          <p class="judge-explainer">Most SOC tools ask, "Is this alert real?" Veritas asks, "Are we justified to act?"</p>
+          <details class="advanced-controls">
+            <summary>Advanced controls</summary>
+            <div class="advanced-control-grid">
+              <div class="action-group">
+                <span>Investigation</span>
+                <button id="startAttackBtn" class="secondary-btn" type="button">Load Demo Evidence</button>
+                <button id="loadSplunkBtn" class="secondary-btn" type="button">Pull Indexed Evidence</button>
+                <button id="nextEventBtn" class="secondary-btn" type="button">Add Next Event</button>
+                <button id="investigateBtn" class="secondary-btn" type="button">Run Tier 3 Evidence Review</button>
+              </div>
+              <div class="action-group">
+                <span>Response & Admin</span>
+                <button id="executeSafeBtn" class="primary-btn" type="button">Execute Approved Containment</button>
+                <button id="customRequestBtn" class="secondary-btn" type="button">Run Custom Request</button>
+                <button id="resetLabBtn" class="secondary-btn" type="button">Reset Lab</button>
+              </div>
+            </div>
+          </details>
           <p id="labStatus" class="copy-status" aria-live="polite"></p>
           <div id="demoSteps" class="demo-steps"></div>
+        </section>
+
+        <section class="readiness-strip" aria-label="Decision Readiness Strip">
+          <div>
+            <p class="section-label">Decision Readiness Strip</p>
+            <h3>Are we justified to act?</h3>
+          </div>
+          <div id="readinessStrip" class="readiness-strip-grid"></div>
         </section>
 
         <section class="tier3-strip" aria-label="Tier 3 response governance controls">
@@ -120,14 +135,6 @@
           <div class="tier3-summary" id="tier3Summary">
             Tier 3 mode: switch incident profiles and tune evidence policy before action.
           </div>
-        </section>
-
-        <section class="readiness-strip" aria-label="Decision Readiness Strip">
-          <div>
-            <p class="section-label">Decision Readiness Strip</p>
-            <h3>Are we justified to act?</h3>
-          </div>
-          <div id="readinessStrip" class="readiness-strip-grid"></div>
         </section>
 
         <section class="dashboard-grid">
