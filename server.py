@@ -1416,7 +1416,7 @@ Display incident ID: {incident_profile()["display_incident_id"]}
 Splunk search incident id: {splunk_status()["incident_id"]}
 Policy profile: {policy_profile()["label"]}
 Risk score: {calculate_risk()}/100
-MCP-shaped tool output: splunk.search, splunk.notable_event, splunk.risk_score
+Integration-ready Splunk tool labels: splunk.search, splunk.notable_event, splunk.risk_score
 
 Executive decision summary:
 - Containment actions were approved where the evidence threshold was met.

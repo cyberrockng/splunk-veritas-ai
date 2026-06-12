@@ -3,7 +3,7 @@
 ## Passed: Phase 1 - Evidence Backend
 
 - Synthetic Splunk-style admin takeover evidence.
-- MCP-shaped search envelopes.
+- Integration-ready Splunk search envelopes.
 - Optional Splunk REST configuration path.
 - Deterministic backend logic for reliable demos.
 

@@ -254,6 +254,6 @@ Developer License status: active for the local hackathon Splunk instance. Confir
 
 ## Honest Positioning
 
-The default demo runs in safe `mock-mcp` mode with deterministic Splunk-style evidence. Optional Splunk REST and HEC ingestion are included for real indexed evidence. The backend boundary is designed for Splunk MCP Server integration.
+The default demo runs in safe `mock-mcp` mode with deterministic Splunk-style evidence. Optional Splunk REST and HEC ingestion are included for real indexed evidence. The backend boundary is structured for future Splunk MCP Server integration, but this runbook does not claim live MCP Server calls.
 
-Do not claim true Splunk MCP Server usage unless a real MCP Server call is implemented.
+Do not claim live Splunk MCP Server usage unless a real MCP Server call is implemented and verified.

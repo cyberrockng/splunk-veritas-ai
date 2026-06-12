@@ -72,11 +72,11 @@ See `REAL_VS_SIMULATED.md` for the full implementation boundary.
 
 - Default `mock-mcp` evidence.
 - Containment actions are safe mock actions only.
-- MCP-shaped tool-call envelopes.
+- Integration-ready Splunk tool labels.
 
 ### Not Implemented Yet
 
-- True Splunk MCP Server calls, unless added later.
+- Live Splunk MCP Server calls, unless added later.
 - Real destructive containment actions.
 - Autonomous unbounded AI agent.
 - Production multi-user state isolation.
@@ -87,7 +87,7 @@ See `REAL_VS_SIMULATED.md` for the full implementation boundary.
 - `splunk-rest`: real indexed evidence mode. It requires `SPLUNK_HOST`, `SPLUNK_TOKEN`, and indexed Veritas events in Splunk.
 - `mock-mcp-fallback`: safe fallback when Splunk is configured but a search fails. It must be described as fallback, not real Splunk proof.
 
-The current implementation uses an evidence-bounded deterministic decision engine. This is intentional for demo reliability and safety: Veritas does not invent evidence. Future AI/LLM support should be limited to evidence-bounded summaries and audit-brief drafting.
+The current implementation uses an evidence-bounded deterministic decision engine. This is intentional for demo reliability and safety: Veritas does not invent evidence. The product name includes AI, but this build does not use an autonomous AI agent. Future AI/LLM support should be limited to evidence-bounded summaries and audit-brief drafting.
 
 ## Quick Start
 
@@ -301,14 +301,14 @@ The smoke tests verify health, static assets, state/reset/start/investigation, a
 - High-impact actions require human approval.
 - Demo containment is simulated only.
 - No real destructive action runs from this project.
-- The LLM path, if added later, must remain evidence-bounded.
+- The AI/LLM path, if added later, must remain evidence-bounded and non-autonomous.
 
 ## Limitations
 
 - The default demo uses deterministic mock evidence for judging reliability.
 - Optional Splunk REST/HEC requires a configured Splunk instance and credentials.
 - Current containment actions are simulated and intentionally non-destructive.
-- The project is MCP-ready in shape, but does not claim live Splunk MCP Server calls.
+- The project is structured for future MCP integration, but does not claim live Splunk MCP Server calls.
 - Vercel deployment is prepared but not executed.
 
 ## Deployment Notes
@@ -331,7 +331,7 @@ Do not claim a production deployment unless the selected path is implemented and
 
 - Prepare final Devpost copy.
 - Decide whether Vercel should use serverless API functions, static mock mode, or a separate backend.
-- Add true Splunk MCP Server integration only if the event calls are implemented and verified.
+- Add live Splunk MCP Server integration only if the event calls are implemented and verified.
 - Expand Tier 3 incident profiles with fully distinct evidence packs and decision policies.
 
 ## Repository Contents

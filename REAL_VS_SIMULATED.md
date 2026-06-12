@@ -38,16 +38,16 @@ The captured proof in `assets/` shows this path working locally.
 | Default evidence mode | The project defaults to deterministic `mock-mcp` evidence so judges can run the demo without Splunk credentials. |
 | Containment execution | Account disable, token revoke, and IP block are safe simulated actions. No destructive security action is performed. |
 | Risk reduction | Residual risk changes are simulated to demonstrate workflow impact after approved mock containment. |
-| MCP tool calls | The project emits MCP-shaped tool output labels, but it does not claim live Splunk MCP Server calls. |
-| AI behavior | The decision engine is deterministic and evidence-bounded. It does not run an autonomous unbounded AI agent. |
+| MCP integration | The project emits integration-ready Splunk tool labels, but it does not claim live Splunk MCP Server calls. |
+| AI behavior | The product name includes AI, but the current decision engine is deterministic and evidence-bounded. It does not run an autonomous unbounded AI agent. |
 
 ## Not Implemented Yet
 
-- True Splunk MCP Server calls.
+- Live Splunk MCP Server calls.
 - Real destructive containment against identity, firewall, endpoint, or cloud systems.
 - Production authentication and multi-user state isolation.
 - Production deployment of the Python API.
-- LLM-generated decisions.
+- AI/LLM-generated decisions.
 
 ## Demo Language To Use
 
@@ -59,7 +59,7 @@ Use this wording:
 
 Avoid these claims unless the implementation is added and verified:
 
-- "It uses the real Splunk MCP Server."
+- "It uses the live Splunk MCP Server."
 - "It performs real containment."
 - "The AI autonomously decides and acts."
 - "It is production deployed."

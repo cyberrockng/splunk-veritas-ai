@@ -4,7 +4,7 @@
 
 Primary track: **Security**
 
-Bonus target: **Best Splunk Integration / MCP-ready workflow**
+Bonus target: **Best Splunk Integration / future MCP-ready workflow**
 
 ## Positioning
 
@@ -65,19 +65,19 @@ Simulated:
 
 - Default mock evidence for reliable judging without credentials.
 - Containment actions, which are safe mock actions only.
-- MCP-shaped labels, which are integration-ready but not true Splunk MCP Server calls yet.
+- Integration-ready Splunk tool labels, which are not live Splunk MCP Server calls yet.
 
 See `REAL_VS_SIMULATED.md` for the full boundary.
 
 ## Splunk Fit
 
-The app uses Splunk-style evidence, HEC ingestion, REST search, and MCP-shaped tool-call output:
+The app uses Splunk-style evidence, HEC ingestion, REST search, and integration-ready Splunk tool labels:
 
 - `splunk.search`
 - `splunk.notable_event`
 - `splunk.risk_score`
 
-The default demo runs in safe `mock-mcp` mode with deterministic Splunk-style evidence. Optional Splunk REST and HEC ingestion are included for real indexed evidence. The backend boundary is designed for Splunk MCP Server integration.
+The default demo runs in safe `mock-mcp` mode with deterministic Splunk-style evidence. Optional Splunk REST and HEC ingestion are included for real indexed evidence. The backend boundary is structured for future Splunk MCP Server integration, but this build does not claim live MCP Server calls.
 
 For presentation, click **Run Live Judge Demo** to execute the evidence -> decision -> approval -> containment -> audit flow.
 

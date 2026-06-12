@@ -4,7 +4,7 @@
 flowchart LR
   A["Veritas Incident Events"] --> B["Splunk HEC Ingestion"]
   B --> C["Splunk index=veritas"]
-  D["Mock MCP Evidence"] --> G["Evidence API"]
+  D["Mock Splunk-Style Evidence"] --> G["Evidence API"]
   C --> E["Splunk REST Search"]
   E --> G
   F["Veritas Frontend"] --> G
