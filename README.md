@@ -288,9 +288,10 @@ With `python server.py` running:
 
 ```powershell
 python smoke_tests.py
+python browser_smoke_tests.py
 ```
 
-The smoke tests verify health, static assets, state/reset/start/investigation, approval gating, risk drop, blocked unsafe claims, missing SPL, blast radius warnings, audit brief content, and custom request execution.
+The smoke tests verify health, static assets, state/reset/start/investigation, approval gating, risk drop, blocked unsafe claims, missing SPL, blast radius warnings, audit brief content, custom request execution, browser-facing UI controls, and the judge-demo flow.
 
 ## Security Model
 
@@ -343,6 +344,7 @@ Do not claim a production deployment unless the selected path is implemented and
 - `detail.js` - Detail page controller
 - `server.py` - Static file server plus Veritas API
 - `smoke_tests.py` - Local smoke tests
+- `browser_smoke_tests.py` - Browser-facing demo smoke tests
 - `ingest_to_splunk.py` - Splunk HEC demo evidence ingestion
 - `sample_splunk_events.json` - Demo evidence payloads
 - `REAL_VS_SIMULATED.md` - Honest implementation boundary
