@@ -1011,6 +1011,7 @@ function renderEvidenceItem(item) {
     fieldLine("User", item.user),
     fieldLine("IP", item.src_ip),
     fieldLine("Severity", item.severity),
+    fieldLine("Message", item.message),
     fieldLine("Category", item.evidence_category),
     fieldLine("Action", item.action),
     fieldLine("Provider", item.provider || item.origin),

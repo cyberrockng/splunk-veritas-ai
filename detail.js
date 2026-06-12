@@ -185,6 +185,7 @@ function renderDetailEvidenceItem(item) {
     detailField("Severity", item.severity),
     detailField("Message", item.message),
     detailField("Category", item.evidence_category),
+    detailField("Action", item.action),
     detailField("Provider", item.provider || item.origin),
     detailField("Job", item.splunk_job_id),
   ].filter(Boolean).join("");
