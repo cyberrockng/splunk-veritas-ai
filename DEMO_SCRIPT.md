@@ -28,7 +28,7 @@ Click **Run Live Judge Demo**.
 
 Say:
 
-"The scenario is an admin account takeover: trusted baseline login, impossible travel, MFA fatigue, privilege escalation, sensitive patient export, and scripted download tooling."
+"The scenario is an admin account takeover: impossible travel, MFA anomaly, privilege escalation, admin API access, scripted download, and cloud export."
 
 Show the **Attack Path Timeline**.
 

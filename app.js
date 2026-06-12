@@ -185,12 +185,12 @@ function formatTime(value) {
 function eventDisplay(event) {
   const eventId = event.id || event.event_id;
   const map = {
-    "SEC-3001": ["Baseline Admin Login", "Trusted Lagos login establishes the timeline baseline", "login"],
-    "SEC-3002": ["Impossible Travel", "Frankfurt login three minutes after Lagos login", "geo"],
-    "SEC-3003": ["MFA Fatigue", "MFA push approved after denied prompts", "shield"],
-    "SEC-3004": ["Privilege Escalation", "Suspicious session granted super_admin role", "user"],
-    "SEC-3005": ["Sensitive Patient Export", "Patient export endpoint returned a 42 MB response", "cloud"],
-    "SEC-3006": ["Scripted Download", "Scripted download tooling observed on workstation", "download"]
+    "SEC-3001": ["Impossible Travel", "Lagos and Frankfurt logins within three minutes", "geo"],
+    "SEC-3002": ["MFA Anomaly", "MFA push approved after denied prompts", "shield"],
+    "SEC-3003": ["Privilege Escalation", "Suspicious session granted super_admin role", "user"],
+    "SEC-3004": ["Admin API Access", "Privileged export endpoint returned 200", "cloud"],
+    "SEC-3005": ["Scripted Download", "Scripted download tooling observed on workstation", "download"],
+    "SEC-3006": ["Cloud Export", "Sensitive archive written to object storage", "cloud"]
   };
   const fallback = event.title || event.action || "Security Event";
   const item = map[eventId] || [fallback, event.summary || event.description || event.message || "", "alert"];

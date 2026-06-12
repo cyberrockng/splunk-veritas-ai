@@ -331,12 +331,12 @@
         </label>
         <label class="wide">
           Evidence / request details
-          <textarea id="customEvidence" name="evidence" rows="8">Admin login from a new country, repeated MFA prompts, privilege escalation to super_admin, sensitive patient export endpoint returned 200, and scripted curl download from the admin workstation.</textarea>
+          <textarea id="customEvidence" name="evidence" rows="8">Admin login from a new country, impossible travel, repeated MFA anomaly prompts, privilege escalation to super_admin, admin API export endpoint returned 200, scripted curl download from the admin workstation, and cloud export to object storage.</textarea>
         </label>
         <div class="scenario-row wide" aria-label="Custom request examples">
           <button
             type="button"
-            data-scenario="Admin login from a new country with impossible travel and repeated MFA fatigue prompts followed by approval."
+            data-scenario="Admin login from a new country with impossible travel and repeated MFA anomaly prompts followed by approval."
             data-title="Custom MFA session containment"
             data-action="revoke-token"
           >
@@ -344,7 +344,7 @@
           </button>
           <button
             type="button"
-            data-scenario="Admin login from a new country, privilege escalation to super_admin, sensitive patient export, and scripted curl download from admin workstation."
+            data-scenario="Admin login from a new country, privilege escalation to super_admin, admin API export endpoint returned 200, scripted curl download from admin workstation, and cloud export to object storage."
             data-title="Custom admin disable decision"
             data-action="disable-account"
           >
@@ -352,7 +352,7 @@
           </button>
           <button
             type="button"
-            data-scenario="The analyst wants to declare no patient data was accessed, but only has a login event and no export, object storage, or EDR review."
+            data-scenario="The analyst wants to declare no sensitive data was accessed, but only has a login event and no admin API, object storage, or EDR review."
             data-title="Custom weak evidence hold"
             data-action="block-ip"
           >

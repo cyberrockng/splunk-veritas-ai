@@ -81,12 +81,12 @@
           </label>
           <label class="wide">
             Evidence / request details
-            <textarea id="detailCustomEvidence" rows="6">Admin login from a new country with impossible travel and MFA fatigue prompts followed by approval.</textarea>
+            <textarea id="detailCustomEvidence" rows="6">Admin login from a new country with impossible travel and MFA anomaly prompts followed by approval.</textarea>
           </label>
           <div class="scenario-row wide">
-            <button type="button" data-action="revoke-token" data-title="Detail revoke test" data-evidence="Admin login from a new country with impossible travel and repeated MFA fatigue prompts followed by approval.">Revoke session test</button>
-            <button type="button" data-action="disable-account" data-title="Detail disable admin test" data-evidence="Admin login from a new country, repeated MFA prompts, privilege escalation to super_admin, and sensitive patient export.">Disable admin test</button>
-            <button type="button" data-action="block-ip" data-title="Detail weak evidence hold" data-evidence="Analyst saw one normal admin login and wants to block the source IP without export or reputation evidence.">Insufficient evidence test</button>
+            <button type="button" data-action="revoke-token" data-title="Detail revoke test" data-evidence="Admin login from a new country with impossible travel and repeated MFA anomaly prompts followed by approval.">Revoke session test</button>
+            <button type="button" data-action="disable-account" data-title="Detail disable admin test" data-evidence="Admin login from a new country, repeated MFA prompts, privilege escalation to super_admin, admin API export endpoint returned 200, and scripted curl download.">Disable admin test</button>
+            <button type="button" data-action="block-ip" data-title="Detail weak evidence hold" data-evidence="Analyst saw one normal admin login and wants to block the source IP without admin API or reputation evidence.">Insufficient evidence test</button>
           </div>
           <label class="checkline">
             <input id="detailCustomExecute" type="checkbox" checked />
