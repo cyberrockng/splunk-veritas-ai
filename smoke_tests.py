@@ -6,6 +6,8 @@ import sys
 
 BASE_URL = os.environ.get("VERITAS_BASE_URL", "http://127.0.0.1:5173")
 REQUEST_TIMEOUT = int(os.environ.get("VERITAS_REQUEST_TIMEOUT", "10"))
+ROOT = os.path.dirname(os.path.abspath(__file__))
+SAMPLE_EVENTS_PATH = os.path.join(ROOT, "sample_splunk_events.json")
 
 
 def request_json(path, method="GET", payload=None):
@@ -52,6 +54,43 @@ def assert_true(value, label):
 
 def decision_by_title(state, title):
     return next(decision for decision in state["decisions"] if decision["title"] == title)
+
+
+def load_sample_events():
+    with open(SAMPLE_EVENTS_PATH, "r", encoding="utf-8") as handle:
+        events = json.load(handle)
+    if not isinstance(events, list):
+        raise AssertionError("sample_splunk_events.json must contain an event array")
+    return events
+
+
+def assert_sample_event_consistency(streamed_events):
+    sample_events = load_sample_events()
+    assert_equal(
+        [event["id"] for event in streamed_events],
+        [event["id"] for event in sample_events],
+        "streamed event IDs should match sample data",
+    )
+
+    checked_fields = (
+        "source",
+        "query",
+        "summary",
+        "message",
+        "event_type",
+        "evidence_category",
+        "user",
+        "src_ip",
+        "geo",
+        "action",
+        "severity",
+        "tags",
+    )
+    by_id = {event["id"]: event for event in streamed_events}
+    for sample in sample_events:
+        streamed = by_id[sample["id"]]
+        for field in checked_fields:
+            assert_equal(streamed.get(field), sample.get(field), f"{sample['id']} {field} should match sample data")
 
 
 def main():
@@ -157,6 +196,7 @@ def main():
 
     assert_equal(state["stage"], "attack-complete", "attack completion stage")
     assert_equal(len(state["events"]), 6, "streamed event count")
+    assert_sample_event_consistency(state["events"])
 
     investigation = request_json("/api/sentinel/investigate", method="POST", payload={})
     assert_equal(len(investigation["detections"]), 4, "detection count")
