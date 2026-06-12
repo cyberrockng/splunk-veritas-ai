@@ -18,6 +18,7 @@ const els = {
   readyCount: document.querySelector("#readyCount"),
   blockedCount: document.querySelector("#blockedCount"),
   telemetryScore: document.querySelector("#telemetryScore"),
+  judgeStoryCards: document.querySelector("#judgeStoryCards"),
   readinessStrip: document.querySelector("#readinessStrip"),
   demoSteps: document.querySelector("#demoSteps"),
   decisionMatrix: document.querySelector("#decisionMatrix"),
@@ -105,6 +106,44 @@ function normalizedStatus(status = "") {
   return statusClass(status);
 }
 
+function providerInfo(integration = {}) {
+  const provider = integration.search_provider || integration.provider || integration.adapter || "mock-mcp";
+
+  if (provider === "splunk-rest") {
+    return {
+      provider,
+      source: "Evidence source: Splunk REST",
+      mode: "Mode: Real indexed evidence",
+      tone: "real"
+    };
+  }
+
+  if (provider === "mock-mcp-fallback") {
+    return {
+      provider,
+      source: "Evidence source: mock-mcp fallback",
+      mode: "Mode: Splunk unavailable; safe fallback active",
+      tone: "fallback"
+    };
+  }
+
+  if (provider === "custom-input") {
+    return {
+      provider,
+      source: "Evidence source: custom analyst input",
+      mode: "Mode: Analyst-supplied evidence evaluation",
+      tone: "mock"
+    };
+  }
+
+  return {
+    provider: "mock-mcp",
+    source: "Evidence source: mock-mcp",
+    mode: "Mode: Safe deterministic demo",
+    tone: "mock"
+  };
+}
+
 function riskTone(score = 0) {
   if (score >= 75) return "high";
   if (score >= 45) return "medium";
@@ -123,6 +162,17 @@ function readinessTone(decision) {
   if (status === "blocked" || status === "not-ready") return "blocked";
   if (status === "caution") return "caution";
   return "review";
+}
+
+function isBlockedDecision(decision) {
+  return ["blocked", "not-ready"].includes(readinessTone(decision));
+}
+
+function blockedDecisionLabel(decision) {
+  if (!isBlockedDecision(decision)) return "";
+  return decision.id === "declare-no-data-access"
+    ? "Unsafe conclusion blocked"
+    : "Evidence gate blocked";
 }
 
 function formatTime(value) {
@@ -251,7 +301,7 @@ function findCheck(checkId) {
 function renderMetrics() {
   const ready = state.decisions.filter((decision) => ["approved", "caution"].includes(normalizedStatus(decision.status))).length;
   const blocked = state.decisions.filter((decision) => ["blocked", "not-ready"].includes(normalizedStatus(decision.status))).length;
-  const provider = state.integration?.search_provider || state.integration?.provider || state.integration?.adapter || "demo";
+  const provider = providerInfo(state.integration);
   const customRequest = state.integration?.request;
   const telemetry = state.integrity?.telemetry_completeness ?? 0;
   const risk = Number(state.risk || 0);
@@ -265,25 +315,14 @@ function renderMetrics() {
     els.incidentIdLabel.textContent = state.incident?.display_incident_id || state.integration?.display_incident_id || "INC-2025-0001";
   }
   if (els.evidenceSourceLabel) {
-    const sourceLabel = provider === "splunk-rest"
-      ? "Evidence source: Splunk REST"
-      : provider === "mock-mcp-fallback"
-        ? "Evidence source: mock fallback"
-        : `Evidence source: ${provider}`;
-    els.evidenceSourceLabel.textContent = sourceLabel;
+    els.evidenceSourceLabel.textContent = provider.source;
   }
   if (els.modeLabel) {
-    const modeText = provider === "splunk-rest"
-      ? "Mode: Real indexed evidence"
-      : provider === "mock-mcp-fallback"
-        ? "Mode: Splunk unavailable; safe fallback active"
-        : "Mode: Safe deterministic demo";
-    const tone = provider === "splunk-rest" ? "real" : provider === "mock-mcp-fallback" ? "fallback" : "mock";
-    els.modeLabel.textContent = modeText;
-    els.modeLabel.className = `mode-badge mode-${tone}`;
+    els.modeLabel.textContent = provider.mode;
+    els.modeLabel.className = `mode-badge mode-${provider.tone}`;
   }
   els.stageLabel.textContent = state.stage || "Ready";
-  els.providerLabel.textContent = provider;
+  els.providerLabel.textContent = provider.provider;
   els.eventCount.textContent = state.events.length;
   els.readyCount.textContent = ready;
   els.blockedCount.textContent = blocked;
@@ -343,13 +382,56 @@ function renderReadinessStrip() {
 
   els.readinessStrip.innerHTML = state.decisions
     .map((decision) => `
-      <a class="readiness-card ${readinessTone(decision)}" href="detail.html?view=decisions&decision=${encodeURIComponent(decision.id)}">
+      <a class="readiness-card ${readinessTone(decision)} ${decision.id === "declare-no-data-access" ? "blocked-priority" : ""}" href="detail.html?view=decisions&decision=${encodeURIComponent(decision.id)}">
         <span>${escapeHtml(shortDecisionName(decision.title))}</span>
         <strong>${decision.readiness}%</strong>
         <em>${escapeHtml(statusLabel(decision.status))}</em>
       </a>
     `)
     .join("");
+}
+
+function renderJudgeStory() {
+  if (!els.judgeStoryCards) return;
+
+  const safe = state.decisions.find((decision) => normalizedStatus(decision.status) === "approved")
+    || state.decisions.find((decision) => normalizedStatus(decision.status) === "caution");
+  const blocked = state.decisions.find((decision) => decision.id === "declare-no-data-access")
+    || state.decisions.find((decision) => ["blocked", "not-ready"].includes(normalizedStatus(decision.status)));
+
+  const storyCard = (tone, label, decision, fallback) => {
+    const status = decision ? statusLabel(decision.status) : fallback.status;
+    const readiness = decision ? `${decision.readiness}%` : fallback.readiness;
+    const title = decision ? decision.title : fallback.title;
+    const reason = decision ? decision.reason || fallback.reason : fallback.reason;
+
+    return `
+      <article class="judge-story-card ${tone}">
+        <span>${escapeHtml(label)}</span>
+        <strong>${escapeHtml(title)}</strong>
+        <div>
+          <b>${escapeHtml(status)}</b>
+          <em>${escapeHtml(readiness)}</em>
+        </div>
+        <p>${escapeHtml(reason)}</p>
+      </article>
+    `;
+  };
+
+  els.judgeStoryCards.innerHTML = `
+    ${storyCard("ready", "Containment action", safe, {
+      title: "Revoke session token",
+      status: "Waiting",
+      readiness: "--",
+      reason: "Run the live judge demo to prove the evidence threshold."
+    })}
+    ${storyCard("blocked", "Unsafe conclusion blocked", blocked, {
+      title: "Declare no sensitive data accessed",
+      status: "Blocked",
+      readiness: "--",
+      reason: "Veritas requires export, object storage, and exfiltration evidence before this claim."
+    })}
+  `;
 }
 
 function renderDemoSteps() {
@@ -401,14 +483,15 @@ function renderDecisionMatrix() {
                 ? "Human"
                 : "Auto";
           return `
-            <tr class="decision-row ${readinessTone(decision)}" style="--i:${index}">
+            <tr class="decision-row ${readinessTone(decision)} ${decision.id === "declare-no-data-access" ? "blocked-priority" : ""}" style="--i:${index}">
               <td>
                 <div class="decision-name">
-                  <span class="decision-icon">${normalizedStatus(decision.status) === "blocked" ? "!" : "OK"}</span>
+                  <span class="decision-icon">${isBlockedDecision(decision) ? "!" : "OK"}</span>
                   <div>
                     <strong>${escapeHtml(decision.title)}</strong>
+                    ${isBlockedDecision(decision) ? `<span class="blocked-decision-badge">${escapeHtml(blockedDecisionLabel(decision))}</span>` : ""}
                     <button class="link-button" data-drilldown="${escapeHtml(foundCheck?.id || "")}">Evidence</button>
-                    ${["blocked", "not-ready"].includes(readinessTone(decision)) ? `<small>${escapeHtml(blockedReason(decision))}</small>` : ""}
+                    ${isBlockedDecision(decision) ? `<small>${escapeHtml(blockedReason(decision))}</small>` : ""}
                   </div>
                 </div>
               </td>
@@ -715,6 +798,7 @@ function render() {
   renderMetrics();
   renderTier3Controls();
   renderReadinessStrip();
+  renderJudgeStory();
   renderDemoSteps();
   renderDecisionMatrix();
   renderThresholdMatrix();
@@ -745,7 +829,10 @@ async function resetLab() {
 }
 
 async function loadFromSplunk() {
-  logEntry("Pulling indexed evidence from Splunk.");
+  const configured = Boolean(state.integration?.configured);
+  logEntry(configured
+    ? "Pulling real indexed evidence from Splunk REST."
+    : "Splunk REST is not configured; indexed evidence pull will use safe fallback handling.");
   try {
     await requestJson("/load-splunk", { method: "POST", body: "{}" });
     const payload = await requestJson("/state");
@@ -913,7 +1000,7 @@ function fieldLine(label, value) {
 
 function renderEvidenceItem(item) {
   if (!item || typeof item !== "object") {
-    return `<li>${escapeHtml(String(item || ""))}</li>`;
+    return `<li>${escapeHtml(item)}</li>`;
   }
 
   const title = item.summary || item.message || item.id || "Matched evidence";

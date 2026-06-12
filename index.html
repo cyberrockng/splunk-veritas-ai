@@ -44,97 +44,49 @@
       </aside>
 
       <main class="main-view" id="overview">
-        <section class="top-grid">
-          <section class="incident-hero" id="incident" data-detail="incident">
-            <div class="incident-icon">!</div>
-            <div class="incident-title">
-              <p>ACTIVE INCIDENT</p>
-              <h2 id="incidentTitle">ADMIN ACCOUNT TAKEOVER</h2>
-              <p class="hero-subtitle">Veritas blocks unsafe incident decisions until Splunk evidence clears the threshold.</p>
-              <div class="incident-meta">
-                <span>Incident ID: <b id="incidentIdLabel">INC-2025-0001</b></span>
-                <span>Status: <b id="stageLabel">idle</b></span>
-                <span id="evidenceSourceLabel">Evidence source: mock-mcp</span>
-                <span id="modeLabel" class="mode-badge mode-mock">Mode: Safe deterministic demo</span>
-                <span>Owner: Tier 3 Response Lead</span>
-                <span>Provider: <b id="providerLabel">mock-mcp</b></span>
+        <section class="judge-first-screen" aria-label="Judge-first incident summary">
+          <section class="top-grid">
+            <section class="incident-hero" id="incident" data-detail="incident">
+              <div class="incident-icon">!</div>
+              <div class="incident-title">
+                <p>ACTIVE INCIDENT</p>
+                <h2 id="incidentTitle">ADMIN ACCOUNT TAKEOVER</h2>
+                <p class="hero-subtitle">Veritas blocks unsafe incident decisions until Splunk evidence clears the threshold.</p>
+                <div class="incident-meta">
+                  <span>Incident ID: <b id="incidentIdLabel">INC-2025-0001</b></span>
+                  <span>Status: <b id="stageLabel">idle</b></span>
+                  <span id="evidenceSourceLabel">Evidence source: mock-mcp</span>
+                  <span id="modeLabel" class="mode-badge mode-mock">Mode: Safe deterministic demo</span>
+                  <span>Owner: Tier 3 Response Lead</span>
+                  <span>Provider: <b id="providerLabel">mock-mcp</b></span>
+                </div>
               </div>
-            </div>
+            </section>
+
+            <article class="panel judge-story-panel" data-detail="decisions">
+              <p class="section-label">Winning Demo Moment</p>
+              <h3>Enough evidence to contain. Not enough evidence to overclaim.</h3>
+              <div id="judgeStoryCards" class="judge-story-cards"></div>
+            </article>
           </section>
 
-          <article class="panel risk-panel" data-detail="risk">
-            <div class="panel-heading compact">
-              <div>
-                <p class="section-label">Residual Risk Score</p>
+          <section class="control-strip" aria-label="Primary incident demo">
+            <div class="action-group primary-action-group">
+              <span>Primary Demo</span>
+              <div class="button-row">
+                <button id="judgeModeBtn" class="primary-btn judge-btn" type="button">Run Live Judge Demo</button>
               </div>
             </div>
-            <div class="risk-gauge">
-              <div class="gauge-arc"></div>
-              <div class="gauge-value">
-                <strong id="riskScore">12</strong>
-                <span>/100</span>
-              </div>
-            </div>
-            <p id="riskSummary">Load the incident evidence to evaluate response decisions.</p>
-            <div class="metric-row metric-hidden" aria-hidden="true">
-              <span>Events <strong id="eventCount">0</strong></span>
-              <span>Ready <strong id="readyCount">0</strong></span>
-              <span>Blocked <strong id="blockedCount">0</strong></span>
-              <span>Coverage <strong id="telemetryScore">0%</strong></span>
-            </div>
-          </article>
-        </section>
+            <p class="judge-explainer">Most SOC tools ask, "Is this alert real?" Veritas asks, "Are we justified to act?"</p>
+          </section>
 
-        <section class="control-strip" aria-label="Incident controls">
-          <div class="action-group primary-action-group">
-            <span>Primary Demo</span>
-            <button id="judgeModeBtn" class="primary-btn judge-btn" type="button">Run Live Judge Demo</button>
-          </div>
-          <p class="judge-explainer">Most SOC tools ask, "Is this alert real?" Veritas asks, "Are we justified to act?"</p>
-          <details class="advanced-controls">
-            <summary>Advanced controls</summary>
-            <div class="advanced-control-grid">
-              <div class="action-group">
-                <span>Investigation</span>
-                <button id="startAttackBtn" class="secondary-btn" type="button">Load Demo Evidence</button>
-                <button id="loadSplunkBtn" class="secondary-btn" type="button">Pull Indexed Evidence</button>
-                <button id="nextEventBtn" class="secondary-btn" type="button">Add Next Event</button>
-                <button id="investigateBtn" class="secondary-btn" type="button">Run Tier 3 Evidence Review</button>
-              </div>
-              <div class="action-group">
-                <span>Response & Admin</span>
-                <button id="executeSafeBtn" class="primary-btn" type="button">Execute Approved Containment</button>
-                <button id="customRequestBtn" class="secondary-btn" type="button">Run Custom Request</button>
-                <button id="resetLabBtn" class="secondary-btn" type="button">Reset Lab</button>
-              </div>
+          <section class="readiness-strip" aria-label="Decision Readiness Strip">
+            <div>
+              <p class="section-label">Decision Readiness Strip</p>
+              <h3>Are we justified to act?</h3>
             </div>
-          </details>
-          <p id="labStatus" class="copy-status" aria-live="polite"></p>
-          <div id="demoSteps" class="demo-steps"></div>
-        </section>
-
-        <section class="readiness-strip" aria-label="Decision Readiness Strip">
-          <div>
-            <p class="section-label">Decision Readiness Strip</p>
-            <h3>Are we justified to act?</h3>
-          </div>
-          <div id="readinessStrip" class="readiness-strip-grid"></div>
-        </section>
-
-        <section class="tier3-strip" aria-label="Tier 3 response governance controls">
-          <div class="tier3-block">
-            <span>Incident Queue</span>
-            <select id="incidentSelector" aria-label="Select incident profile"></select>
-            <button id="loadIncidentProfileBtn" class="secondary-btn" type="button">Load profile</button>
-          </div>
-          <div class="tier3-block">
-            <span>Policy Builder</span>
-            <select id="policySelector" aria-label="Select policy profile"></select>
-            <button id="applyPolicyBtn" class="secondary-btn" type="button">Apply policy</button>
-          </div>
-          <div class="tier3-summary" id="tier3Summary">
-            Tier 3 mode: switch incident profiles and tune evidence policy before action.
-          </div>
+            <div id="readinessStrip" class="readiness-strip-grid"></div>
+          </section>
         </section>
 
         <section class="dashboard-grid">
@@ -243,7 +195,71 @@
           </article>
         </section>
 
+        <section class="tier3-strip" aria-label="Tier 3 response governance controls">
+          <div class="tier3-block">
+            <span>Incident Queue</span>
+            <select id="incidentSelector" aria-label="Select incident profile"></select>
+            <button id="loadIncidentProfileBtn" class="secondary-btn" type="button">Load profile</button>
+          </div>
+          <div class="tier3-block">
+            <span>Policy Builder</span>
+            <select id="policySelector" aria-label="Select policy profile"></select>
+            <button id="applyPolicyBtn" class="secondary-btn" type="button">Apply policy</button>
+          </div>
+          <div class="tier3-summary" id="tier3Summary">
+            Tier 3 mode: switch incident profiles and tune evidence policy before action.
+          </div>
+        </section>
+
+        <section class="secondary-controls" aria-label="Secondary demo controls">
+          <details class="advanced-controls">
+            <summary>Advanced controls</summary>
+            <div class="advanced-control-grid">
+              <div class="action-group">
+                <span>Investigation</span>
+                <div class="button-row">
+                  <button id="startAttackBtn" class="secondary-btn" type="button">Load Demo Evidence</button>
+                  <button id="loadSplunkBtn" class="secondary-btn" type="button">Pull Indexed Evidence</button>
+                  <button id="nextEventBtn" class="secondary-btn" type="button">Add Next Event</button>
+                  <button id="investigateBtn" class="secondary-btn" type="button">Run Tier 3 Evidence Review</button>
+                </div>
+              </div>
+              <div class="action-group">
+                <span>Response & Admin</span>
+                <div class="button-row">
+                  <button id="executeSafeBtn" class="primary-btn" type="button">Execute Approved Containment</button>
+                  <button id="customRequestBtn" class="secondary-btn" type="button">Run Custom Request</button>
+                  <button id="resetLabBtn" class="secondary-btn" type="button">Reset Lab</button>
+                </div>
+              </div>
+            </div>
+          </details>
+          <div id="demoSteps" class="demo-steps"></div>
+        </section>
+
         <section class="support-grid">
+          <article class="panel risk-panel" data-detail="risk">
+            <div class="panel-heading compact">
+              <div>
+                <p class="section-label">Residual Risk Score</p>
+              </div>
+            </div>
+            <div class="risk-gauge">
+              <div class="gauge-arc"></div>
+              <div class="gauge-value">
+                <strong id="riskScore">12</strong>
+                <span>/100</span>
+              </div>
+            </div>
+            <p id="riskSummary">Load the incident evidence to evaluate response decisions.</p>
+            <div class="metric-row metric-hidden" aria-hidden="true">
+              <span>Events <strong id="eventCount">0</strong></span>
+              <span>Ready <strong id="readyCount">0</strong></span>
+              <span>Blocked <strong id="blockedCount">0</strong></span>
+              <span>Coverage <strong id="telemetryScore">0%</strong></span>
+            </div>
+          </article>
+
           <article class="panel console-panel" data-detail="audit">
             <div class="panel-heading">
               <span class="panel-number">10</span>

@@ -226,7 +226,7 @@ Splunk Enterprise commonly uses management port `8089`; this Windows trial is co
 8. Confirm `/api/health` shows `splunk_configured: true`.
 9. Search `index=veritas` in Splunk.
 
-The Developer License request may take 3-5 business days. The installed Splunk Enterprise trial can be used for local hackathon testing while waiting.
+Developer License status: active for the local hackathon Splunk instance. Confirm in Splunk Web under **Settings -> Licensing** before final judging screenshots; expected quota is 10 GB/day with no license violation.
 
 The default demo runs in safe mock-mcp mode with deterministic Splunk-style evidence. Optional Splunk REST and HEC ingestion are included for real indexed evidence. The backend boundary is designed for Splunk MCP Server integration.
 

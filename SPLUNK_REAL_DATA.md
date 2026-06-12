@@ -53,10 +53,10 @@ Create a token:
 ```text
 Name: veritas-hec
 Default index: veritas
-Source type: _json or veritas:evidence
+Source type: veritas:evidence
 ```
 
-Copy the HEC token into a local shell environment variable only. Do not commit it.
+Copy the HEC token into a local shell environment variable only. Do not commit it. The ingestion payload also sets `sourcetype` from `VERITAS_SOURCETYPE`, which defaults to `veritas:incident`; if you change that value, change the Veritas REST search setting with it.
 
 ## Environment Variables
 
@@ -242,7 +242,7 @@ Capture these after the real Splunk run. Avoid any screen that shows token value
 - `assets/veritas-dashboard-splunk-rest.png` - dashboard provider showing `splunk-rest`
 - `assets/veritas-audit-brief.png` - audit brief referencing Splunk evidence
 
-The Developer License request may take 3-5 business days. The installed Splunk Enterprise trial can be used for local hackathon testing while waiting.
+Developer License status: active for the local hackathon Splunk instance. Confirm in Splunk Web under **Settings -> Licensing** before final judging screenshots; expected quota is 10 GB/day with no license violation.
 
 ## Honest Positioning
 

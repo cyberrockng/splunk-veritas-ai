@@ -15,10 +15,20 @@
           <h1 id="detailTitle">Veritas AI</h1>
           <p id="detailSubtitle">Loading live decision data...</p>
         </div>
-        <div class="detail-actions">
-          <button id="refreshBtn" class="secondary-btn" type="button">Refresh</button>
-          <button id="runCustomBtn" class="primary-btn" type="button">Run Custom Request</button>
-          <button id="exportBriefBtn" class="secondary-btn" type="button">Export Tier 3 Decision Audit Brief</button>
+        <div class="detail-actions" aria-label="Detail page actions">
+          <div class="detail-action-group">
+            <span>Page</span>
+            <div class="button-row">
+              <button id="refreshBtn" class="secondary-btn" type="button">Refresh</button>
+              <button id="exportBriefBtn" class="secondary-btn" type="button">Export Tier 3 Decision Audit Brief</button>
+            </div>
+          </div>
+          <div class="detail-action-group primary-detail-actions">
+            <span>Test</span>
+            <div class="button-row">
+              <button id="runCustomBtn" class="primary-btn" type="button">Run Custom Request</button>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -30,6 +40,10 @@
         <article>
           <span>Provider</span>
           <strong id="detailProvider">--</strong>
+        </article>
+        <article>
+          <span>Mode</span>
+          <strong id="detailMode">--</strong>
         </article>
         <article>
           <span>Events</span>

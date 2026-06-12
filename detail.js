@@ -33,6 +33,7 @@ const els = {
   subtitle: document.querySelector("#detailSubtitle"),
   risk: document.querySelector("#detailRisk"),
   provider: document.querySelector("#detailProvider"),
+  mode: document.querySelector("#detailMode"),
   events: document.querySelector("#detailEvents"),
   stage: document.querySelector("#detailStage"),
   content: document.querySelector("#detailContent"),
@@ -65,8 +66,42 @@ function statusClass(status = "") {
   return String(status).toLowerCase().replaceAll(" ", "-");
 }
 
-function providerLabel() {
-  return state?.integration?.search_provider || state?.integration?.provider || "demo";
+function providerInfo(integration = {}) {
+  const provider = integration.search_provider || integration.provider || "mock-mcp";
+
+  if (provider === "splunk-rest") {
+    return {
+      provider,
+      source: "Splunk REST",
+      mode: "Real indexed evidence",
+      tone: "real"
+    };
+  }
+
+  if (provider === "mock-mcp-fallback") {
+    return {
+      provider,
+      source: "mock-mcp fallback",
+      mode: "Splunk unavailable; safe fallback active",
+      tone: "fallback"
+    };
+  }
+
+  if (provider === "custom-input") {
+    return {
+      provider,
+      source: "custom analyst input",
+      mode: "Analyst-supplied evidence evaluation",
+      tone: "mock"
+    };
+  }
+
+  return {
+    provider: "mock-mcp",
+    source: "mock-mcp",
+    mode: "Safe deterministic demo",
+    tone: "mock"
+  };
 }
 
 async function requestJson(path, options = {}) {
@@ -89,11 +124,14 @@ async function requestJson(path, options = {}) {
 
 function setHeader() {
   const [title, subtitle] = titles[view] || titles.risk;
-  els.eyebrow.textContent = `Tier 3 Decision Detail / ${providerLabel()}`;
+  const provider = providerInfo(state?.integration);
+  els.eyebrow.textContent = `Tier 3 Decision Detail / ${provider.source}`;
   els.title.textContent = title;
   els.subtitle.textContent = subtitle;
   els.risk.textContent = state?.risk ?? "--";
-  els.provider.textContent = providerLabel();
+  els.provider.textContent = provider.provider;
+  els.mode.textContent = provider.mode;
+  els.mode.className = `detail-mode-label mode-${provider.tone}`;
   els.events.textContent = state?.events?.length ?? "--";
   els.stage.textContent = state?.stage ?? "--";
 }
@@ -106,6 +144,17 @@ function readinessTone(decision) {
   return "review";
 }
 
+function isBlockedDecision(decision) {
+  return readinessTone(decision) === "blocked";
+}
+
+function blockedDecisionLabel(decision) {
+  if (!isBlockedDecision(decision)) return "";
+  return decision.id === "declare-no-data-access"
+    ? "Unsafe conclusion blocked"
+    : "Evidence gate blocked";
+}
+
 function allChecks() {
   return (state.decisions || []).flatMap((decision) =>
     (decision.checks || []).map((check) => ({ decision, check })),
@@ -116,6 +165,51 @@ function missingChecks() {
   return allChecks().filter(({ check }) => check.status !== "found");
 }
 
+function detailField(label, value) {
+  if (value === undefined || value === null || value === "") return "";
+  return `<span><b>${escapeHtml(label)}</b>${escapeHtml(String(value))}</span>`;
+}
+
+function renderDetailEvidenceItem(item) {
+  if (!item || typeof item !== "object") {
+    return `<li>${escapeHtml(item)}</li>`;
+  }
+
+  const title = item.summary || item.message || item.id || item.event_id || "Evidence item";
+  const fields = [
+    detailField("ID", item.id || item.event_id),
+    detailField("Source", item.source),
+    detailField("Sourcetype", item.sourcetype),
+    detailField("User", item.user),
+    detailField("IP", item.src_ip),
+    detailField("Severity", item.severity),
+    detailField("Message", item.message),
+    detailField("Category", item.evidence_category),
+    detailField("Provider", item.provider || item.origin),
+    detailField("Job", item.splunk_job_id),
+  ].filter(Boolean).join("");
+
+  return `
+    <li class="detail-evidence-item">
+      <strong>${escapeHtml(title)}</strong>
+      ${fields ? `<div>${fields}</div>` : ""}
+    </li>
+  `;
+}
+
+function renderEvidenceDrilldown(check) {
+  const evidence = check.evidence || [];
+  if (!evidence.length) {
+    return `<p class="detail-empty-evidence">No matching event is currently indexed for this evidence item.</p>`;
+  }
+
+  return `
+    <ul class="detail-evidence-list">
+      ${evidence.map((item) => renderDetailEvidenceItem(item)).join("")}
+    </ul>
+  `;
+}
+
 function renderDecisionCards() {
   return `
     <div class="detail-card-grid">
@@ -123,9 +217,10 @@ function renderDecisionCards() {
         const actionId = actionMap[decision.id];
         const approval = state.approvals.find((item) => item.decision_id === decision.id);
         return `
-          <article class="detail-card ${readinessTone(decision)}">
+          <article class="detail-card ${readinessTone(decision)} ${decision.id === "declare-no-data-access" ? "blocked-priority" : ""}">
             <span>${escapeHtml(decision.impact)} impact</span>
             <h3>${escapeHtml(decision.title)}</h3>
+            ${isBlockedDecision(decision) ? `<strong class="detail-blocked-banner">${escapeHtml(blockedDecisionLabel(decision))}</strong>` : ""}
             <div class="detail-score">${decision.readiness}%</div>
             <p>${escapeHtml(decision.reason)}</p>
             <div class="detail-chip-row">
@@ -164,14 +259,14 @@ function renderMatrix() {
       </thead>
       <tbody>
         ${rows.map(({ decision, check }) => `
-          <tr>
-            <td>${escapeHtml(decision.title)}</td>
-            <td>${escapeHtml(check.label)}</td>
-            <td><span class="detail-status ${statusClass(check.status)}">${escapeHtml(check.status)}</span></td>
-            <td>${check.mandatory ? "Yes" : "No"}</td>
-            <td>
+          <tr class="detail-matrix-row ${readinessTone(decision)} ${decision.id === "declare-no-data-access" ? "blocked-priority" : ""}">
+            <td data-label="Decision">${escapeHtml(decision.title)}</td>
+            <td data-label="Evidence">${escapeHtml(check.label)}</td>
+            <td data-label="Status"><span class="detail-status ${statusClass(check.status)}">${escapeHtml(check.status)}</span></td>
+            <td data-label="Mandatory">${check.mandatory ? "Yes" : "No"}</td>
+            <td data-label="SPL / Evidence">
               <code>${escapeHtml(check.spl)}</code>
-              ${(check.evidence || []).map((item) => `<p>${escapeHtml(item.summary || item.id)}</p>`).join("")}
+              ${renderEvidenceDrilldown(check)}
             </td>
           </tr>
         `).join("") || `<tr><td colspan="5">No evidence checks matched this filter.</td></tr>`}

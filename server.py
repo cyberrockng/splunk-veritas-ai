@@ -968,8 +968,11 @@ def splunk_configured():
 
 
 def splunk_status():
+    configured_provider = "splunk-rest" if splunk_configured() else "mock-mcp"
+    last_load = LAB_STATE.get("last_splunk_load") or {}
     return {
-        "provider": "splunk-rest" if splunk_configured() else "mock-mcp",
+        "provider": configured_provider,
+        "search_provider": last_load.get("provider") or configured_provider,
         "configured": splunk_configured(),
         "host": SPLUNK_HOST or None,
         "index": VERITAS_SPLUNK_INDEX,
