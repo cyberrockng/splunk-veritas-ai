@@ -51,6 +51,24 @@ Veritas explicitly states:
 - High-impact actions require human approval.
 - Demo containment is simulated and deterministic.
 
+## What Is Real vs Simulated
+
+Real:
+
+- Local Python API and frontend.
+- Evidence threshold decision engine.
+- Audit brief generation.
+- Smoke tests.
+- Optional Splunk HEC ingestion and Splunk REST search path.
+
+Simulated:
+
+- Default mock evidence for reliable judging without credentials.
+- Containment actions, which are safe mock actions only.
+- MCP-shaped labels, which are integration-ready but not true Splunk MCP Server calls yet.
+
+See `REAL_VS_SIMULATED.md` for the full boundary.
+
 ## Splunk Fit
 
 The app uses Splunk-style evidence, HEC ingestion, REST search, and MCP-shaped tool-call output:

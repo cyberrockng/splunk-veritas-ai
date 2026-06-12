@@ -12,6 +12,10 @@ Point to the tagline:
 
 "Veritas AI is a Tier 3 response decision assurance layer for Splunk. It checks whether the team has enough Splunk evidence before approving high-impact incident-response decisions."
 
+Optional honesty note:
+
+"For safety, the containment actions in this demo are simulated. The evidence engine is real, and the Splunk-backed path can ingest through HEC and load indexed evidence through Splunk REST."
+
 Show:
 
 - Residual Risk Score

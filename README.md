@@ -50,7 +50,11 @@ Veritas turns that uncertainty into a governed decision workflow: readiness scor
 - Reliable mock mode for judging without Splunk credentials.
 - Incident queue and policy builder with Standard, Strict, and Emergency governance modes.
 
-## Implementation Status
+## What Is Real vs Simulated
+
+Veritas is intentionally clear about implementation boundaries. The local app, evidence threshold engine, audit brief, smoke tests, HEC ingestion script, and optional Splunk REST search path are real. Default evidence and containment actions are simulated for safety and judging reliability.
+
+See `REAL_VS_SIMULATED.md` for the full implementation boundary.
 
 ### Real
 
@@ -341,6 +345,7 @@ Do not claim a production deployment unless the selected path is implemented and
 - `smoke_tests.py` - Local smoke tests
 - `ingest_to_splunk.py` - Splunk HEC demo evidence ingestion
 - `sample_splunk_events.json` - Demo evidence payloads
+- `REAL_VS_SIMULATED.md` - Honest implementation boundary
 - `SPLUNK_REAL_DATA.md` - Splunk runbook
 - `DEMO_SCRIPT.md` - Under-three-minute walkthrough
 - `JUDGING_NOTES.md` - Submission positioning
