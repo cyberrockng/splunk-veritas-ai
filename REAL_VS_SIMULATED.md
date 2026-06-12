@@ -49,6 +49,8 @@ The captured proof in `assets/` shows this path working locally.
 - Production deployment of the Python API.
 - AI/LLM-generated decisions.
 
+See `DEPLOYMENT_STATUS.md` for the public hosting boundary.
+
 ## Demo Language To Use
 
 Use this wording:

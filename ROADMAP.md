@@ -86,7 +86,7 @@
 - Prepare final Devpost copy.
 - Add sample Splunk data ingestion notes.
 
-## Current: Phase 12 - Deployment Readiness
+## Passed: Phase 12 - Deployment Readiness
 
 - Add `.env.example` without secrets.
 - Keep local `python server.py` demo reliable.

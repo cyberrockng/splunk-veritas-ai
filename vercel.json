@@ -1,4 +1,5 @@
 {
+  "$comment": "Starter static config only. This does not deploy the Python API in server.py.",
   "cleanUrls": true,
   "trailingSlash": false
 }

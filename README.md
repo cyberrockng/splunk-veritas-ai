@@ -312,7 +312,7 @@ The smoke tests verify health, static assets, state/reset/start/investigation, a
 - The project is structured for future MCP integration, but does not claim live Splunk MCP Server calls.
 - Vercel deployment is prepared but not executed.
 
-## Deployment Notes
+## Deployment Status
 
 The current project is optimized for local demo mode with:
 
@@ -320,11 +320,15 @@ The current project is optimized for local demo mode with:
 python server.py
 ```
 
-A static Vercel deployment will not run the Python API by itself. For public hosting, use one of these paths:
+No production or public Vercel deployment is claimed.
+
+`vercel.json` is only a safe starter config for static frontend preparation. A static Vercel deployment will not run the Python API by itself. For public hosting, use one of these paths:
 
 1. Convert API endpoints to Vercel serverless functions.
 2. Host the Python backend separately and point the frontend to it.
 3. Use static demo mode with mock evidence only.
+
+See `DEPLOYMENT_STATUS.md` for the full deployment boundary.
 
 Do not claim a production deployment unless the selected path is implemented and tested. Do not deploy until the maintainer explicitly approves the deployment stage.
 
@@ -348,6 +352,7 @@ Do not claim a production deployment unless the selected path is implemented and
 - `ingest_to_splunk.py` - Splunk HEC demo evidence ingestion
 - `sample_splunk_events.json` - Demo evidence payloads
 - `REAL_VS_SIMULATED.md` - Honest implementation boundary
+- `DEPLOYMENT_STATUS.md` - Local demo and deployment boundary
 - `SPLUNK_REAL_DATA.md` - Splunk runbook
 - `DEMO_SCRIPT.md` - Under-three-minute walkthrough
 - `JUDGING_NOTES.md` - Submission positioning
