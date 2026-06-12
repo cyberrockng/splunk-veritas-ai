@@ -1,81 +1,116 @@
 # Veritas Real Splunk Data Runbook
 
-This moves Veritas from mock evidence to Splunk-backed evidence.
+This moves Veritas from mock evidence to Splunk-backed evidence using the installed Splunk Enterprise trial.
 
-Default local judging does not require Splunk credentials. Run `python server.py` and Veritas uses deterministic `mock-mcp` evidence. Configure Splunk only when you want to demonstrate the optional HEC and REST path.
+Default local judging does not require Splunk credentials. Run `python server.py` with no Splunk environment variables and Veritas uses deterministic `mock-mcp` evidence. Configure Splunk only when you want to demonstrate the optional HEC and REST path.
 
-Never commit real Splunk tokens, HEC tokens, passwords, or production hostnames. The values below are local demo examples only.
+Never commit real Splunk REST tokens, HEC tokens, passwords, screenshots containing tokens, or a local `.env` file.
 
-## Local Docker Quickstart
+## Important Ports
 
-This is the local setup used for the working Splunk-backed prototype.
+- Splunk Web UI: `http://Cyberrockng:8001`
+- Splunk REST management API: `https://Cyberrockng:8090` for this local install (`mgmtHostPort=8090`)
+- Splunk HEC ingestion endpoint: `https://Cyberrockng:8088/services/collector`
 
-```powershell
-docker run -d `
-  --name veritas-splunk `
-  -p 8000:8000 `
-  -p 8088:8088 `
-  -p 8089:8089 `
-  -e "SPLUNK_START_ARGS=--accept-license" `
-  -e "SPLUNK_GENERAL_TERMS=--accept-sgt-current-at-splunk-com" `
-  -e "SPLUNK_PASSWORD=VeritasPass123!" `
-  -e "SPLUNK_HEC_TOKEN=veritas-hec-token-123" `
-  splunk/splunk:latest
-```
+Use the Web UI only for browser tasks. Do not use port `8001` as the backend API or HEC endpoint.
 
-Splunk Web:
+## Splunk Web Setup
+
+Open:
 
 ```text
-http://localhost:8000
+http://Cyberrockng:8001
 ```
 
-Login for the local demo container only:
+### 1. Create the index
+
+Go to:
 
 ```text
-admin / VeritasPass123!
+Settings -> Indexes -> New Index
 ```
 
-Create the Veritas index:
+Create:
 
-```powershell
-docker exec -u splunk veritas-splunk /opt/splunk/bin/splunk add index veritas -auth admin:VeritasPass123!
+```text
+veritas
 ```
 
-## Data Contract
+### 2. Enable HEC
 
-Veritas expects indexed events with:
+Go to:
 
-- `index=veritas`
-- `sourcetype=veritas:incident`
-- `incident_id=INC-001`
-- `event_id=SEC-3001` through `SEC-3006`
+```text
+Settings -> Data Inputs -> HTTP Event Collector
+```
 
-The fields used by the threshold engine are:
+If HTTP Event Collector is disabled, enable it from the global HEC settings.
 
-- `event_id`
-- `incident_id`
-- `source_category`
-- `summary`
-- `user`
-- `src_ip`
-- `geo`
-- `severity`
-- `query`
-- `tags`
+### 3. Create the HEC token
 
-## 1. Configure Splunk HEC
+Create a token:
 
-Create or use an HTTP Event Collector token that can write to the `veritas` index.
+```text
+Name: veritas-hec
+Default index: veritas
+Source type: _json or veritas:evidence
+```
+
+Copy the HEC token into a local shell environment variable only. Do not commit it.
+
+## Environment Variables
 
 PowerShell:
 
 ```powershell
-$env:SPLUNK_HEC_URL="https://localhost:8088/services/collector/event"
-$env:SPLUNK_HEC_TOKEN="<hec-token>"
+$env:SPLUNK_HOST="https://Cyberrockng:8090"
+$env:SPLUNK_TOKEN="<your-splunk-rest-token-or-session-key>"
+$env:SPLUNK_AUTH_SCHEME="Bearer"
 $env:SPLUNK_VERIFY_SSL="false"
+
+$env:SPLUNK_HEC_URL="https://Cyberrockng:8088/services/collector"
+$env:SPLUNK_HEC_TOKEN="<your-hec-token>"
+
 $env:VERITAS_SPLUNK_INDEX="veritas"
 $env:VERITAS_INCIDENT_ID="INC-001"
+$env:VERITAS_DISPLAY_INCIDENT_ID="INC-2025-0001"
 ```
+
+If your REST credential is a Splunk session key, use:
+
+```powershell
+$env:SPLUNK_AUTH_SCHEME="Splunk"
+```
+
+If you use demo-only Basic auth, set `SPLUNK_TOKEN` to `username:password` and:
+
+```powershell
+$env:SPLUNK_AUTH_SCHEME="Basic"
+```
+
+## Data Contract
+
+Veritas ingests `sample_splunk_events.json`. The file contains the six admin account takeover evidence events used by the dashboard.
+
+Expected indexed fields:
+
+- `incident_id=INC-001`
+- `display_incident_id=INC-2025-0001`
+- `event_id=SEC-3001` through `SEC-3006`
+- `event_type`
+- `evidence_category`
+- `source_category`
+- `summary`
+- `message`
+- `user`
+- `src_ip`
+- `geo`
+- `action`
+- `severity`
+- `query`
+- `tags`
+
+## Ingest Evidence Through HEC
 
 Preview the payload first:
 
@@ -89,43 +124,56 @@ Ingest the events:
 python ingest_to_splunk.py
 ```
 
-## 2. Configure Splunk REST Search
+Expected success:
 
-Veritas pulls indexed evidence through the Splunk REST search API.
-
-PowerShell for local Docker Basic auth:
-
-```powershell
-$env:SPLUNK_HOST="https://localhost:8089"
-$env:SPLUNK_TOKEN="admin:VeritasPass123!" # local demo only, never production
-$env:SPLUNK_AUTH_SCHEME="Basic"
-$env:SPLUNK_VERIFY_SSL="false"
-$env:VERITAS_SPLUNK_INDEX="veritas"
-$env:VERITAS_INCIDENT_ID="INC-001"
-python server.py
+```text
+Ingested 6 Veritas evidence events into Splunk index=veritas
 ```
 
-For a Splunk bearer token, use:
+The script reads `SPLUNK_HEC_URL`, `SPLUNK_HEC_TOKEN`, `VERITAS_SPLUNK_INDEX`, and `SPLUNK_VERIFY_SSL`. It accepts `https://Cyberrockng:8088/services/collector` and sends event payloads to the HEC event endpoint without printing the token.
 
-```powershell
-$env:SPLUNK_TOKEN="<rest-api-token>"
-$env:SPLUNK_AUTH_SCHEME="Bearer"
+## Verify In Splunk Search
+
+Run these from Splunk Web at `http://Cyberrockng:8001`.
+
+Basic verification:
+
+```spl
+index=veritas
+| table _time incident_id event_type user src_ip action severity message
 ```
 
-## 3. Verify In Splunk
+Admin takeover summary:
 
-Run this SPL in Splunk Search:
+```spl
+index=veritas incident_id="INC-2025-0001" OR incident_id="INC-001"
+| stats count by evidence_category, severity, action
+```
+
+Attack path:
+
+```spl
+index=veritas incident_id="INC-2025-0001" OR incident_id="INC-001"
+| sort _time
+| table _time event_type evidence_category user src_ip action severity message
+```
+
+Veritas REST pull query shape:
 
 ```spl
 index="veritas" sourcetype="veritas:incident"
 | spath
 | search incident_id="INC-001"
-| table _time event_id source_category user src_ip severity summary
+| table _time event_id incident_id source_category summary user src_ip geo severity query tags
 ```
 
-You should see six events.
+## Run Veritas In Splunk Mode
 
-## 4. Pull Into Veritas
+Start the backend after setting the REST variables:
+
+```powershell
+python server.py
+```
 
 Open:
 
@@ -133,21 +181,71 @@ Open:
 http://127.0.0.1:5173
 ```
 
+Confirm health:
+
+```text
+http://127.0.0.1:5173/api/health
+```
+
+Expected Splunk mode:
+
+```json
+{
+  "status": "ok",
+  "app": "Veritas AI",
+  "product": "Evidence Threshold Engine for Splunk",
+  "mode": "splunk-rest",
+  "splunk_configured": true,
+  "version": "1.0.0"
+}
+```
+
 Then click:
 
-1. **Pull indexed evidence**
-2. **Check thresholds**
-3. **Execute approved containment**
-4. **Export audit brief**
+1. Pull indexed evidence
+2. Check thresholds
+3. Approve safe actions
+4. Execute approved containment
+5. Export audit brief
 
-The provider should show `splunk-rest`, and evidence items should include Splunk job IDs.
+The provider should show `splunk-rest`, the evidence load should show a Splunk search job ID, dangerous decisions should remain blocked when evidence is incomplete, and the audit brief should reference Splunk REST.
 
-## Fallback Behavior
+## Mock Fallback
 
-If Splunk is not configured, Veritas stays in `mock-mcp` mode. This keeps the hackathon demo reliable while still supporting real Splunk data when credentials are available.
+To return to safe mock mode in the same PowerShell session:
 
-In both modes, Veritas remains an evidence threshold engine. It does not treat missing logs as proof of safety, does not follow instructions inside log text, and does not run destructive real containment actions.
+```powershell
+Remove-Item Env:SPLUNK_HOST -ErrorAction SilentlyContinue
+Remove-Item Env:SPLUNK_TOKEN -ErrorAction SilentlyContinue
+python server.py
+```
 
-## Deployment Note
+Expected mock health:
 
-For future hosted demos, configure Splunk values as environment variables in the hosting platform. Do not place real tokens in frontend code, screenshots, README examples, or committed `.env` files.
+```json
+{
+  "status": "ok",
+  "app": "Veritas AI",
+  "product": "Evidence Threshold Engine for Splunk",
+  "mode": "mock-mcp",
+  "splunk_configured": false,
+  "version": "1.0.0"
+}
+```
+
+## Proof Screenshots For Devpost
+
+Capture these after the real Splunk run. Avoid any screen that shows token values.
+
+- `assets/splunk-indexed-events.png` - Splunk Search showing `index=veritas`
+- `assets/veritas-health-splunk-rest.png` - `/api/health` showing `splunk_configured: true`
+- `assets/veritas-dashboard-splunk-rest.png` - dashboard provider showing `splunk-rest`
+- `assets/veritas-audit-brief.png` - audit brief referencing Splunk evidence
+
+The Developer License request may take 3-5 business days. The installed Splunk Enterprise trial can be used for local hackathon testing while waiting.
+
+## Honest Positioning
+
+The default demo runs in safe `mock-mcp` mode with deterministic Splunk-style evidence. Optional Splunk REST and HEC ingestion are included for real indexed evidence. The backend boundary is designed for Splunk MCP Server integration.
+
+Do not claim true Splunk MCP Server usage unless a real MCP Server call is implemented.

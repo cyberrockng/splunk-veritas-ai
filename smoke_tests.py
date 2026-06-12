@@ -5,6 +5,7 @@ import sys
 
 
 BASE_URL = os.environ.get("VERITAS_BASE_URL", "http://127.0.0.1:5173")
+REQUEST_TIMEOUT = int(os.environ.get("VERITAS_REQUEST_TIMEOUT", "10"))
 
 
 def request_json(path, method="GET", payload=None):
@@ -15,7 +16,7 @@ def request_json(path, method="GET", payload=None):
         headers["Content-Type"] = "application/json"
 
     req = request.Request(f"{BASE_URL}{path}", data=data, method=method, headers=headers)
-    with request.urlopen(req, timeout=5) as response:
+    with request.urlopen(req, timeout=REQUEST_TIMEOUT) as response:
         return json.loads(response.read().decode("utf-8"))
 
 
@@ -29,13 +30,13 @@ def request_json_error(path, method="GET", payload=None):
 
 def request_text(path):
     req = request.Request(f"{BASE_URL}{path}", method="GET")
-    with request.urlopen(req, timeout=5) as response:
+    with request.urlopen(req, timeout=REQUEST_TIMEOUT) as response:
         return response.status, response.read().decode("utf-8")
 
 
 def request_bytes(path):
     req = request.Request(f"{BASE_URL}{path}", method="GET")
-    with request.urlopen(req, timeout=5) as response:
+    with request.urlopen(req, timeout=REQUEST_TIMEOUT) as response:
         return response.status, response.read()
 
 
@@ -61,6 +62,7 @@ def main():
     assert_equal(health["product"], "Evidence Threshold Engine for Splunk", "health product")
     assert_true(health["mode"] in {"mock-mcp", "splunk-rest"}, "health mode")
     assert_true(isinstance(health["splunk_configured"], bool), "health Splunk configured flag")
+    assert_equal(health["mode"], "splunk-rest" if health["splunk_configured"] else "mock-mcp", "health mode/config alignment")
     assert_true(health["version"], "health version")
     assert_true("token" not in json.dumps(health).lower(), "health must not expose tokens")
 
@@ -76,6 +78,9 @@ def main():
         assert_true(expected_text in text, f"{asset_path} static content")
         assert_true("Tier 2" not in text, f"{asset_path} should not mention Tier 2")
         assert_true("SentinelOps" not in text, f"{asset_path} should not mention SentinelOps")
+        if asset_path == "/index.html":
+            assert_true("Started: live Splunk session" not in text, "index should not claim live Splunk by default")
+            assert_true("Evidence source:" in text, "index should show evidence source copy")
 
     for image_path in (
         "/assets/dashboard.png",
@@ -118,14 +123,25 @@ def main():
     assert_equal(len(initial_state["decisions"]), 5, "state endpoint decision count")
     assert_equal(len(initial_state["readiness_strip"]), 5, "decision readiness strip count")
     assert_true("integration" in initial_state, "state endpoint should include integration metadata")
+    assert_equal(
+        initial_state["integration"]["provider"],
+        "splunk-rest" if health["splunk_configured"] else "mock-mcp",
+        "state provider should match health mode",
+    )
 
     config = request_json("/api/sentinel/config")
     assert_true(config["index"], "config should include Veritas Splunk index")
     assert_true(config["incident_id"], "config should include incident id")
+    assert_true("token" not in json.dumps(config).lower(), "config must not expose tokens")
     if not config["configured"]:
         status, body = request_json_error("/api/sentinel/load-splunk", method="POST", payload={})
         assert_equal(status, 400, "load-splunk without config status")
         assert_true("Splunk REST is not configured" in body["error"], "load-splunk config error")
+    elif os.environ.get("VERITAS_SMOKE_SPLUNK") == "1":
+        splunk_load = request_json("/api/sentinel/load-splunk", method="POST", payload={})
+        assert_equal(splunk_load["integration"]["provider"], "splunk-rest", "Splunk load provider")
+        assert_true("search" in splunk_load, "Splunk load should include search proof")
+        assert_true(splunk_load["search"]["result_count"] >= 0, "Splunk load result count")
 
     reset = request_json("/api/sentinel/reset", method="POST", payload={})
     assert_equal(reset["stage"], "idle", "reset stage")

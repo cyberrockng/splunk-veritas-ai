@@ -10,6 +10,7 @@ const els = {
   riskSummary: document.querySelector("#riskSummary"),
   incidentTitle: document.querySelector("#incidentTitle"),
   incidentIdLabel: document.querySelector("#incidentIdLabel"),
+  evidenceSourceLabel: document.querySelector("#evidenceSourceLabel"),
   stageLabel: document.querySelector("#stageLabel"),
   providerLabel: document.querySelector("#providerLabel"),
   eventCount: document.querySelector("#eventCount"),
@@ -260,6 +261,14 @@ function renderMetrics() {
   els.incidentTitle.textContent = customRequest?.title || state.incident?.title || "ADMIN ACCOUNT TAKEOVER";
   if (els.incidentIdLabel) {
     els.incidentIdLabel.textContent = state.incident?.display_incident_id || state.integration?.display_incident_id || "INC-2025-0001";
+  }
+  if (els.evidenceSourceLabel) {
+    const sourceLabel = provider === "splunk-rest"
+      ? "Evidence source: Splunk REST"
+      : provider === "mock-mcp-fallback"
+        ? "Evidence source: mock fallback"
+        : `Evidence source: ${provider}`;
+    els.evidenceSourceLabel.textContent = sourceLabel;
   }
   els.stageLabel.textContent = state.stage || "Ready";
   els.providerLabel.textContent = provider;
@@ -851,6 +860,7 @@ function showEvidenceDrilldown(checkId) {
   const { decision, check } = result;
   const evidence = check.evidence || [];
   const spl = check.spl || "No SPL query mapped for this evidence item.";
+  const evidenceRows = evidence.map((item) => renderEvidenceItem(item)).join("");
 
   els.evidenceDialogTitle.textContent = check.label;
   els.evidenceOutput.innerHTML = `
@@ -877,11 +887,40 @@ function showEvidenceDrilldown(checkId) {
     <h4>Matched Evidence</h4>
     ${evidence.length ? `
       <ul class="evidence-list">
-        ${evidence.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+        ${evidenceRows}
       </ul>
     ` : `<p class="muted-copy">No matching event is currently indexed for this evidence item.</p>`}
   `;
   els.evidenceDialog.showModal();
+}
+
+function fieldLine(label, value) {
+  if (value === undefined || value === null || value === "") return "";
+  return `<span><b>${escapeHtml(label)}</b>${escapeHtml(String(value))}</span>`;
+}
+
+function renderEvidenceItem(item) {
+  if (!item || typeof item !== "object") {
+    return `<li>${escapeHtml(String(item || ""))}</li>`;
+  }
+
+  const title = item.summary || item.message || item.id || "Matched evidence";
+  const metadata = [
+    fieldLine("ID", item.id || item.event_id),
+    fieldLine("Source", item.source),
+    fieldLine("User", item.user),
+    fieldLine("IP", item.src_ip),
+    fieldLine("Severity", item.severity),
+    fieldLine("Action", item.action),
+    fieldLine("Job", item.splunk_job_id)
+  ].filter(Boolean).join("");
+
+  return `
+    <li class="evidence-object">
+      <strong>${escapeHtml(title)}</strong>
+      ${metadata ? `<div>${metadata}</div>` : ""}
+    </li>
+  `;
 }
 
 async function runJudgeMode() {

@@ -1,0 +1,32 @@
+name: Veritas smoke tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile Python files
+        run: python -m py_compile server.py smoke_tests.py ingest_to_splunk.py
+      - name: Start Veritas mock server
+        run: |
+          python server.py &
+          echo $! > server.pid
+          sleep 2
+      - name: Run smoke tests
+        env:
+          VERITAS_BASE_URL: http://127.0.0.1:5173
+          VERITAS_REQUEST_TIMEOUT: "15"
+        run: python smoke_tests.py
+      - name: Stop server
+        if: always()
+        run: |
+          if [ -f server.pid ]; then
+            kill "$(cat server.pid)" || true
+          fi

@@ -18,6 +18,8 @@ SPLUNK_AUTH_SCHEME = os.environ.get("SPLUNK_AUTH_SCHEME", "Bearer")
 SPLUNK_VERIFY_SSL = os.environ.get("SPLUNK_VERIFY_SSL", "true").lower() not in {"0", "false", "no"}
 SPLUNK_TIMEOUT = int(os.environ.get("SPLUNK_TIMEOUT", "8"))
 SPLUNK_MAX_RESULTS = int(os.environ.get("SPLUNK_MAX_RESULTS", "25"))
+SPLUNK_SEARCH_POLLS = int(os.environ.get("SPLUNK_SEARCH_POLLS", "20"))
+SPLUNK_SEARCH_POLL_INTERVAL = float(os.environ.get("SPLUNK_SEARCH_POLL_INTERVAL", "0.5"))
 SPLUNK_EARLIEST = os.environ.get("SPLUNK_EARLIEST", "-60m")
 SPLUNK_LATEST = os.environ.get("SPLUNK_LATEST", "now")
 VERITAS_SPLUNK_INDEX = os.environ.get("VERITAS_SPLUNK_INDEX", "veritas")
@@ -977,6 +979,7 @@ def splunk_status():
         "auth_scheme": SPLUNK_AUTH_SCHEME if SPLUNK_TOKEN else None,
         "verify_ssl": SPLUNK_VERIFY_SSL,
         "max_results": SPLUNK_MAX_RESULTS,
+        "search_polls": SPLUNK_SEARCH_POLLS,
         "earliest": SPLUNK_EARLIEST,
         "latest": SPLUNK_LATEST,
         "last_load": LAB_STATE.get("last_splunk_load"),
@@ -1045,7 +1048,7 @@ def splunk_search(query, earliest=SPLUNK_EARLIEST, latest=SPLUNK_LATEST, count=N
 
     quoted_sid = parse.quote(sid, safe="")
     dispatch_state = "QUEUED"
-    for _ in range(5):
+    for _ in range(SPLUNK_SEARCH_POLLS):
         status = splunk_request(
             f"/services/search/jobs/{quoted_sid}",
             {"output_mode": "json"},
@@ -1055,7 +1058,7 @@ def splunk_search(query, earliest=SPLUNK_EARLIEST, latest=SPLUNK_LATEST, count=N
         dispatch_state = content.get("dispatchState", dispatch_state)
         if content.get("isDone") or dispatch_state == "DONE":
             break
-        time.sleep(0.4)
+        time.sleep(SPLUNK_SEARCH_POLL_INTERVAL)
 
     results = splunk_request(
         f"/services/search/jobs/{quoted_sid}/results",
@@ -1125,12 +1128,24 @@ def load_splunk_evidence():
 
     event_ids = [event["id"] for event in active_attack_events()]
     query = veritas_event_search(event_ids)
-    search_result = splunk_search(
-        query,
-        earliest=SPLUNK_EARLIEST,
-        latest=SPLUNK_LATEST,
-        count=max(len(event_ids), SPLUNK_MAX_RESULTS),
-    )
+    try:
+        search_result = splunk_search(
+            query,
+            earliest=SPLUNK_EARLIEST,
+            latest=SPLUNK_LATEST,
+            count=max(len(event_ids), SPLUNK_MAX_RESULTS),
+        )
+    except Exception as error:
+        LAB_STATE["last_splunk_load"] = {
+            "query": query,
+            "provider": "splunk-rest",
+            "error": str(error),
+        }
+        return {
+            "ok": False,
+            "error": "Splunk REST search failed. Verify https://Cyberrockng:8089, credentials, SSL settings, and indexed Veritas events.",
+            "search": LAB_STATE["last_splunk_load"],
+        }
     events_by_id = {}
     for row in search_result["rows"]:
         event = normalize_splunk_event(row)

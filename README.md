@@ -155,39 +155,73 @@ Dashboard indicators open functional pages:
 /detail.html?view=timeline
 ```
 
-## Optional Splunk-Backed Setup
+## Real Splunk Enterprise Trial Integration
+
+My local Splunk Enterprise Web UI runs at:
+
+`http://Cyberrockng:8001`
+
+The default Veritas demo runs in safe mock-mcp mode. For stronger judging proof, Veritas can ingest the same admin account takeover evidence into a local Splunk Enterprise trial and query indexed evidence through the optional Splunk REST path.
+
+### Important Ports
+
+- Splunk Web UI: `http://Cyberrockng:8001`
+- Splunk REST API: `https://Cyberrockng:8090` for this local install (`mgmtHostPort=8090`)
+- Splunk HEC: `https://Cyberrockng:8088/services/collector`
+
+### Steps
+
+1. Open Splunk Web at `http://Cyberrockng:8001`.
+2. Create index `veritas`.
+3. Enable HTTP Event Collector.
+4. Create HEC token `veritas-hec`.
+5. Configure environment variables.
+6. Run `python ingest_to_splunk.py`.
+7. Run `python server.py`.
+8. Confirm `/api/health` shows `splunk_configured: true`.
+9. Search `index=veritas` in Splunk.
+
+The Developer License request may take 3-5 business days. The installed Splunk Enterprise trial can be used for local hackathon testing while waiting.
+
+The default demo runs in safe mock-mcp mode with deterministic Splunk-style evidence. Optional Splunk REST and HEC ingestion are included for real indexed evidence. The backend boundary is designed for Splunk MCP Server integration.
 
 Copy `.env.example` to `.env` for local use only. Never commit real Splunk tokens.
 
-Local demo-only Basic auth example:
+PowerShell for the local Splunk Enterprise trial:
 
 ```powershell
-$env:SPLUNK_HOST="https://localhost:8089"
-$env:SPLUNK_TOKEN="<local-demo-basic-auth-or-token>"
-$env:SPLUNK_AUTH_SCHEME="Basic"
+$env:SPLUNK_HOST="https://Cyberrockng:8090"
+$env:SPLUNK_TOKEN="<your-splunk-rest-token-or-session-key>"
+$env:SPLUNK_AUTH_SCHEME="Bearer"
 $env:SPLUNK_VERIFY_SSL="false"
+
+$env:SPLUNK_HEC_URL="https://Cyberrockng:8088/services/collector"
+$env:SPLUNK_HEC_TOKEN="<your-hec-token>"
+
 $env:VERITAS_SPLUNK_INDEX="veritas"
 $env:VERITAS_INCIDENT_ID="INC-001"
-python server.py
+$env:VERITAS_DISPLAY_INCIDENT_ID="INC-2025-0001"
 ```
 
-For bearer-token auth:
+If your REST credential is a Splunk session key instead of a bearer token, use:
 
 ```powershell
-$env:SPLUNK_TOKEN="<rest-api-token>"
-$env:SPLUNK_AUTH_SCHEME="Bearer"
+$env:SPLUNK_AUTH_SCHEME="Splunk"
 ```
 
-Ingest demo evidence:
+Then ingest demo evidence:
 
 ```powershell
-$env:SPLUNK_HEC_URL="https://localhost:8088/services/collector/event"
-$env:SPLUNK_HEC_TOKEN="<hec-token>"
-$env:SPLUNK_VERIFY_SSL="false"
 python ingest_to_splunk.py
 ```
 
-See `SPLUNK_REAL_DATA.md` for the full runbook. Any demo passwords or tokens in that runbook are local-only examples, not production credentials.
+Start Veritas:
+
+```powershell
+python server.py
+```
+
+See `SPLUNK_REAL_DATA.md` for the full runbook.
 
 ## Tests
 
@@ -233,6 +267,13 @@ Screenshot targets live in `assets/`:
 ![Splunk mode readiness](assets/splunk-mode.png)
 
 Screenshots must not contain real credentials, real patient data, real customer data, or live tokens.
+
+For Devpost Splunk proof, capture these after a real Splunk run:
+
+- `assets/splunk-indexed-events.png` - Splunk Search showing `index=veritas`
+- `assets/veritas-health-splunk-rest.png` - `/api/health` showing `splunk_configured: true`
+- `assets/veritas-dashboard-splunk-rest.png` - dashboard provider showing `splunk-rest`
+- `assets/veritas-audit-brief.png` - audit brief referencing Splunk evidence
 
 ## Future Vercel Deployment
 
