@@ -7,8 +7,11 @@ import ssl
 import subprocess
 import sys
 import time
+from types import SimpleNamespace
 from urllib import parse, request
 from urllib.parse import urlparse
+
+from fetch_external_feed import DEFAULT_MANIFEST, build_payloads, normalize_sources, read_json
 
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -30,6 +33,10 @@ VERITAS_INCIDENT_ID = os.environ.get("VERITAS_INCIDENT_ID", "INC-001")
 VERITAS_DISPLAY_INCIDENT_ID = os.environ.get("VERITAS_DISPLAY_INCIDENT_ID", "INC-2025-0001")
 VERITAS_SOURCETYPE = os.environ.get("VERITAS_SOURCETYPE", "veritas:incident")
 SPLUNK_MCP_SERVER = os.environ.get("SPLUNK_MCP_SERVER", os.path.join(ROOT, "splunk_mcp_server.py"))
+SPLUNK_HEC_URL = os.environ.get("SPLUNK_HEC_URL", "").rstrip("/")
+SPLUNK_HEC_TOKEN = os.environ.get("SPLUNK_HEC_TOKEN", "")
+SPLUNK_HEC_VERIFY_SSL = os.environ.get("SPLUNK_HEC_VERIFY_SSL", os.environ.get("SPLUNK_VERIFY_SSL", "true")).lower() not in {"0", "false", "no"}
+ONLINE_FEED_MANIFEST = os.environ.get("VERITAS_ONLINE_FEED_MANIFEST", DEFAULT_MANIFEST)
 
 
 ATTACK_EVENTS = [
@@ -457,6 +464,7 @@ LAB_STATE = {
     "actions": [],
     "approvals": {},
     "last_splunk_load": None,
+    "last_online_feed": None,
     "last_investigation": None,
     "custom_request": None,
 }
@@ -513,6 +521,7 @@ def clear_lab_state(stage="idle"):
     LAB_STATE["actions"] = []
     LAB_STATE["approvals"] = {}
     LAB_STATE["last_splunk_load"] = None
+    LAB_STATE["last_online_feed"] = None
     LAB_STATE["last_investigation"] = None
     LAB_STATE["custom_request"] = None
 
@@ -997,6 +1006,10 @@ def splunk_configured():
     return bool(SPLUNK_HOST and SPLUNK_TOKEN)
 
 
+def splunk_hec_configured():
+    return bool(SPLUNK_HEC_URL and SPLUNK_HEC_TOKEN)
+
+
 def splunk_mcp_enabled():
     return splunk_configured() and VERITAS_SPLUNK_ROUTE == "mcp"
 
@@ -1008,6 +1021,7 @@ def splunk_status():
         "provider": configured_provider,
         "search_provider": last_load.get("provider") or configured_provider,
         "configured": splunk_configured(),
+        "hec_configured": splunk_hec_configured(),
         "route": VERITAS_SPLUNK_ROUTE if splunk_configured() else "mock",
         "mcp_routed": splunk_mcp_enabled(),
         "host": SPLUNK_HOST or None,
@@ -1022,6 +1036,7 @@ def splunk_status():
         "earliest": SPLUNK_EARLIEST,
         "latest": SPLUNK_LATEST,
         "last_load": LAB_STATE.get("last_splunk_load"),
+        "last_online_feed": LAB_STATE.get("last_online_feed"),
     }
 
 
@@ -1029,6 +1044,36 @@ def splunk_context():
     if SPLUNK_VERIFY_SSL:
         return None
     return ssl._create_unverified_context()
+
+
+def splunk_hec_context():
+    if SPLUNK_HEC_VERIFY_SSL:
+        return None
+    return ssl._create_unverified_context()
+
+
+def normalize_hec_url(hec_url):
+    cleaned = hec_url.rstrip("/")
+    if cleaned.endswith("/services/collector"):
+        return f"{cleaned}/event"
+    return cleaned
+
+
+def send_hec_payload(payload):
+    if not splunk_hec_configured():
+        raise RuntimeError("Splunk HEC is not configured. Set SPLUNK_HEC_URL and SPLUNK_HEC_TOKEN, then restart the server.")
+
+    req = request.Request(
+        normalize_hec_url(SPLUNK_HEC_URL),
+        data=json.dumps(payload).encode("utf-8"),
+        method="POST",
+        headers={
+            "Authorization": f"Splunk {SPLUNK_HEC_TOKEN}",
+            "Content-Type": "application/json",
+        },
+    )
+    with request.urlopen(req, timeout=SPLUNK_TIMEOUT, context=splunk_hec_context()) as response:
+        return json.loads(response.read().decode("utf-8"))
 
 
 def splunk_auth_header():
@@ -1260,6 +1305,96 @@ def execute_detection_search(detection, query, evidence, index):
             "provider": "mock-mcp-fallback",
             "error": str(error),
         }
+
+
+def fetch_online_feed_events():
+    manifest = read_json(ONLINE_FEED_MANIFEST)
+    events, fetched = normalize_sources(manifest)
+    return manifest, events, fetched
+
+
+def ingest_online_feed(load_after=True):
+    if not splunk_hec_configured():
+        return {
+            "ok": False,
+            "error": "Splunk HEC is not configured. Set SPLUNK_HEC_URL and SPLUNK_HEC_TOKEN, then restart the server.",
+            "integration": splunk_status(),
+        }
+
+    manifest, events, fetched = fetch_online_feed_events()
+    args = SimpleNamespace(
+        incident_id=VERITAS_INCIDENT_ID,
+        display_incident_id=VERITAS_DISPLAY_INCIDENT_ID,
+        index=VERITAS_SPLUNK_INDEX,
+        sourcetype=VERITAS_SOURCETYPE,
+    )
+    payloads = build_payloads(events, args)
+    ingested = []
+    failures = []
+
+    for payload in payloads:
+        event_id = payload["event"]["event_id"]
+        try:
+            result = send_hec_payload(payload)
+        except Exception as error:
+            failures.append({"event_id": event_id, "error": str(error)})
+            continue
+        if result.get("code") == 0:
+            ingested.append(event_id)
+        else:
+            failures.append({"event_id": event_id, "error": json.dumps(result)})
+
+    LAB_STATE["last_online_feed"] = {
+        "provider": "splunk-attack-data-online",
+        "upstream": manifest.get("upstream", {}),
+        "sources_fetched": fetched,
+        "events_ready": [event["id"] for event in events],
+        "ingested": ingested,
+        "failures": failures,
+        "hec_configured": splunk_hec_configured(),
+        "index": VERITAS_SPLUNK_INDEX,
+        "sourcetype": VERITAS_SOURCETYPE,
+        "incident_id": VERITAS_INCIDENT_ID,
+    }
+
+    if failures:
+        return {
+            "ok": False,
+            "error": f"Online feed HEC ingestion failed for {len(failures)} of {len(payloads)} events.",
+            "feed": LAB_STATE["last_online_feed"],
+            "integration": splunk_status(),
+        }
+
+    LAB_STATE["stage"] = "online-feed-ingested"
+    LAB_STATE["events"] = []
+    LAB_STATE["detections"] = []
+    LAB_STATE["actions"] = []
+    LAB_STATE["approvals"] = {}
+    LAB_STATE["custom_request"] = None
+    LAB_STATE["last_investigation"] = None
+    LAB_STATE["last_splunk_load"] = None
+
+    if not load_after:
+        return {
+            "ok": True,
+            **state_payload(),
+            "feed": LAB_STATE["last_online_feed"],
+        }
+
+    # Give Splunk a short moment to make the HEC writes searchable.
+    time.sleep(float(os.environ.get("VERITAS_POST_HEC_WAIT", "1.5")))
+    load_result = load_splunk_evidence()
+    if load_result.get("ok"):
+        load_result["feed"] = LAB_STATE["last_online_feed"]
+        return load_result
+
+    return {
+        "ok": True,
+        **state_payload(),
+        "feed": LAB_STATE["last_online_feed"],
+        "search_warning": load_result.get("error"),
+        "search": load_result.get("search"),
+    }
 
 
 def load_splunk_evidence():
@@ -1661,6 +1796,7 @@ class VeritasHandler(SimpleHTTPRequestHandler):
                     "product": "Evidence Threshold Engine for Splunk",
                     "mode": splunk_status()["provider"],
                     "splunk_configured": splunk_configured(),
+                    "hec_configured": splunk_hec_configured(),
                     "mcp_routed": splunk_mcp_enabled(),
                     "version": APP_VERSION,
                 }
@@ -1740,6 +1876,11 @@ class VeritasHandler(SimpleHTTPRequestHandler):
 
         if path == "/api/sentinel/load-splunk":
             result = load_splunk_evidence()
+            self.send_json(result, status=200 if result.get("ok") else 400)
+            return
+
+        if path == "/api/sentinel/ingest-online-feed":
+            result = ingest_online_feed(load_after=payload.get("load_after", True))
             self.send_json(result, status=200 if result.get("ok") else 400)
             return
 

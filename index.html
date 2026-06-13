@@ -55,8 +55,8 @@
                 <div class="incident-meta">
                   <span>Incident ID: <b id="incidentIdLabel">INC-2025-0001</b></span>
                   <span>Status: <b id="stageLabel">idle</b></span>
-                  <span id="evidenceSourceLabel">Evidence source: mock-mcp</span>
-                  <span id="modeLabel" class="mode-badge mode-mock">Mode: Safe deterministic demo</span>
+                  <span id="evidenceSourceLabel">Evidence source: waiting for live Splunk evidence</span>
+                  <span id="modeLabel" class="mode-badge mode-mock">Mode: Real feed not loaded</span>
                   <span>Owner: Tier 3 Response Lead</span>
                   <span>Provider: <b id="providerLabel">mock-mcp</b></span>
                 </div>
@@ -74,7 +74,7 @@
             <div class="action-group primary-action-group">
               <span>Primary Demo</span>
               <div class="button-row">
-                <button id="judgeModeBtn" class="primary-btn judge-btn" type="button">Run Live Judge Demo</button>
+                <button id="judgeModeBtn" class="primary-btn judge-btn" type="button">Run Real Evidence Test</button>
               </div>
             </div>
             <p class="judge-explainer">Most SOC tools ask, "Is this alert real?" Veritas asks, "Are we justified to act?"</p>
@@ -218,9 +218,8 @@
               <div class="action-group">
                 <span>Investigation</span>
                 <div class="button-row">
-                  <button id="startAttackBtn" class="secondary-btn" type="button">Load Demo Evidence</button>
+                  <button id="onlineFeedBtn" class="primary-btn" type="button">Fetch Online Feed</button>
                   <button id="loadSplunkBtn" class="secondary-btn" type="button">Pull Indexed Evidence</button>
-                  <button id="nextEventBtn" class="secondary-btn" type="button">Add Next Event</button>
                   <button id="investigateBtn" class="secondary-btn" type="button">Run Tier 3 Evidence Review</button>
                 </div>
               </div>

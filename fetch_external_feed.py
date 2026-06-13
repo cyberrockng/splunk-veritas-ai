@@ -6,11 +6,12 @@ import time
 from urllib import request
 from urllib.parse import urlparse
 
-from server import VERITAS_INCIDENT_ID, VERITAS_SOURCETYPE, VERITAS_SPLUNK_INDEX
-
 ROOT = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_MANIFEST = os.path.join(ROOT, "external_feed_sources.json")
 DEFAULT_OUTPUT = os.path.join(ROOT, "external_veritas_events.json")
+DEFAULT_SPLUNK_INDEX = os.environ.get("VERITAS_SPLUNK_INDEX", "veritas")
+DEFAULT_INCIDENT_ID = os.environ.get("VERITAS_INCIDENT_ID", "INC-001")
+DEFAULT_SOURCETYPE = os.environ.get("VERITAS_SOURCETYPE", "veritas:incident")
 GIT_LFS_BATCH_URL = "https://github.com/splunk/attack_data.git/info/lfs/objects/batch"
 MAX_DOWNLOAD_BYTES = int(os.environ.get("VERITAS_FEED_MAX_BYTES", "1048576"))
 MAX_JSON_LINES = int(os.environ.get("VERITAS_FEED_MAX_JSON_LINES", "2000"))
@@ -294,10 +295,10 @@ def main():
     parser = argparse.ArgumentParser(description="Fetch online attack-data sources and convert them to Veritas evidence events.")
     parser.add_argument("--manifest", default=DEFAULT_MANIFEST)
     parser.add_argument("--output", default=DEFAULT_OUTPUT)
-    parser.add_argument("--incident-id", default=os.environ.get("VERITAS_INCIDENT_ID", VERITAS_INCIDENT_ID))
+    parser.add_argument("--incident-id", default=DEFAULT_INCIDENT_ID)
     parser.add_argument("--display-incident-id", default=os.environ.get("VERITAS_DISPLAY_INCIDENT_ID", "INC-2025-0001"))
-    parser.add_argument("--index", default=os.environ.get("VERITAS_SPLUNK_INDEX", VERITAS_SPLUNK_INDEX))
-    parser.add_argument("--sourcetype", default=os.environ.get("VERITAS_SOURCETYPE", VERITAS_SOURCETYPE))
+    parser.add_argument("--index", default=DEFAULT_SPLUNK_INDEX)
+    parser.add_argument("--sourcetype", default=DEFAULT_SOURCETYPE)
     parser.add_argument("--hec-payload", action="store_true", help="Write Splunk HEC payloads instead of plain Veritas events.")
     parser.add_argument("--stdout", action="store_true", help="Print generated data instead of writing a file.")
     args = parser.parse_args()

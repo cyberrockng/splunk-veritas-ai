@@ -32,6 +32,7 @@ const els = {
   eventStream: document.querySelector("#eventStream"),
   runConsole: document.querySelector("#runConsole"),
   judgeModeBtn: document.querySelector("#judgeModeBtn"),
+  onlineFeedBtn: document.querySelector("#onlineFeedBtn"),
   loadSplunkBtn: document.querySelector("#loadSplunkBtn"),
   startAttackBtn: document.querySelector("#startAttackBtn"),
   nextEventBtn: document.querySelector("#nextEventBtn"),
@@ -146,9 +147,9 @@ function providerInfo(integration = {}) {
   }
 
   return {
-    provider: "mock-mcp",
-    source: "Evidence source: mock-mcp",
-    mode: "Mode: Safe deterministic demo",
+    provider: state.events?.length ? "local-dev" : "not-loaded",
+    source: state.events?.length ? "Evidence source: local developer fixture" : "Evidence source: waiting for live Splunk evidence",
+    mode: state.events?.length ? "Mode: Local developer fallback" : "Mode: Real feed not loaded",
     tone: "mock"
   };
 }
@@ -368,7 +369,7 @@ function renderTier3Controls() {
     els.tier3Summary.innerHTML = `
       <strong>${escapeHtml(state.incident?.summary || "Tier 3 decision governance")}</strong>
       <span>Policy: ${escapeHtml(state.policy?.label || "Standard")} - ${escapeHtml(state.policy?.description || "Balanced evidence thresholds.")}</span>
-      <span>Simulation: ${topDecision ? `${escapeHtml(topDecision.title)} is ${escapeHtml(topDecision.status)} at ${topDecision.readiness}% readiness` : "Load evidence to simulate readiness."} ${blocked ? `${blocked} decision(s) still blocked or not ready.` : ""}</span>
+      <span>Evidence posture: ${topDecision ? `${escapeHtml(topDecision.title)} is ${escapeHtml(topDecision.status)} at ${topDecision.readiness}% readiness` : "Fetch online evidence and pull indexed Splunk events to score readiness."} ${blocked ? `${blocked} decision(s) still blocked or not ready.` : ""}</span>
     `;
   }
 }
@@ -445,7 +446,9 @@ function renderJudgeStory() {
 
 function renderDemoSteps() {
   const evidenceProvider = state.integration?.search_provider || state.integration?.provider;
+  const feed = state.integration?.last_online_feed;
   const steps = [
+    { label: "Fetch online feed", done: Boolean(feed?.ingested?.length) },
     { label: "Pull indexed evidence", done: ["splunk-rest", "splunk-mcp"].includes(evidenceProvider) },
     { label: "Check thresholds", done: hasCheckedThresholds() },
     { label: "Approve safe actions", done: approvedApprovalCount() >= 3 },
@@ -466,7 +469,7 @@ function renderDemoSteps() {
 
 function renderDecisionMatrix() {
   if (!state.decisions.length) {
-    els.decisionMatrix.innerHTML = `<div class="empty-panel">Run the live judge demo to populate proposed response decisions.</div>`;
+    els.decisionMatrix.innerHTML = `<div class="empty-panel">Fetch the online evidence feed, ingest it into Splunk, then run the evidence review.</div>`;
     return;
   }
 
@@ -854,6 +857,32 @@ async function loadFromSplunk() {
   }
 }
 
+async function ingestOnlineFeed() {
+  const hasHec = Boolean(state.integration?.hec_configured);
+  const hasSearch = Boolean(state.integration?.configured);
+  logEntry(hasHec && hasSearch
+    ? "Fetching the online attack-data feed and ingesting it into Splunk HEC."
+    : "Online feed requires Splunk REST and HEC configuration before it can run.", hasHec && hasSearch ? "info" : "warn");
+  try {
+    const payload = await requestJson("/ingest-online-feed", {
+      method: "POST",
+      body: JSON.stringify({ load_after: true })
+    });
+    setState(payload);
+    const feed = payload.feed || payload.integration?.last_online_feed;
+    if (feed?.ingested?.length) {
+      logEntry(`Online feed ingested into Splunk: ${feed.ingested.join(", ")}.`);
+    }
+    if (payload.search_warning) {
+      logEntry(`Ingest succeeded, but Splunk search needs attention: ${payload.search_warning}`, "warn");
+    }
+    return payload;
+  } catch (error) {
+    logEntry(`Online feed ingestion failed: ${error.message}`, "error");
+    throw error;
+  }
+}
+
 async function startAttack() {
   logEntry("Starting admin takeover incident stream.");
   const payload = await requestJson("/start", { method: "POST", body: "{}" });
@@ -1047,15 +1076,7 @@ async function runJudgeMode() {
     await resetLab();
     await sleep(400);
 
-    try {
-      await loadFromSplunk();
-    } catch {
-      await startAttack();
-      for (let index = 0; index < 5; index += 1) {
-        await sleep(500);
-        await streamNextEvent();
-      }
-    }
+    await ingestOnlineFeed();
 
     await sleep(500);
     await checkThresholds();
@@ -1089,13 +1110,13 @@ function bindEvents() {
     els.themeToggle.textContent = isDark ? "UI-N: Night Executive" : "UI-H: Light Executive";
     requestAnimationFrame(fitExecutiveCanvas);
   });
-  els.resetLabBtn.addEventListener("click", () => resetLab().catch((error) => logEntry(error.message, "error")));
-  els.customRequestBtn.addEventListener("click", () => {
+  els.resetLabBtn?.addEventListener("click", () => resetLab().catch((error) => logEntry(error.message, "error")));
+  els.customRequestBtn?.addEventListener("click", () => {
     els.customResult.textContent = "Choose a test scenario or enter your own evidence.";
     els.customDialog.showModal();
   });
-  els.closeCustomBtn.addEventListener("click", () => els.customDialog.close());
-  els.customDialog.addEventListener("click", (event) => {
+  els.closeCustomBtn?.addEventListener("click", () => els.customDialog.close());
+  els.customDialog?.addEventListener("click", (event) => {
     const scenario = event.target.closest("[data-scenario]");
     if (!scenario) return;
     els.customIncidentTitle.value = scenario.dataset.title;
@@ -1103,18 +1124,19 @@ function bindEvents() {
     els.customAction.value = scenario.dataset.action;
     els.customResult.textContent = "Scenario loaded. Click Run request to execute it.";
   });
-  els.customRequestForm.addEventListener("submit", runCustomRequest);
-  els.loadSplunkBtn.addEventListener("click", () => loadFromSplunk().catch(() => {}));
-  els.startAttackBtn.addEventListener("click", () => startAttack().catch((error) => logEntry(error.message, "error")));
-  els.nextEventBtn.addEventListener("click", () => streamNextEvent().catch((error) => logEntry(error.message, "error")));
-  els.investigateBtn.addEventListener("click", () => checkThresholds().catch((error) => logEntry(error.message, "error")));
-  els.executeSafeBtn.addEventListener("click", () => executeApprovedContainment().catch((error) => logEntry(error.message, "error")));
-  els.exportBriefBtn.addEventListener("click", () => exportBrief().catch((error) => logEntry(error.message, "error")));
-  els.judgeModeBtn.addEventListener("click", runJudgeMode);
+  els.customRequestForm?.addEventListener("submit", runCustomRequest);
+  els.onlineFeedBtn?.addEventListener("click", () => ingestOnlineFeed().catch(() => {}));
+  els.loadSplunkBtn?.addEventListener("click", () => loadFromSplunk().catch(() => {}));
+  els.startAttackBtn?.addEventListener("click", () => startAttack().catch((error) => logEntry(error.message, "error")));
+  els.nextEventBtn?.addEventListener("click", () => streamNextEvent().catch((error) => logEntry(error.message, "error")));
+  els.investigateBtn?.addEventListener("click", () => checkThresholds().catch((error) => logEntry(error.message, "error")));
+  els.executeSafeBtn?.addEventListener("click", () => executeApprovedContainment().catch((error) => logEntry(error.message, "error")));
+  els.exportBriefBtn?.addEventListener("click", () => exportBrief().catch((error) => logEntry(error.message, "error")));
+  els.judgeModeBtn?.addEventListener("click", runJudgeMode);
   els.loadIncidentProfileBtn?.addEventListener("click", () => loadIncidentProfile().catch((error) => logEntry(error.message, "error")));
   els.applyPolicyBtn?.addEventListener("click", () => applyPolicyProfile().catch((error) => logEntry(error.message, "error")));
 
-  els.approvalGate.addEventListener("click", (event) => {
+  els.approvalGate?.addEventListener("click", (event) => {
     const approveId = event.target.closest("[data-approve]")?.dataset.approve;
     const rejectId = event.target.closest("[data-reject]")?.dataset.reject;
     if (approveId) setApproval(approveId, "approved").catch((error) => logEntry(error.message, "error"));
@@ -1133,8 +1155,8 @@ function bindEvents() {
     if (drilldownId) showEvidenceDrilldown(drilldownId);
   });
 
-  els.closeBriefBtn.addEventListener("click", () => els.briefDialog.close());
-  els.closeEvidenceBtn.addEventListener("click", () => els.evidenceDialog.close());
+  els.closeBriefBtn?.addEventListener("click", () => els.briefDialog.close());
+  els.closeEvidenceBtn?.addEventListener("click", () => els.evidenceDialog.close());
 }
 
 bindEvents();

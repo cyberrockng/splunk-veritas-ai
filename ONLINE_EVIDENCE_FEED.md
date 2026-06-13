@@ -1,6 +1,6 @@
 # Online Evidence Feed
 
-Veritas can use an online evidence feed before the data is indexed into Splunk. This stage prepares the feed only; it does not change the dashboard and does not disable the current demo fallback yet.
+Veritas can use an online evidence feed before the data is indexed into Splunk. The dashboard now exposes this path as the primary product-facing evidence workflow.
 
 ## Source
 
@@ -43,11 +43,30 @@ Write normalized events to a local file:
 python fetch_external_feed.py --output external_veritas_events.json
 ```
 
-## Next Stage
+## Dashboard Workflow
 
-After approval, the next stage is to ingest this feed into Splunk through HEC, verify the events in `index=veritas`, then change the dashboard so the primary path shows either:
+Run the local server with Splunk REST and HEC environment variables configured, then use the dashboard controls:
 
-- no live evidence found, or
-- real Splunk-indexed evidence returned through MCP.
+1. Open `http://127.0.0.1:5173`.
+2. Open **Advanced controls**.
+3. Click **Fetch Online Feed**.
+4. Veritas fetches the online attack-data sources, normalizes them, writes them through Splunk HEC, waits briefly, and pulls indexed evidence back from Splunk.
+5. Click **Run Tier 3 Evidence Review** to evaluate thresholds from the indexed evidence.
 
-The dashboard should not show simulated results in the primary judging path after that stage is complete.
+The dashboard does not show simulated results in this primary judging path. If HEC or Splunk REST/MCP is not configured, the feed action fails with a clear setup error and leaves evidence count at zero.
+
+## API Endpoint
+
+```text
+POST /api/sentinel/ingest-online-feed
+```
+
+Request body:
+
+```json
+{
+  "load_after": true
+}
+```
+
+When `load_after` is true, the backend ingests through HEC and then calls the normal indexed-evidence search path. Splunk tokens remain server-side.

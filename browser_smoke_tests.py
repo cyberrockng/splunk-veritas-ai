@@ -63,6 +63,7 @@ def verify_browser_shell():
     for expected in (
         "VERITAS AI",
         'id="judgeModeBtn"',
+        'id="onlineFeedBtn"',
         'id="loadSplunkBtn"',
         'id="executeSafeBtn"',
         'id="incidentSelector"',
@@ -70,7 +71,8 @@ def verify_browser_shell():
         'id="customDialog"',
         'id="briefDialog"',
         'id="evidenceDialog"',
-        "Run Live Judge Demo",
+        "Run Real Evidence Test",
+        "Fetch Online Feed",
         "Pull Indexed Evidence",
         "Execute Approved Containment",
         "detail.html?view=matrix",
@@ -102,6 +104,11 @@ def run_demo_flow():
     assert_true(health["ok"], "health should be ok")
     assert_true(health["mode"] in {"mock-mcp", "splunk-rest", "splunk-mcp"}, "health mode should be known")
 
+    request_json(
+        "/api/sentinel/select-incident",
+        method="POST",
+        payload={"incident_id": "admin-takeover", "load": False},
+    )
     state = request_json("/api/sentinel/reset", method="POST", payload={})
     assert_equal(state["stage"], "idle", "reset stage")
 

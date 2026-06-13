@@ -171,12 +171,19 @@ def main():
     config = request_json("/api/sentinel/config")
     assert_true(config["index"], "config should include Veritas Splunk index")
     assert_true(config["incident_id"], "config should include incident id")
+    assert_true(isinstance(config["hec_configured"], bool), "config should include HEC configured flag")
     assert_true("token" not in json.dumps(config).lower(), "config must not expose tokens")
     if not config["configured"]:
         status, body = request_json_error("/api/sentinel/load-splunk", method="POST", payload={})
         assert_equal(status, 400, "load-splunk without config status")
         assert_true("Splunk is not configured" in body["error"], "load-splunk config error")
-    elif os.environ.get("VERITAS_SMOKE_SPLUNK") == "1":
+    if not config["hec_configured"]:
+        status, body = request_json_error("/api/sentinel/ingest-online-feed", method="POST", payload={})
+        assert_equal(status, 400, "online feed without HEC status")
+        assert_true("Splunk HEC is not configured" in body["error"], "online feed HEC config error")
+    elif config["configured"] and os.environ.get("VERITAS_SMOKE_SPLUNK") == "1":
+        online_feed = request_json("/api/sentinel/ingest-online-feed", method="POST", payload={"load_after": False})
+        assert_true(online_feed["feed"]["ingested"], "online feed should ingest events")
         splunk_load = request_json("/api/sentinel/load-splunk", method="POST", payload={})
         assert_true(splunk_load["integration"]["provider"] in {"splunk-rest", "splunk-mcp"}, "Splunk load provider")
         assert_true("search" in splunk_load, "Splunk load should include search proof")

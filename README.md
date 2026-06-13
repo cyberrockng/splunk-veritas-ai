@@ -179,7 +179,7 @@ Dashboard indicators open functional pages:
 
 ## Real Splunk Integration
 
-The default Veritas demo runs in safe `mock-mcp` mode. For stronger judging proof, Veritas can ingest the same admin account takeover evidence into a local Splunk Enterprise trial and query indexed evidence through the dashboard-to-MCP Splunk path.
+The product-facing Veritas workflow now starts from a real online evidence feed. Veritas fetches public Splunk attack-data sources, normalizes them server-side, writes them through Splunk HEC, and queries indexed evidence through the dashboard-to-MCP Splunk path.
 
 Local Splunk Enterprise Web UI:
 
@@ -205,10 +205,10 @@ Developer License status: active for the local hackathon Splunk instance. Confir
 4. Create HEC token `veritas-hec`.
 5. Confirm the token can write to index `veritas`.
 6. Configure environment variables.
-7. Run `python ingest_to_splunk.py`.
-8. Run `python server.py`.
-9. Confirm `/api/health` shows `splunk_configured: true`.
-10. Search `index=veritas` in Splunk.
+7. Run `python server.py`.
+8. In the dashboard, open **Advanced controls** and click **Fetch Online Feed**.
+9. Confirm the events are searchable in `index=veritas`.
+10. Click **Run Tier 3 Evidence Review**.
 
 Copy `.env.example` to `.env` for local use only. Never commit real Splunk tokens.
 
@@ -235,10 +235,10 @@ If your REST credential is a Splunk session key instead of a bearer token, use:
 $env:SPLUNK_AUTH_SCHEME="Splunk"
 ```
 
-Then ingest demo evidence:
+Optional CLI feed verification:
 
 ```powershell
-python ingest_to_splunk.py
+python fetch_external_feed.py --stdout
 ```
 
 Start Veritas:
@@ -248,6 +248,8 @@ python server.py
 ```
 
 See `SPLUNK_REAL_DATA.md` for the full runbook.
+
+See `ONLINE_EVIDENCE_FEED.md` for the online feed workflow.
 
 ## True Splunk MCP Server
 
