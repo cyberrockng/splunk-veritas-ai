@@ -29,7 +29,7 @@ jobs:
           python -m pip install -r requirements.txt
 
       - name: Python compile
-        run: python -m py_compile server.py smoke_tests.py browser_smoke_tests.py ingest_to_splunk.py splunk_mcp_server.py mcp_smoke_tests.py dashboard_mcp_route_tests.py
+        run: python -m py_compile server.py smoke_tests.py browser_smoke_tests.py ingest_to_splunk.py splunk_mcp_server.py mcp_smoke_tests.py dashboard_mcp_route_tests.py deployment_security_tests.py
 
       - name: JavaScript syntax check
         run: |
@@ -80,6 +80,7 @@ jobs:
 
           python smoke_tests.py
           python browser_smoke_tests.py
+          python deployment_security_tests.py
 
       - name: MCP protocol smoke tests
         env:
@@ -91,3 +92,56 @@ jobs:
 
       - name: Dashboard MCP route tests
         run: python dashboard_mcp_route_tests.py
+
+      - name: Auth gate deployment smoke tests
+        env:
+          PORT: "5174"
+          VERITAS_BASE_URL: http://127.0.0.1:5174
+          VERITAS_REQUEST_TIMEOUT: "30"
+          VERITAS_AUTH_TOKEN: ci-staging-token
+          VERITAS_EXPECT_AUTH: "true"
+          VERITAS_ALLOWED_ORIGIN: http://127.0.0.1:5174
+          VERITAS_ALLOWED_ORIGINS: http://127.0.0.1:5174,http://localhost:5174
+          SPLUNK_HOST: ""
+          SPLUNK_TOKEN: ""
+        run: |
+          set -euo pipefail
+          python server.py > auth-server.log 2>&1 &
+          SERVER_PID=$!
+
+          cleanup() {
+            status=$?
+            kill "$SERVER_PID" 2>/dev/null || true
+            if [ "$status" -ne 0 ]; then
+              echo "::group::auth-server.log"
+              cat auth-server.log || true
+              echo "::endgroup::"
+            fi
+            exit "$status"
+          }
+          trap cleanup EXIT
+
+          python - <<'PY'
+          import json
+          import time
+          from urllib import request
+
+          token = "ci-staging-token"
+          deadline = time.time() + 20
+          while time.time() < deadline:
+              try:
+                  req = request.Request(
+                      "http://127.0.0.1:5174/api/health",
+                      headers={"X-Veritas-Auth": token},
+                  )
+                  with request.urlopen(req, timeout=2) as response:
+                      payload = json.loads(response.read().decode("utf-8"))
+                  if payload.get("ok"):
+                      raise SystemExit(0)
+              except Exception:
+                  time.sleep(0.5)
+
+          raise SystemExit("Veritas auth server did not become healthy")
+          PY
+
+          python deployment_security_tests.py

@@ -59,6 +59,16 @@ SPLUNK_HEC_URL = os.environ.get("SPLUNK_HEC_URL", "").rstrip("/")
 SPLUNK_HEC_TOKEN = os.environ.get("SPLUNK_HEC_TOKEN", "")
 SPLUNK_HEC_VERIFY_SSL = os.environ.get("SPLUNK_HEC_VERIFY_SSL", os.environ.get("SPLUNK_VERIFY_SSL", "true")).lower() not in {"0", "false", "no"}
 ONLINE_FEED_MANIFEST = os.environ.get("VERITAS_ONLINE_FEED_MANIFEST", DEFAULT_MANIFEST)
+VERITAS_AUTH_TOKEN = os.environ.get("VERITAS_AUTH_TOKEN", "")
+VERITAS_AUTH_USER = os.environ.get("VERITAS_AUTH_USER", "veritas")
+VERITAS_ALLOWED_ORIGINS = {
+    origin.strip()
+    for origin in os.environ.get(
+        "VERITAS_ALLOWED_ORIGINS",
+        f"http://127.0.0.1:{PORT},http://localhost:{PORT}",
+    ).split(",")
+    if origin.strip()
+}
 
 
 ATTACK_EVENTS = [
@@ -1875,10 +1885,63 @@ class VeritasHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=ROOT, **kwargs)
 
+    def authorized(self):
+        if not VERITAS_AUTH_TOKEN:
+            return True
+
+        auth_header = self.headers.get("Authorization", "")
+        if auth_header == f"Bearer {VERITAS_AUTH_TOKEN}":
+            return True
+
+        if self.headers.get("X-Veritas-Auth") == VERITAS_AUTH_TOKEN:
+            return True
+
+        if auth_header.startswith("Basic "):
+            try:
+                encoded = auth_header.split(" ", 1)[1]
+                decoded = base64.b64decode(encoded).decode("utf-8")
+                username, _, password = decoded.partition(":")
+                return username == VERITAS_AUTH_USER and password == VERITAS_AUTH_TOKEN
+            except Exception:
+                return False
+
+        return False
+
+    def require_authorized(self):
+        if self.authorized():
+            return True
+        self.send_response(401)
+        self.send_header("WWW-Authenticate", 'Basic realm="Veritas AI"')
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps({"error": "Authentication required"}).encode("utf-8"))
+        return False
+
+    def static_path_allowed(self, path):
+        decoded = parse.unquote(path).replace("\\", "/")
+        parts = [part for part in decoded.split("/") if part]
+        if any(part == ".." for part in parts):
+            return False
+
+        if decoded in {"/", "/index.html", "/detail.html", "/app.js", "/detail.js", "/styles.css"}:
+            return True
+
+        if decoded.startswith("/assets/"):
+            _, extension = os.path.splitext(decoded)
+            return extension.lower() in {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".ico"}
+
+        return False
+
     def end_headers(self):
-        self.send_header("Access-Control-Allow-Origin", "*")
+        origin = self.headers.get("Origin")
+        if origin in VERITAS_ALLOWED_ORIGINS:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'")
         super().end_headers()
 
     def send_json(self, payload, status=200):
@@ -1897,10 +1960,14 @@ class VeritasHandler(SimpleHTTPRequestHandler):
         return json.loads(self.rfile.read(length).decode("utf-8"))
 
     def do_OPTIONS(self):
+        if not self.require_authorized():
+            return
         self.send_response(204)
         self.end_headers()
 
     def do_GET(self):
+        if not self.require_authorized():
+            return
         path = urlparse(self.path).path
 
         if path == "/api/health":
@@ -1949,9 +2016,15 @@ class VeritasHandler(SimpleHTTPRequestHandler):
             self.send_json({"history": read_case_history()})
             return
 
+        if not self.static_path_allowed(path):
+            self.send_error(404, "Not found")
+            return
+
         super().do_GET()
 
     def do_POST(self):
+        if not self.require_authorized():
+            return
         path = urlparse(self.path).path
 
         try:

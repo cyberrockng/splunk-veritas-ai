@@ -24,7 +24,7 @@ Show:
 
 ## 0:40 - 1:05: Start Incident
 
-Click **Run Live Judge Demo**.
+Click **Feed Evidence & Run Veritas**, then load the example evidence. If Splunk HEC and search are configured, use **Run Online Evidence Flow** to show online feed ingestion and indexed evidence scoring.
 
 Say:
 

@@ -86,8 +86,8 @@ The app uses Splunk-style evidence, HEC ingestion, REST search, and a separate s
 - `splunk.hec_ingest_event`
 - `veritas.ingest_demo_evidence`
 
-The dashboard judging flow starts with **Fetch Online Feed**. With Splunk configured, the backend fetches allowlisted public attack-data sources, writes normalized evidence through Splunk HEC, and routes indexed evidence searches through the real stdio MCP server by default. The precise claim is dashboard-to-local-API-to-MCP-to-Splunk; the browser does not directly launch stdio MCP.
+The dashboard judging flow starts with **Feed Evidence & Run Veritas** for customer-supplied evidence, or **Run Online Evidence Flow** when Splunk HEC and search are configured. With Splunk configured, the backend fetches allowlisted public attack-data sources, writes normalized evidence through Splunk HEC, and routes indexed evidence searches through the real stdio MCP server by default. The precise claim is dashboard-to-local-API-to-MCP-to-Splunk; the browser does not directly launch stdio MCP.
 
-For presentation, click **Run Real Evidence Test** to execute the online feed -> Splunk HEC -> indexed evidence -> decision -> approval -> containment record -> audit flow.
+For presentation, use **Run Online Evidence Flow** to execute the online feed -> Splunk HEC -> indexed evidence -> decision -> approval -> containment record -> audit flow. When Splunk is not configured, use **Evidence Intake** to show the customer-provided evidence workflow without claiming indexed Splunk proof.
 
 Judges can also click any major indicator or navigation item to open a functional detail page, then feed their own incident facts into the custom request runner. Veritas recalculates readiness, blocks unsafe decisions, and simulates only approved containment.

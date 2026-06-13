@@ -6,7 +6,7 @@ Branch: `codex/audit-perfection-pass`
 
 ## Local Repository
 
-- Git branch is synced with `origin/codex/audit-perfection-pass`.
+- Git branch should be pushed to `origin/codex/audit-perfection-pass` after the final submission-prep changes are committed.
 - `walimat-designs/` is excluded from this project worktree.
 - No committed Splunk token or HEC token patterns were found.
 
@@ -15,7 +15,7 @@ Branch: `codex/audit-perfection-pass`
 Passed:
 
 - `python -m pip install -r requirements.txt`
-- `python -m py_compile server.py smoke_tests.py browser_smoke_tests.py ingest_to_splunk.py splunk_mcp_server.py mcp_smoke_tests.py dashboard_mcp_route_tests.py`
+- `python -m py_compile server.py smoke_tests.py browser_smoke_tests.py ingest_to_splunk.py splunk_mcp_server.py mcp_smoke_tests.py dashboard_mcp_route_tests.py deployment_security_tests.py`
 - `node --check app.js`
 - `node --check detail.js`
 - `python -m json.tool sample_splunk_events.json`
@@ -30,6 +30,7 @@ Passed against a fresh temporary local server on port `5174`:
 - `python browser_smoke_tests.py`
 - `python mcp_smoke_tests.py`
 - `python dashboard_mcp_route_tests.py`
+- `python deployment_security_tests.py`
 
 The temporary test server was run with empty `SPLUNK_HOST` and `SPLUNK_TOKEN` so CI behavior matches safe deterministic `mock-mcp` mode.
 

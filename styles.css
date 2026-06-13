@@ -371,7 +371,7 @@ h3 {
 
 .top-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 390px);
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 260px) minmax(300px, 390px);
   gap: 8px;
 }
 
@@ -1197,12 +1197,8 @@ h3 {
   display: grid;
 }
 
-.support-grid .risk-panel {
-  grid-column: span 4;
-}
-
 .console-panel {
-  grid-column: span 8;
+  grid-column: span 12;
 }
 
 .data-table {
@@ -1515,6 +1511,13 @@ h3 {
 
 .risk-panel {
   min-height: 126px;
+}
+
+.top-risk-panel {
+  display: grid;
+  align-content: center;
+  min-height: 126px;
+  padding: 14px 16px;
 }
 
 .risk-gauge {
@@ -2754,16 +2757,24 @@ dialog::backdrop {
     order: 1;
   }
 
-  .control-strip {
+  .top-risk-panel {
     order: 2;
   }
 
-  .readiness-strip {
+  .control-strip {
     order: 3;
   }
 
-  .judge-story-panel {
+  .evidence-intake-panel {
     order: 4;
+  }
+
+  .readiness-strip {
+    order: 5;
+  }
+
+  .judge-story-panel {
+    order: 6;
   }
 
   .top-grid,

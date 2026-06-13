@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Veritas AI</title>
-    <link rel="stylesheet" href="styles.css?v=20260612-fixed-sidebar" />
+    <link rel="stylesheet" href="styles.css?v=20260613-risk-top" />
   </head>
   <body>
     <div class="app-shell">
@@ -62,6 +62,28 @@
                 </div>
               </div>
             </section>
+
+            <article class="panel risk-panel top-risk-panel" data-detail="risk">
+              <div class="panel-heading compact">
+                <div>
+                  <p class="section-label">Residual Risk Score</p>
+                </div>
+              </div>
+              <div class="risk-gauge">
+                <div class="gauge-arc"></div>
+                <div class="gauge-value">
+                  <strong id="riskScore">12</strong>
+                  <span>/100</span>
+                </div>
+              </div>
+              <p id="riskSummary">Load the incident evidence to evaluate response decisions.</p>
+              <div class="metric-row metric-hidden" aria-hidden="true">
+                <span>Events <strong id="eventCount">0</strong></span>
+                <span>Ready <strong id="readyCount">0</strong></span>
+                <span>Blocked <strong id="blockedCount">0</strong></span>
+                <span>Coverage <strong id="telemetryScore">0%</strong></span>
+              </div>
+            </article>
 
             <article class="panel judge-story-panel" data-detail="decisions">
               <p class="section-label">Winning Demo Moment</p>
@@ -301,28 +323,6 @@
         </section>
 
         <section class="support-grid">
-          <article class="panel risk-panel" data-detail="risk">
-            <div class="panel-heading compact">
-              <div>
-                <p class="section-label">Residual Risk Score</p>
-              </div>
-            </div>
-            <div class="risk-gauge">
-              <div class="gauge-arc"></div>
-              <div class="gauge-value">
-                <strong id="riskScore">12</strong>
-                <span>/100</span>
-              </div>
-            </div>
-            <p id="riskSummary">Load the incident evidence to evaluate response decisions.</p>
-            <div class="metric-row metric-hidden" aria-hidden="true">
-              <span>Events <strong id="eventCount">0</strong></span>
-              <span>Ready <strong id="readyCount">0</strong></span>
-              <span>Blocked <strong id="blockedCount">0</strong></span>
-              <span>Coverage <strong id="telemetryScore">0%</strong></span>
-            </div>
-          </article>
-
           <article class="panel console-panel" data-detail="audit">
             <div class="panel-heading">
               <span class="panel-number">10</span>

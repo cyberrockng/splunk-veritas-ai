@@ -21,6 +21,8 @@ http://127.0.0.1:5173
 | Mock-mode demo | Implemented and tested. |
 | Optional Splunk REST/HEC demo | Implemented and tested locally. |
 | GitHub Actions CI | Implemented for mock-mode smoke tests. |
+| Deployment security tests | Implemented for static-file hardening, CORS, headers, and optional auth. |
+| Private staging auth gate | Implemented with `VERITAS_AUTH_TOKEN`. |
 | Public production deployment | Not implemented. |
 | Vercel production deployment | Not implemented. |
 
@@ -57,6 +59,32 @@ Before any public deployment claim:
 1. Choose the hosting path.
 2. Implement API hosting for that path.
 3. Configure environment variables without committing secrets.
-4. Add production authentication and authorization.
-5. Run smoke tests against the deployed URL.
-6. Confirm screenshots and README point to the correct deployed mode.
+4. Set `VERITAS_AUTH_TOKEN` and `VERITAS_ALLOWED_ORIGINS` for private staging.
+5. Add production-grade authentication and authorization before public customer use.
+6. Run smoke and deployment security tests against the deployed URL.
+7. Confirm screenshots and README point to the correct deployed mode.
+
+## Private Staging Settings
+
+Use these environment variables before exposing Veritas outside a trusted laptop:
+
+```text
+VERITAS_AUTH_USER=veritas
+VERITAS_AUTH_TOKEN=<long-random-staging-password-or-token>
+VERITAS_ALLOWED_ORIGINS=https://your-staging-domain.example
+SPLUNK_HOST=<staging Splunk management URL>
+SPLUNK_TOKEN=<secret-managed Splunk token>
+SPLUNK_HEC_URL=<staging Splunk HEC URL>
+SPLUNK_HEC_TOKEN=<secret-managed HEC token>
+```
+
+With `VERITAS_AUTH_TOKEN` set, the server accepts Basic Auth, `Authorization: Bearer <token>`, or `X-Veritas-Auth: <token>`.
+
+Run the deployment security test against staging:
+
+```powershell
+$env:VERITAS_BASE_URL="https://your-staging-domain.example"
+$env:VERITAS_AUTH_TOKEN="<same-token>"
+$env:VERITAS_EXPECT_AUTH="true"
+python deployment_security_tests.py
+```

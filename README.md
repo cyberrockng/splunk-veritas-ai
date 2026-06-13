@@ -137,16 +137,16 @@ The health response never exposes Splunk tokens or secrets.
 
 ### Fast Path
 
-1. Click **Run Live Judge Demo**.
-2. Veritas loads evidence, checks thresholds, records approvals, executes safe simulated containment, and opens the audit brief.
+1. Click **Feed Evidence & Run Veritas** and load the example evidence, or use **Run Online Evidence Flow** when Splunk HEC/search is configured.
+2. Veritas loads the supplied evidence, checks thresholds, records approvals, executes safe simulated containment, and opens the audit brief.
 3. Show that risk drops after approved containment.
 4. Show that unsafe no-data-access and premature closure decisions remain blocked.
 
 ### Manual Path
 
 1. Click **New Case**.
-2. Click **Load Demo Evidence** or **Pull Indexed Evidence**.
-3. Click **Check Thresholds**.
+2. Use **Evidence Intake** or click **Pull Indexed Evidence** after Splunk data is indexed.
+3. Click **Analyze Decision**.
 4. Drill into evidence and SPL gaps.
 5. Approve eligible actions.
 6. Click **Approve / Execute Action**.
@@ -351,9 +351,12 @@ With `python server.py` running:
 ```powershell
 python smoke_tests.py
 python browser_smoke_tests.py
+python mcp_smoke_tests.py
+python dashboard_mcp_route_tests.py
+python deployment_security_tests.py
 ```
 
-The smoke tests verify health, static assets, state/reset/start/investigation, approval gating, risk drop, blocked unsafe claims, missing SPL, blast radius warnings, audit brief content, custom request execution, browser-facing UI controls, and the judge-demo flow.
+The smoke tests verify health, static assets, state/reset/start/investigation, approval gating, risk drop, blocked unsafe claims, missing SPL, blast radius warnings, audit brief content, custom request execution, browser-facing UI controls, the judge-demo flow, MCP routing, static-file hardening, security headers, CORS allowlisting, and optional staging authentication.
 
 ## Security Model
 
@@ -402,7 +405,7 @@ Do not claim a production deployment unless the selected path is implemented and
 
 ## Roadmap
 
-- Prepare final Devpost copy.
+- Use `DEVPOST_SUBMISSION.md` as the final Devpost copy draft.
 - Decide whether Vercel should use serverless API functions, static mock mode, or a separate backend.
 - Optionally add a persistent MCP subprocess pool if the dashboard needs lower latency for repeated live searches.
 - Expand Tier 3 incident profiles with fully distinct evidence packs and decision policies.

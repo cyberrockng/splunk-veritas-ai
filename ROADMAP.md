@@ -83,7 +83,7 @@
 
 - Capture screenshots or short GIF.
 - Record two-minute walkthrough.
-- Prepare final Devpost copy.
+- Added `DEVPOST_SUBMISSION.md` with final Devpost copy draft.
 - Add sample Splunk data ingestion notes.
 
 ## Passed: Phase 12 - Deployment Readiness
