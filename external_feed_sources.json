@@ -1,0 +1,44 @@
+{
+  "name": "Veritas external evidence feed sources",
+  "description": "Online attack-data sources used to produce Veritas-ready evidence events before Splunk HEC ingestion.",
+  "upstream": {
+    "name": "Splunk Attack Data",
+    "repository": "https://github.com/splunk/attack_data",
+    "license": "Apache-2.0"
+  },
+  "sources": [
+    {
+      "id": "splunk-attack-data-okta-suspicious-activity",
+      "technique": "T1078",
+      "title": "Okta suspicious activity reported by user",
+      "raw_url": "https://raw.githubusercontent.com/splunk/attack_data/master/datasets/attack_techniques/T1078/okta_suspicious_activity_reported_by_user/okta_suspicious_activity_reported_by_user.log",
+      "git_lfs": {
+        "oid": "dcea8c3502f10e9444646505458a94f3d9dc6b9172224b4119e2952131fb65a2",
+        "size": 3099
+      },
+      "maps_to": ["SEC-3001"]
+    },
+    {
+      "id": "splunk-attack-data-o365-excessive-sso-errors",
+      "technique": "T1078",
+      "title": "O365 excessive SSO logon errors",
+      "raw_url": "https://raw.githubusercontent.com/splunk/attack_data/master/datasets/attack_techniques/T1078/o365_excessive_sso_logon_errors/o365_excessive_sso_logon_errors.json",
+      "git_lfs": {
+        "oid": "6e0cadc02cb982070d8ce47da6ae771f9fba9ae81badf1be99c1c728199979b4",
+        "size": 2792
+      },
+      "maps_to": ["SEC-3002"]
+    },
+    {
+      "id": "splunk-attack-data-o365-azure-workload-events",
+      "technique": "T1098",
+      "title": "O365 Azure workload account manipulation events",
+      "raw_url": "https://raw.githubusercontent.com/splunk/attack_data/master/datasets/attack_techniques/T1098/o365_azure_workload_events/o365_azure_workload_events.log",
+      "git_lfs": {
+        "oid": "425490f713e83ea96714014ce4ac8f7c09a4d3eb43c41a3a2977a88830fea5dc",
+        "size": 24402
+      },
+      "maps_to": ["SEC-3003", "SEC-3004"]
+    }
+  ]
+}
