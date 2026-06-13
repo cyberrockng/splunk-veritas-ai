@@ -332,13 +332,9 @@ Screenshots must not contain real credentials, real patient data, real customer 
 
 ## Screenshots
 
-Core demo screenshots live in `assets/`:
+Submission-facing screenshots live in `assets/` and use Splunk-integrated proof captures:
 
 ![Veritas AI dashboard](assets/dashboard.png)
-
-![Decision readiness strip](assets/decision-readiness-strip.png)
-
-![Evidence threshold matrix](assets/evidence-threshold-matrix.png)
 
 ![Decision audit brief](assets/audit-brief.png)
 

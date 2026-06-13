@@ -123,10 +123,12 @@ def main():
 
     for image_path in (
         "/assets/dashboard.png",
-        "/assets/decision-readiness-strip.png",
-        "/assets/evidence-threshold-matrix.png",
         "/assets/audit-brief.png",
         "/assets/splunk-mode.png",
+        "/assets/splunk-indexed-events.png",
+        "/assets/veritas-dashboard-splunk-mcp.png",
+        "/assets/veritas-health-splunk-mcp.png",
+        "/assets/veritas-audit-brief.png",
     ):
         status, body = request_bytes(image_path)
         assert_equal(status, 200, f"{image_path} image status")
