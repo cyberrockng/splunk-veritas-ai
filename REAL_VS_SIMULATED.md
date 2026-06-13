@@ -18,7 +18,7 @@ This project is intentionally explicit about what is real, what is simulated, an
 | Splunk REST loading | Real optional Splunk REST search path when credentials and indexed events are configured. |
 | Splunk MCP server | Real stdio MCP server in `splunk_mcp_server.py` with Splunk REST search and HEC ingestion tools. |
 | Dashboard-to-MCP routing | Real backend route from the browser dashboard API to `splunk_mcp_server.py` when `VERITAS_SPLUNK_ROUTE=mcp`. |
-| Splunk proof screenshots | Real local screenshots captured after HEC ingestion and Splunk REST loading. |
+| Splunk proof screenshots | Real local screenshots captured after HEC ingestion and dashboard-to-MCP Splunk loading. |
 
 ## Real When Splunk Is Configured
 
@@ -28,8 +28,8 @@ When Splunk environment variables are present and valid, Veritas can:
 - Search indexed evidence through the dashboard-to-MCP route.
 - Expose Splunk REST/HEC operations to any MCP-compatible host through `splunk_mcp_server.py`.
 - Load Splunk events into the decision engine.
-- Show `provider: splunk-rest`.
-- Show `Mode: Real indexed evidence`.
+- Show `provider: splunk-mcp`.
+- Show `Mode: MCP-routed indexed evidence`.
 - Include the Splunk search job ID and query in the audit trail.
 
 The captured proof in `assets/` shows this path working locally.

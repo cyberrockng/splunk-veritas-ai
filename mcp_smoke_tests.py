@@ -98,6 +98,7 @@ def main():
         assert_true(content["provider"] == "splunk-mcp", "status provider")
         assert_true(content["rest_configured"] is False, "REST should be unconfigured in smoke")
         assert_true(content["hec_configured"] is False, "HEC should be unconfigured in smoke")
+        assert_true(content["writes_enabled"] is False, "MCP writes should default off")
         assert_no_secret_like_values(status)
 
         search = request(
@@ -117,6 +118,21 @@ def main():
             {"name": "splunk.notable_event", "arguments": {}},
         )
         assert_true("error" in invalid, "unknown simulated tool should not be exposed")
+
+        write_attempt = request(
+            proc,
+            6,
+            "tools/call",
+            {
+                "name": "splunk.hec_ingest_event",
+                "arguments": {"event": {"event_id": "SEC-TEST"}, "confirm_ingest": True},
+            },
+        )
+        assert_true(write_attempt["result"]["isError"], "HEC write should be disabled by default")
+        assert_true(
+            "VERITAS_MCP_ALLOW_WRITES" in write_attempt["result"]["structuredContent"]["error"],
+            "HEC write error should explain opt-in",
+        )
         print("MCP smoke tests passed.")
     finally:
         proc.stdin.close()

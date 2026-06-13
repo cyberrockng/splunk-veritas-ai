@@ -52,7 +52,7 @@ Veritas turns that uncertainty into a governed decision workflow: readiness scor
 
 ## What Is Real vs Simulated
 
-Veritas is intentionally clear about implementation boundaries. The local app, evidence threshold engine, audit brief, smoke tests, HEC ingestion script, and optional Splunk REST search path are real. Default evidence and containment actions are simulated for safety and judging reliability.
+Veritas is intentionally clear about implementation boundaries. The local app, evidence threshold engine, audit brief, smoke tests, HEC ingestion script, Splunk MCP server, and dashboard-to-MCP evidence route are real. Default evidence and containment actions are simulated for safety and judging reliability.
 
 See `REAL_VS_SIMULATED.md` for the full implementation boundary.
 
@@ -73,7 +73,7 @@ See `REAL_VS_SIMULATED.md` for the full implementation boundary.
 
 - Default `mock-mcp` evidence.
 - Containment actions are safe mock actions only.
-- Dashboard integration labels when the dashboard itself is not launched through an MCP host.
+- Direct browser-to-stdio MCP. The local Python API acts as the MCP client bridge.
 
 ### Not Implemented Yet
 
@@ -303,21 +303,21 @@ $env:VERITAS_SPLUNK_ROUTE="rest"
 
 ## Splunk Proof
 
-Splunk proof captured after a real HEC ingestion and Splunk REST load:
+Splunk proof captured after a real HEC ingestion and dashboard-to-MCP Splunk load:
 
 ![Splunk indexed Veritas events](assets/splunk-indexed-events.png)
 
-![Veritas health showing Splunk REST mode](assets/veritas-health-splunk-rest.png)
+![Veritas health showing Splunk MCP mode](assets/veritas-health-splunk-mcp.png)
 
-![Veritas dashboard showing real indexed evidence](assets/veritas-dashboard-splunk-rest.png)
+![Veritas dashboard showing MCP-routed indexed evidence](assets/veritas-dashboard-splunk-mcp.png)
 
 ![Veritas audit brief with Splunk evidence](assets/veritas-audit-brief.png)
 
 Proof files:
 
 - `assets/splunk-indexed-events.png` - Splunk Search showing `index=veritas`.
-- `assets/veritas-health-splunk-rest.png` - `/api/health` showing `splunk_configured: true`.
-- `assets/veritas-dashboard-splunk-rest.png` - dashboard provider showing `splunk-rest`.
+- `assets/veritas-health-splunk-mcp.png` - `/api/health` showing `mode: splunk-mcp` and `mcp_routed: true`.
+- `assets/veritas-dashboard-splunk-mcp.png` - dashboard provider showing `splunk-mcp`.
 - `assets/veritas-audit-brief.png` - audit brief referencing Splunk evidence.
 
 Screenshots must not contain real credentials, real patient data, real customer data, or live tokens.

@@ -194,8 +194,9 @@ Expected Splunk mode:
   "status": "ok",
   "app": "Veritas AI",
   "product": "Evidence Threshold Engine for Splunk",
-  "mode": "splunk-rest",
+  "mode": "splunk-mcp",
   "splunk_configured": true,
+  "mcp_routed": true,
   "version": "1.0.0"
 }
 ```
@@ -208,7 +209,7 @@ Then click:
 4. Execute approved containment
 5. Export audit brief
 
-The provider should show `splunk-rest`, the evidence load should show a Splunk search job ID, dangerous decisions should remain blocked when evidence is incomplete, and the audit brief should reference Splunk REST.
+The provider should show `splunk-mcp`, the evidence load should show a Splunk search job ID, dangerous decisions should remain blocked when evidence is incomplete, and the audit brief should reference dashboard-to-MCP-to-Splunk evidence.
 
 ## Mock Fallback
 
@@ -239,15 +240,15 @@ Captured after the real Splunk run. Avoid any screen that shows token values.
 
 ![Splunk indexed Veritas events](assets/splunk-indexed-events.png)
 
-![Veritas health showing Splunk REST mode](assets/veritas-health-splunk-rest.png)
+![Veritas health showing Splunk MCP mode](assets/veritas-health-splunk-mcp.png)
 
-![Veritas dashboard showing real indexed evidence](assets/veritas-dashboard-splunk-rest.png)
+![Veritas dashboard showing MCP-routed indexed evidence](assets/veritas-dashboard-splunk-mcp.png)
 
 ![Veritas audit brief with Splunk evidence](assets/veritas-audit-brief.png)
 
 - `assets/splunk-indexed-events.png` - Splunk Search showing `index=veritas`
-- `assets/veritas-health-splunk-rest.png` - `/api/health` showing `splunk_configured: true`
-- `assets/veritas-dashboard-splunk-rest.png` - dashboard provider showing `splunk-rest`
+- `assets/veritas-health-splunk-mcp.png` - `/api/health` showing `mode: splunk-mcp` and `mcp_routed: true`
+- `assets/veritas-dashboard-splunk-mcp.png` - dashboard provider showing `splunk-mcp`
 - `assets/veritas-audit-brief.png` - audit brief referencing Splunk evidence
 
 Developer License status: active for the local hackathon Splunk instance. Confirm in Splunk Web under **Settings -> Licensing** before final judging screenshots; expected quota is 10 GB/day with no license violation.

@@ -47,6 +47,7 @@ def splunk_config():
         "display_incident_id": os.environ.get("VERITAS_DISPLAY_INCIDENT_ID", VERITAS_DISPLAY_INCIDENT_ID),
         "hec_url": os.environ.get("SPLUNK_HEC_URL", ""),
         "hec_token": os.environ.get("SPLUNK_HEC_TOKEN", ""),
+        "allow_writes": env_bool("VERITAS_MCP_ALLOW_WRITES", False),
     }
 
 
@@ -182,9 +183,18 @@ def tool_status(_arguments):
         "incident_id": config["incident_id"],
         "display_incident_id": config["display_incident_id"],
         "verify_ssl": config["verify_ssl"],
+        "writes_enabled": config["allow_writes"],
         "version": APP_VERSION,
     }
     return ok_result(status)
+
+
+def require_write_confirmation(arguments):
+    config = splunk_config()
+    if not config["allow_writes"]:
+        raise RuntimeError("MCP write tools are disabled. Set VERITAS_MCP_ALLOW_WRITES=true to allow HEC ingestion.")
+    if arguments.get("confirm_ingest") is not True:
+        raise RuntimeError("confirm_ingest=true is required before writing events to Splunk HEC.")
 
 
 def tool_search(arguments):
@@ -217,6 +227,7 @@ def tool_veritas_search(arguments):
 
 
 def tool_hec_ingest_event(arguments):
+    require_write_confirmation(arguments)
     config = splunk_config()
     event = arguments.get("event")
     if not isinstance(event, dict):
@@ -234,6 +245,7 @@ def tool_hec_ingest_event(arguments):
 
 
 def tool_ingest_demo(arguments):
+    require_write_confirmation(arguments)
     config = splunk_config()
     sample_file = arguments.get("sample_file") or DEFAULT_SAMPLE_FILE
     events = load_events(sample_file)
@@ -367,8 +379,12 @@ TOOLS = {
                     "host": {"type": "string"},
                     "source": {"type": "string"},
                     "time": {"type": "number"},
+                    "confirm_ingest": {
+                        "type": "boolean",
+                        "description": "Must be true to confirm this write to Splunk HEC.",
+                    },
                 },
-                "required": ["event"],
+                "required": ["event", "confirm_ingest"],
                 "additionalProperties": False,
             },
             "annotations": {"readOnlyHint": False, "destructiveHint": False},
@@ -388,7 +404,12 @@ TOOLS = {
                     "display_incident_id": {"type": "string"},
                     "index": {"type": "string"},
                     "sourcetype": {"type": "string"},
+                    "confirm_ingest": {
+                        "type": "boolean",
+                        "description": "Must be true to confirm demo evidence ingestion through Splunk HEC.",
+                    },
                 },
+                "required": ["confirm_ingest"],
                 "additionalProperties": False,
             },
             "annotations": {"readOnlyHint": False, "destructiveHint": False},
