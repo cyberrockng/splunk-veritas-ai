@@ -61,12 +61,13 @@ Real:
 - Smoke tests.
 - Optional Splunk HEC ingestion and Splunk REST search path.
 - True stdio Splunk MCP server for REST search and HEC ingestion tools.
+- Dashboard-to-MCP routing through the local Python API bridge.
 
 Simulated:
 
 - Default mock evidence for reliable judging without credentials.
 - Containment actions, which are safe mock actions only.
-- Browser dashboard routing, which still uses the local Python API rather than an MCP client.
+- Direct browser-to-stdio MCP, because the local Python API is the MCP client bridge.
 
 See `REAL_VS_SIMULATED.md` for the full boundary.
 
@@ -79,7 +80,7 @@ The app uses Splunk-style evidence, HEC ingestion, REST search, and a separate s
 - `splunk.hec_ingest_event`
 - `veritas.ingest_demo_evidence`
 
-The default dashboard demo runs in safe `mock-mcp` mode with deterministic Splunk-style evidence. Optional Splunk REST and HEC ingestion are included for real indexed evidence. The MCP server is real, but it is a separate stdio tool server for MCP-compatible hosts; do not say the browser dashboard itself uses MCP unless a dashboard-to-MCP client path is added.
+The default dashboard demo runs in safe `mock-mcp` mode with deterministic Splunk-style evidence. With Splunk configured, the dashboard backend routes indexed evidence searches through the real stdio MCP server by default. The precise claim is dashboard-to-local-API-to-MCP-to-Splunk; the browser does not directly launch stdio MCP.
 
 For presentation, click **Run Live Judge Demo** to execute the evidence -> decision -> approval -> containment -> audit flow.
 

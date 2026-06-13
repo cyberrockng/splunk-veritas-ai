@@ -108,9 +108,15 @@
 - Added `splunk_mcp_server.py` as a newline-delimited JSON-RPC stdio MCP server.
 - Added real MCP tools for Splunk status, REST search, Veritas evidence search, HEC event ingestion, and demo evidence ingestion.
 - Added `mcp_smoke_tests.py` to verify initialize, `tools/list`, and `tools/call`.
-- Documented that the browser dashboard still uses the local Python API unless a dashboard-to-MCP client path is added.
+- Added dashboard-to-MCP routing through the local Python API bridge.
 
-## Next: Phase 15 - Tier 3 Expansion
+## Passed: Phase 15 - Dashboard-to-MCP Routing
+
+- Added `VERITAS_SPLUNK_ROUTE=mcp` as the default Splunk evidence route.
+- Dashboard evidence loading and threshold searches now call `splunk_mcp_server.py` through a stdio MCP client bridge in `server.py`.
+- UI provider copy now distinguishes `splunk-mcp`, `splunk-rest`, `mock-mcp`, and fallback mode.
+
+## Next: Phase 16 - Tier 3 Expansion
 
 - Add distinct evidence packs for ransomware, insider risk, and cloud key compromise.
 - Add editable checklist weights and mandatory/optional threshold toggles.

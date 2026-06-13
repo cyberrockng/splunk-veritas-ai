@@ -118,6 +118,15 @@ function providerInfo(integration = {}) {
     };
   }
 
+  if (provider === "splunk-mcp") {
+    return {
+      provider,
+      source: "Evidence source: Splunk MCP",
+      mode: "Mode: MCP-routed indexed evidence",
+      tone: "real"
+    };
+  }
+
   if (provider === "mock-mcp-fallback") {
     return {
       provider,
@@ -435,8 +444,9 @@ function renderJudgeStory() {
 }
 
 function renderDemoSteps() {
+  const evidenceProvider = state.integration?.search_provider || state.integration?.provider;
   const steps = [
-    { label: "Pull indexed evidence", done: (state.integration?.search_provider || state.integration?.provider) === "splunk-rest" },
+    { label: "Pull indexed evidence", done: ["splunk-rest", "splunk-mcp"].includes(evidenceProvider) },
     { label: "Check thresholds", done: hasCheckedThresholds() },
     { label: "Approve safe actions", done: approvedApprovalCount() >= 3 },
     { label: "Execute and brief", done: completedActionCount() >= 3 }

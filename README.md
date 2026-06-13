@@ -84,8 +84,8 @@ See `REAL_VS_SIMULATED.md` for the full implementation boundary.
 ## Operating Modes
 
 - `mock-mcp`: safe deterministic demo mode. It uses Splunk-style evidence bundled with the project and is the default fallback when Splunk credentials are absent.
-- `splunk-rest`: real indexed evidence mode. It requires `SPLUNK_HOST`, `SPLUNK_TOKEN`, and indexed Veritas events in Splunk.
-- `splunk-mcp`: real stdio MCP server mode through `splunk_mcp_server.py`. It exposes Splunk REST/HEC tools to an MCP-compatible host.
+- `splunk-mcp`: dashboard-to-MCP-to-Splunk mode. When Splunk is configured and `VERITAS_SPLUNK_ROUTE=mcp`, the dashboard backend invokes `splunk_mcp_server.py` over stdio MCP.
+- `splunk-rest`: direct REST fallback mode. Set `VERITAS_SPLUNK_ROUTE=rest` to bypass MCP and call Splunk REST directly.
 - `mock-mcp-fallback`: safe fallback when Splunk is configured but a search fails. It must be described as fallback, not real Splunk proof.
 
 The current implementation uses an evidence-bounded deterministic decision engine. This is intentional for demo reliability and safety: Veritas does not invent evidence. The product name includes AI, but this build does not use an autonomous AI agent. Future AI/LLM support should be limited to evidence-bounded summaries and audit-brief drafting.
@@ -179,7 +179,7 @@ Dashboard indicators open functional pages:
 
 ## Real Splunk Integration
 
-The default Veritas demo runs in safe `mock-mcp` mode. For stronger judging proof, Veritas can ingest the same admin account takeover evidence into a local Splunk Enterprise trial and query indexed evidence through the optional Splunk REST path.
+The default Veritas demo runs in safe `mock-mcp` mode. For stronger judging proof, Veritas can ingest the same admin account takeover evidence into a local Splunk Enterprise trial and query indexed evidence through the dashboard-to-MCP Splunk path.
 
 Local Splunk Enterprise Web UI:
 
@@ -219,6 +219,7 @@ $env:SPLUNK_HOST="https://Cyberrockng:8090"
 $env:SPLUNK_TOKEN="<your-splunk-rest-token-or-session-key>"
 $env:SPLUNK_AUTH_SCHEME="Bearer"
 $env:SPLUNK_VERIFY_SSL="false"
+$env:VERITAS_SPLUNK_ROUTE="mcp"
 
 $env:SPLUNK_HEC_URL="https://Cyberrockng:8088/services/collector"
 $env:SPLUNK_HEC_TOKEN="<your-hec-token>"
@@ -277,7 +278,28 @@ $env:SPLUNK_HEC_URL="https://Cyberrockng:8088/services/collector"
 $env:SPLUNK_HEC_TOKEN="<your-hec-token>"
 ```
 
-Important boundary: the web dashboard still uses its local Python API. The MCP server is a separate tool server for MCP-compatible hosts. Do not claim the dashboard itself is using MCP unless it is actually launched through an MCP client connected to `splunk_mcp_server.py`.
+## Dashboard-to-MCP Routing
+
+The dashboard now has a real MCP route:
+
+```text
+Browser dashboard -> local Python API -> stdio MCP client -> splunk_mcp_server.py -> Splunk REST
+```
+
+When these are true, `/api/sentinel/load-splunk` and investigation threshold searches route through MCP:
+
+- `SPLUNK_HOST` is set.
+- `SPLUNK_TOKEN` is set.
+- `VERITAS_SPLUNK_ROUTE=mcp` or unset, because `mcp` is the default.
+- `SPLUNK_MCP_SERVER` is unset or points to `splunk_mcp_server.py`.
+
+The UI provider badge shows `splunk-mcp` and the mode badge shows `MCP-routed indexed evidence`.
+
+To use the old direct REST path:
+
+```powershell
+$env:VERITAS_SPLUNK_ROUTE="rest"
+```
 
 ## Splunk Proof
 
@@ -341,7 +363,7 @@ The smoke tests verify health, static assets, state/reset/start/investigation, a
 - The default demo uses deterministic mock evidence for judging reliability.
 - Optional Splunk REST/HEC requires a configured Splunk instance and credentials.
 - Current containment actions are simulated and intentionally non-destructive.
-- A true stdio Splunk MCP server is available in `splunk_mcp_server.py`, but the dashboard does not automatically route through MCP.
+- The dashboard backend routes Splunk evidence loading and threshold searches through `splunk_mcp_server.py` by default when Splunk is configured.
 - Vercel deployment is prepared but not executed.
 
 ## Deployment Status
@@ -368,7 +390,7 @@ Do not claim a production deployment unless the selected path is implemented and
 
 - Prepare final Devpost copy.
 - Decide whether Vercel should use serverless API functions, static mock mode, or a separate backend.
-- Optionally add dashboard-to-MCP routing if final judging requires the browser UI to call an MCP client directly.
+- Optionally add a persistent MCP subprocess pool if the dashboard needs lower latency for repeated live searches.
 - Expand Tier 3 incident profiles with fully distinct evidence packs and decision policies.
 
 ## Repository Contents

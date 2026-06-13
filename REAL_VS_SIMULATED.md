@@ -17,6 +17,7 @@ This project is intentionally explicit about what is real, what is simulated, an
 | HEC ingestion | Real Splunk HTTP Event Collector ingestion through `ingest_to_splunk.py`. |
 | Splunk REST loading | Real optional Splunk REST search path when credentials and indexed events are configured. |
 | Splunk MCP server | Real stdio MCP server in `splunk_mcp_server.py` with Splunk REST search and HEC ingestion tools. |
+| Dashboard-to-MCP routing | Real backend route from the browser dashboard API to `splunk_mcp_server.py` when `VERITAS_SPLUNK_ROUTE=mcp`. |
 | Splunk proof screenshots | Real local screenshots captured after HEC ingestion and Splunk REST loading. |
 
 ## Real When Splunk Is Configured
@@ -24,8 +25,8 @@ This project is intentionally explicit about what is real, what is simulated, an
 When Splunk environment variables are present and valid, Veritas can:
 
 - Send demo evidence to Splunk through HEC.
-- Search indexed evidence through Splunk REST.
-- Expose Splunk REST/HEC operations to an MCP-compatible host through `splunk_mcp_server.py`.
+- Search indexed evidence through the dashboard-to-MCP route.
+- Expose Splunk REST/HEC operations to any MCP-compatible host through `splunk_mcp_server.py`.
 - Load Splunk events into the decision engine.
 - Show `provider: splunk-rest`.
 - Show `Mode: Real indexed evidence`.
@@ -40,12 +41,12 @@ The captured proof in `assets/` shows this path working locally.
 | Default evidence mode | The project defaults to deterministic `mock-mcp` evidence so judges can run the demo without Splunk credentials. |
 | Containment execution | Account disable, token revoke, and IP block are safe simulated actions. No destructive security action is performed. |
 | Risk reduction | Residual risk changes are simulated to demonstrate workflow impact after approved mock containment. |
-| Dashboard MCP routing | The browser dashboard still uses the local Python API. It does not automatically route through an MCP client. |
+| Direct browser-to-stdio MCP | Browsers cannot directly launch stdio MCP. The local Python API acts as the MCP client bridge. |
 | AI behavior | The product name includes AI, but the current decision engine is deterministic and evidence-bounded. It does not run an autonomous unbounded AI agent. |
 
 ## Not Implemented Yet
 
-- Dashboard-to-MCP client routing.
+- Direct browser-to-stdio MCP without a local bridge.
 - Real destructive containment against identity, firewall, endpoint, or cloud systems.
 - Production authentication and multi-user state isolation.
 - Production deployment of the Python API.
@@ -57,13 +58,13 @@ See `DEPLOYMENT_STATUS.md` for the public hosting boundary.
 
 Use this wording:
 
-> Veritas has a real local decision engine, real HEC ingestion, real optional Splunk REST search, and a real stdio Splunk MCP server for MCP-compatible hosts. The default dashboard evidence and containment actions are simulated for safety and judging reliability.
+> Veritas has a real local decision engine, real HEC ingestion, real dashboard-to-MCP Splunk evidence routing, and a real stdio Splunk MCP server. The default dashboard evidence and containment actions are simulated for safety and judging reliability.
 
 ## Demo Language To Avoid
 
 Avoid these claims unless the implementation is added and verified:
 
-- "The browser dashboard itself uses MCP." Say this only if a dashboard-to-MCP client path is implemented.
+- "The browser directly speaks stdio MCP." The browser uses the local Python API as its MCP client bridge.
 - "It performs real containment."
 - "The AI autonomously decides and acts."
 - "It is production deployed."

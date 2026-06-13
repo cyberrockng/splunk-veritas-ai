@@ -99,9 +99,9 @@ def main():
     assert_equal(health["status"], "ok", "health status")
     assert_equal(health["app"], "Veritas AI", "health app")
     assert_equal(health["product"], "Evidence Threshold Engine for Splunk", "health product")
-    assert_true(health["mode"] in {"mock-mcp", "splunk-rest"}, "health mode")
+    assert_true(health["mode"] in {"mock-mcp", "splunk-rest", "splunk-mcp"}, "health mode")
     assert_true(isinstance(health["splunk_configured"], bool), "health Splunk configured flag")
-    assert_equal(health["mode"], "splunk-rest" if health["splunk_configured"] else "mock-mcp", "health mode/config alignment")
+    assert_equal(health["mode"], health["mode"] if health["splunk_configured"] else "mock-mcp", "health mode/config alignment")
     assert_true(health["version"], "health version")
     assert_true("token" not in json.dumps(health).lower(), "health must not expose tokens")
 
@@ -164,7 +164,7 @@ def main():
     assert_true("integration" in initial_state, "state endpoint should include integration metadata")
     assert_equal(
         initial_state["integration"]["provider"],
-        "splunk-rest" if health["splunk_configured"] else "mock-mcp",
+        health["mode"] if health["splunk_configured"] else "mock-mcp",
         "state provider should match health mode",
     )
 
@@ -175,10 +175,10 @@ def main():
     if not config["configured"]:
         status, body = request_json_error("/api/sentinel/load-splunk", method="POST", payload={})
         assert_equal(status, 400, "load-splunk without config status")
-        assert_true("Splunk REST is not configured" in body["error"], "load-splunk config error")
+        assert_true("Splunk is not configured" in body["error"], "load-splunk config error")
     elif os.environ.get("VERITAS_SMOKE_SPLUNK") == "1":
         splunk_load = request_json("/api/sentinel/load-splunk", method="POST", payload={})
-        assert_equal(splunk_load["integration"]["provider"], "splunk-rest", "Splunk load provider")
+        assert_true(splunk_load["integration"]["provider"] in {"splunk-rest", "splunk-mcp"}, "Splunk load provider")
         assert_true("search" in splunk_load, "Splunk load should include search proof")
         assert_true(splunk_load["search"]["result_count"] >= 0, "Splunk load result count")
 

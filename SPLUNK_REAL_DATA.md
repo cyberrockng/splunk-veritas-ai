@@ -2,7 +2,7 @@
 
 This moves Veritas from mock evidence to Splunk-backed evidence using the installed Splunk Enterprise trial.
 
-Default local judging does not require Splunk credentials. Run `python server.py` with no Splunk environment variables and Veritas uses deterministic `mock-mcp` evidence. Configure Splunk only when you want to demonstrate the optional HEC and REST path.
+Default local judging does not require Splunk credentials. Run `python server.py` with no Splunk environment variables and Veritas uses deterministic `mock-mcp` evidence. Configure Splunk only when you want to demonstrate the HEC and dashboard-to-MCP indexed evidence path.
 
 Never commit real Splunk REST tokens, HEC tokens, passwords, screenshots containing tokens, or a local `.env` file.
 
@@ -254,6 +254,6 @@ Developer License status: active for the local hackathon Splunk instance. Confir
 
 ## Honest Positioning
 
-The default dashboard demo runs in safe `mock-mcp` mode with deterministic Splunk-style evidence. Optional Splunk REST and HEC ingestion are included for real indexed evidence.
+The default dashboard demo runs in safe `mock-mcp` mode with deterministic Splunk-style evidence. Splunk REST, HEC ingestion, and dashboard-to-MCP routing are included for real indexed evidence.
 
-This repository also includes a real stdio Splunk MCP server in `splunk_mcp_server.py`. It exposes Splunk REST search and HEC ingestion tools to MCP-compatible hosts. Do not claim the browser dashboard itself uses MCP unless a dashboard-to-MCP client path is implemented and verified.
+This repository includes a real stdio Splunk MCP server in `splunk_mcp_server.py`. The dashboard backend can invoke it as an MCP client bridge when `VERITAS_SPLUNK_ROUTE=mcp`. The precise claim is dashboard-to-local-API-to-MCP-to-Splunk, not direct browser-to-stdio MCP.

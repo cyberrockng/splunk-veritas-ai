@@ -100,7 +100,7 @@ def verify_browser_shell():
 def run_demo_flow():
     health = request_json("/api/health")
     assert_true(health["ok"], "health should be ok")
-    assert_true(health["mode"] in {"mock-mcp", "splunk-rest"}, "health mode should be known")
+    assert_true(health["mode"] in {"mock-mcp", "splunk-rest", "splunk-mcp"}, "health mode should be known")
 
     state = request_json("/api/sentinel/reset", method="POST", payload={})
     assert_equal(state["stage"], "idle", "reset stage")

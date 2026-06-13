@@ -78,6 +78,15 @@ function providerInfo(integration = {}) {
     };
   }
 
+  if (provider === "splunk-mcp") {
+    return {
+      provider,
+      source: "Splunk MCP",
+      mode: "MCP-routed indexed evidence",
+      tone: "real"
+    };
+  }
+
   if (provider === "mock-mcp-fallback") {
     return {
       provider,

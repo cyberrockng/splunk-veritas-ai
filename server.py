@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 import json
 import os
 import ssl
+import subprocess
+import sys
 import time
 from urllib import parse, request
 from urllib.parse import urlparse
@@ -22,10 +24,12 @@ SPLUNK_SEARCH_POLLS = int(os.environ.get("SPLUNK_SEARCH_POLLS", "20"))
 SPLUNK_SEARCH_POLL_INTERVAL = float(os.environ.get("SPLUNK_SEARCH_POLL_INTERVAL", "0.5"))
 SPLUNK_EARLIEST = os.environ.get("SPLUNK_EARLIEST", "-60m")
 SPLUNK_LATEST = os.environ.get("SPLUNK_LATEST", "now")
+VERITAS_SPLUNK_ROUTE = os.environ.get("VERITAS_SPLUNK_ROUTE", "mcp").lower()
 VERITAS_SPLUNK_INDEX = os.environ.get("VERITAS_SPLUNK_INDEX", "veritas")
 VERITAS_INCIDENT_ID = os.environ.get("VERITAS_INCIDENT_ID", "INC-001")
 VERITAS_DISPLAY_INCIDENT_ID = os.environ.get("VERITAS_DISPLAY_INCIDENT_ID", "INC-2025-0001")
 VERITAS_SOURCETYPE = os.environ.get("VERITAS_SOURCETYPE", "veritas:incident")
+SPLUNK_MCP_SERVER = os.environ.get("SPLUNK_MCP_SERVER", os.path.join(ROOT, "splunk_mcp_server.py"))
 
 
 ATTACK_EVENTS = [
@@ -648,7 +652,7 @@ def normalize_splunk_event(row):
         "geo": row_value(row, "geo") or raw.get("geo") or prototype["geo"],
         "severity": row_value(row, "severity") or raw.get("severity") or prototype["severity"],
         "tags": tags,
-        "origin": "splunk-rest",
+        "origin": splunk_status()["search_provider"],
     }
 
 
@@ -993,13 +997,19 @@ def splunk_configured():
     return bool(SPLUNK_HOST and SPLUNK_TOKEN)
 
 
+def splunk_mcp_enabled():
+    return splunk_configured() and VERITAS_SPLUNK_ROUTE == "mcp"
+
+
 def splunk_status():
-    configured_provider = "splunk-rest" if splunk_configured() else "mock-mcp"
+    configured_provider = "splunk-mcp" if splunk_mcp_enabled() else "splunk-rest" if splunk_configured() else "mock-mcp"
     last_load = LAB_STATE.get("last_splunk_load") or {}
     return {
         "provider": configured_provider,
         "search_provider": last_load.get("provider") or configured_provider,
         "configured": splunk_configured(),
+        "route": VERITAS_SPLUNK_ROUTE if splunk_configured() else "mock",
+        "mcp_routed": splunk_mcp_enabled(),
         "host": SPLUNK_HOST or None,
         "index": VERITAS_SPLUNK_INDEX,
         "incident_id": VERITAS_INCIDENT_ID,
@@ -1107,6 +1117,110 @@ def splunk_search(query, earliest=SPLUNK_EARLIEST, latest=SPLUNK_LATEST, count=N
     }
 
 
+def read_mcp_message(proc):
+    line = proc.stdout.readline()
+    if not line:
+        stderr = proc.stderr.read() if proc.stderr else ""
+        raise RuntimeError(f"Splunk MCP server exited before responding. {stderr.strip()}")
+    return json.loads(line)
+
+
+def write_mcp_message(proc, message):
+    proc.stdin.write(json.dumps(message) + "\n")
+    proc.stdin.flush()
+
+
+def call_splunk_mcp_tool(tool_name, arguments=None):
+    if not splunk_configured():
+        raise RuntimeError("Splunk MCP route requires SPLUNK_HOST and SPLUNK_TOKEN.")
+    if not os.path.exists(SPLUNK_MCP_SERVER):
+        raise RuntimeError(f"Splunk MCP server entry point not found: {SPLUNK_MCP_SERVER}")
+
+    proc = subprocess.Popen(
+        [sys.executable, SPLUNK_MCP_SERVER],
+        cwd=ROOT,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
+    )
+    try:
+        write_mcp_message(
+            proc,
+            {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2025-06-18",
+                    "capabilities": {},
+                    "clientInfo": {"name": "veritas-dashboard", "version": APP_VERSION},
+                },
+            },
+        )
+        init_response = read_mcp_message(proc)
+        if "error" in init_response:
+            raise RuntimeError(init_response["error"].get("message", "MCP initialize failed"))
+
+        write_mcp_message(proc, {"jsonrpc": "2.0", "method": "notifications/initialized"})
+        write_mcp_message(
+            proc,
+            {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "tools/call",
+                "params": {"name": tool_name, "arguments": arguments or {}},
+            },
+        )
+        tool_response = read_mcp_message(proc)
+        if "error" in tool_response:
+            raise RuntimeError(tool_response["error"].get("message", "MCP tool call failed"))
+        result = tool_response.get("result", {})
+        if result.get("isError"):
+            structured = result.get("structuredContent") or {}
+            raise RuntimeError(structured.get("error") or json.dumps(structured))
+        return result.get("structuredContent") or {}
+    finally:
+        try:
+            if proc.stdin:
+                proc.stdin.close()
+        except OSError:
+            pass
+        if proc.poll() is None:
+            proc.terminate()
+            try:
+                proc.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+
+
+def splunk_mcp_search(query, earliest=SPLUNK_EARLIEST, latest=SPLUNK_LATEST, count=None):
+    return call_splunk_mcp_tool(
+        "splunk.search",
+        {
+            "query": query,
+            "earliest": earliest,
+            "latest": latest,
+            "count": count or SPLUNK_MAX_RESULTS,
+        },
+    )
+
+
+def splunk_mcp_veritas_evidence(count=None):
+    return call_splunk_mcp_tool(
+        "splunk.veritas_evidence",
+        {
+            "incident_id": VERITAS_INCIDENT_ID,
+            "index": VERITAS_SPLUNK_INDEX,
+            "sourcetype": VERITAS_SOURCETYPE,
+            "earliest": SPLUNK_EARLIEST,
+            "latest": SPLUNK_LATEST,
+            "count": count or SPLUNK_MAX_RESULTS,
+        },
+    )
+
+
 def search_job_id(detection_id, index):
     return f"sid_veritas_{detection_id.lower()}_{index:03d}"
 
@@ -1134,7 +1248,7 @@ def execute_detection_search(detection, query, evidence, index):
         return fallback
 
     try:
-        result = splunk_search(query)
+        result = splunk_mcp_search(query) if splunk_mcp_enabled() else splunk_search(query)
         return {
             **result,
             "event_ids": [event["id"] for event in evidence],
@@ -1152,27 +1266,32 @@ def load_splunk_evidence():
     if not splunk_configured():
         return {
             "ok": False,
-            "error": "Splunk REST is not configured. Set SPLUNK_HOST and SPLUNK_TOKEN, then restart the server.",
+            "error": "Splunk is not configured. Set SPLUNK_HOST and SPLUNK_TOKEN, then restart the server.",
         }
 
     event_ids = [event["id"] for event in active_attack_events()]
     query = veritas_event_search(event_ids)
     try:
-        search_result = splunk_search(
-            query,
-            earliest=SPLUNK_EARLIEST,
-            latest=SPLUNK_LATEST,
-            count=max(len(event_ids), SPLUNK_MAX_RESULTS),
+        search_result = (
+            splunk_mcp_veritas_evidence(count=max(len(event_ids), SPLUNK_MAX_RESULTS))
+            if splunk_mcp_enabled()
+            else splunk_search(
+                query,
+                earliest=SPLUNK_EARLIEST,
+                latest=SPLUNK_LATEST,
+                count=max(len(event_ids), SPLUNK_MAX_RESULTS),
+            )
         )
     except Exception as error:
         LAB_STATE["last_splunk_load"] = {
             "query": query,
-            "provider": "splunk-rest",
+            "provider": "splunk-mcp" if splunk_mcp_enabled() else "splunk-rest",
             "error": str(error),
+            "mcp_routed": splunk_mcp_enabled(),
         }
         return {
             "ok": False,
-            "error": f"Splunk REST search failed. Verify {SPLUNK_HOST or 'SPLUNK_HOST'}, credentials, SSL settings, and indexed Veritas events.",
+            "error": f"Splunk {'MCP' if splunk_mcp_enabled() else 'REST'} search failed. Verify {SPLUNK_HOST or 'SPLUNK_HOST'}, credentials, SSL settings, and indexed Veritas events.",
             "search": LAB_STATE["last_splunk_load"],
         }
     events_by_id = {}
@@ -1202,6 +1321,8 @@ def load_splunk_evidence():
         "missing_events": [event_id for event_id in event_ids if event_id not in events_by_id],
         "link": search_result["link"],
         "dispatch_state": search_result.get("dispatch_state"),
+        "mcp_routed": splunk_mcp_enabled(),
+        "route": VERITAS_SPLUNK_ROUTE if splunk_configured() else "mock",
     }
 
     return {
@@ -1540,6 +1661,7 @@ class VeritasHandler(SimpleHTTPRequestHandler):
                     "product": "Evidence Threshold Engine for Splunk",
                     "mode": splunk_status()["provider"],
                     "splunk_configured": splunk_configured(),
+                    "mcp_routed": splunk_mcp_enabled(),
                     "version": APP_VERSION,
                 }
             )
