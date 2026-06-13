@@ -15,6 +15,28 @@ from fetch_external_feed import DEFAULT_MANIFEST, build_payloads, normalize_sour
 
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
+LAST_RUN_PATH = os.path.join(ROOT, ".veritas_last_run.json")
+CASE_HISTORY_PATH = os.path.join(ROOT, ".veritas_case_history.json")
+
+
+def load_local_env(path):
+    if not os.path.exists(path):
+        return
+
+    with open(path, "r", encoding="utf-8") as handle:
+        for raw_line in handle:
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+
+
+load_local_env(os.path.join(ROOT, ".env"))
+
 PORT = int(os.environ.get("PORT", "5173"))
 APP_VERSION = os.environ.get("VERITAS_VERSION", "1.0.0")
 SPLUNK_HOST = os.environ.get("SPLUNK_HOST", "").rstrip("/")
@@ -470,6 +492,93 @@ LAB_STATE = {
 }
 
 
+def case_summary():
+    request_info = LAB_STATE.get("custom_request") or {}
+    feedback = request_info.get("feedback") or {}
+    last_load = LAB_STATE.get("last_splunk_load") or {}
+    last_feed = LAB_STATE.get("last_online_feed") or {}
+    decisions = evaluate_decisions()
+    ready_count = len([item for item in decisions if item["status"] in {"Approved", "Caution"}])
+    blocked_count = len([item for item in decisions if item["status"] in {"Blocked", "Not Ready"}])
+    title = request_info.get("title") or incident_profile().get("title") or "Veritas case"
+    source = "Analyst Evidence" if request_info else "Splunk Evidence" if last_load else "Online Feed" if last_feed else "No Evidence"
+    outcome = feedback.get("message") or (
+        f"{last_load.get('mapped_events', 0)} indexed event(s) loaded"
+        if last_load
+        else f"{len(last_feed.get('ingested') or [])} HEC event(s) ingested"
+        if last_feed
+        else "No run yet"
+    )
+    return {
+        "id": datetime.now(timezone.utc).strftime("CASE-%Y%m%d%H%M%S"),
+        "saved_at": datetime.now(timezone.utc).isoformat(),
+        "title": title,
+        "source": source,
+        "stage": LAB_STATE.get("stage"),
+        "events": len(LAB_STATE.get("events") or []),
+        "ready_decisions": ready_count,
+        "blocked_decisions": blocked_count,
+        "action": request_info.get("action_label"),
+        "outcome": outcome,
+        "executed": bool(feedback.get("executed")),
+    }
+
+
+def read_case_history():
+    if not os.path.exists(CASE_HISTORY_PATH):
+        return []
+    try:
+        with open(CASE_HISTORY_PATH, "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+        return payload if isinstance(payload, list) else []
+    except (OSError, json.JSONDecodeError, TypeError):
+        return []
+
+
+def append_case_history(summary):
+    history = read_case_history()
+    history = [item for item in history if item.get("title") != summary.get("title") or item.get("outcome") != summary.get("outcome")]
+    history.insert(0, summary)
+    with open(CASE_HISTORY_PATH, "w", encoding="utf-8") as handle:
+        json.dump(history[:12], handle, indent=2)
+
+
+def save_last_run(add_history=False):
+    payload = {
+        "saved_at": datetime.now(timezone.utc).isoformat(),
+        "lab_state": LAB_STATE,
+    }
+    with open(LAST_RUN_PATH, "w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2)
+    if add_history:
+        append_case_history(case_summary())
+
+
+def restore_last_run():
+    if not os.path.exists(LAST_RUN_PATH):
+        return
+    try:
+        with open(LAST_RUN_PATH, "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+        saved_state = payload.get("lab_state")
+        if isinstance(saved_state, dict):
+            for key in LAB_STATE:
+                if key in saved_state:
+                    LAB_STATE[key] = saved_state[key]
+    except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        return
+
+
+def clear_saved_run():
+    try:
+        os.remove(LAST_RUN_PATH)
+    except FileNotFoundError:
+        return
+
+
+restore_last_run()
+
+
 CUSTOM_SIGNAL_MAP = [
     ("SEC-3001", ("impossible travel", "new country", "new location", "unusual location", "foreign", "geo", "login")),
     ("SEC-3002", ("mfa", "push", "fatigue", "approval", "denied")),
@@ -524,6 +633,7 @@ def clear_lab_state(stage="idle"):
     LAB_STATE["last_online_feed"] = None
     LAB_STATE["last_investigation"] = None
     LAB_STATE["custom_request"] = None
+    clear_saved_run()
 
 
 def select_incident(profile_id, load=False):
@@ -883,8 +993,9 @@ def custom_events_from_text(text):
             {
                 **prototype,
                 "time": f"custom+{index:02d}",
-                "summary": f"{prototype['summary']} Source: analyst-provided request.",
-                "origin": "custom-input",
+                "summary": prototype["summary"],
+                "origin": "analyst-evidence",
+                "evidence_source": "Analyst-supplied evidence",
             }
         )
     return events
@@ -980,6 +1091,7 @@ def run_custom_request(payload):
     LAB_STATE["custom_request"]["executed"] = executed
     LAB_STATE["custom_request"]["message"] = message
     LAB_STATE["custom_request"]["feedback"] = custom_decision_feedback(action, decision, executed, message)
+    save_last_run(add_history=True)
     return {"ok": True, "message": message, **state_payload()}
 
 
@@ -1375,6 +1487,7 @@ def ingest_online_feed(load_after=True):
     LAB_STATE["last_splunk_load"] = None
 
     if not load_after:
+        save_last_run(add_history=True)
         return {
             "ok": True,
             **state_payload(),
@@ -1386,8 +1499,10 @@ def ingest_online_feed(load_after=True):
     load_result = load_splunk_evidence()
     if load_result.get("ok"):
         load_result["feed"] = LAB_STATE["last_online_feed"]
+        save_last_run(add_history=True)
         return load_result
 
+    save_last_run(add_history=True)
     return {
         "ok": True,
         **state_payload(),
@@ -1459,6 +1574,7 @@ def load_splunk_evidence():
         "mcp_routed": splunk_mcp_enabled(),
         "route": VERITAS_SPLUNK_ROUTE if splunk_configured() else "mock",
     }
+    save_last_run(add_history=True)
 
     return {
         "ok": True,
@@ -1829,6 +1945,10 @@ class VeritasHandler(SimpleHTTPRequestHandler):
             self.send_json({"brief": brief_text()})
             return
 
+        if path == "/api/sentinel/case-history":
+            self.send_json({"history": read_case_history()})
+            return
+
         super().do_GET()
 
     def do_POST(self):
@@ -1919,6 +2039,7 @@ class VeritasHandler(SimpleHTTPRequestHandler):
                 self.send_json({"error": "Decision is not eligible for approval"}, status=400)
                 return
             LAB_STATE["approvals"][decision_id] = action
+            save_last_run()
             self.send_json(state_payload())
             return
 
@@ -1941,6 +2062,7 @@ class VeritasHandler(SimpleHTTPRequestHandler):
             if action_id not in {item["id"] for item in LAB_STATE["actions"]}:
                 LAB_STATE["actions"].append(action)
             LAB_STATE["stage"] = "contained" if calculate_risk() <= 35 else "responding"
+            save_last_run()
             self.send_json(state_payload())
             return
 

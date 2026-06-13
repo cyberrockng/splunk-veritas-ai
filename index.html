@@ -56,9 +56,9 @@
                   <span>Incident ID: <b id="incidentIdLabel">INC-2025-0001</b></span>
                   <span>Status: <b id="stageLabel">idle</b></span>
                   <span id="evidenceSourceLabel">Evidence source: waiting for live Splunk evidence</span>
-                  <span id="modeLabel" class="mode-badge mode-mock">Mode: Real feed not loaded</span>
+                  <span id="modeLabel" class="mode-badge mode-fallback">Mode: Online evidence not loaded</span>
                   <span>Owner: Tier 3 Response Lead</span>
-                  <span>Provider: <b id="providerLabel">mock-mcp</b></span>
+                  <span>Provider: <b id="providerLabel">not-loaded</b></span>
                 </div>
               </div>
             </section>
@@ -70,14 +70,56 @@
             </article>
           </section>
 
-          <section class="control-strip" aria-label="Primary incident demo">
+          <section class="control-strip" aria-label="Primary case workflow">
             <div class="action-group primary-action-group">
-              <span>Primary Demo</span>
+              <span>Primary Workflow</span>
               <div class="button-row">
-                <button id="judgeModeBtn" class="primary-btn judge-btn" type="button">Run Real Evidence Test</button>
+                <button id="customRequestBtn" class="primary-btn judge-btn" type="button">Feed Evidence & Run Veritas</button>
               </div>
             </div>
-            <p class="judge-explainer">Most SOC tools ask, "Is this alert real?" Veritas asks, "Are we justified to act?"</p>
+            <p class="judge-explainer">Paste incident evidence, choose the response task, and Veritas will score whether the action is justified.</p>
+          </section>
+
+          <section class="evidence-intake-panel" id="evidenceIntake" aria-label="Evidence intake">
+            <div class="panel-heading compact">
+              <span class="panel-number">In</span>
+              <div>
+                <p class="section-label">Evidence Intake</p>
+                <h3>Feed customer evidence into Veritas</h3>
+              </div>
+            </div>
+            <form id="intakeForm" class="intake-form">
+              <label>
+                Incident title
+                <input id="intakeIncidentTitle" name="title" placeholder="e.g. Suspicious admin activity review" autocomplete="off" />
+              </label>
+              <label>
+                Response task to test
+                <select id="intakeAction" name="action">
+                  <option value="revoke-token">Revoke session token</option>
+                  <option value="disable-account">Disable admin account</option>
+                  <option value="block-ip">Block source IP</option>
+                  <option value="open-incident">Open incident brief</option>
+                </select>
+              </label>
+              <label class="wide">
+                Evidence, alerts, or log summary
+                <textarea id="intakeEvidence" name="evidence" rows="5" required placeholder="Paste customer evidence here: timestamps, users, source IPs, alerts, log excerpts, actions observed, and the decision the team wants to make."></textarea>
+              </label>
+              <label class="wide">
+                Upload evidence file
+                <input id="intakeEvidenceFile" type="file" accept=".txt,.log,.json,.csv,.ndjson,application/json,text/plain,text/csv" />
+              </label>
+              <label class="checkline wide">
+                <input id="intakeExecute" type="checkbox" checked />
+                Execute the selected task when Veritas says the evidence threshold is met
+              </label>
+              <div class="intake-actions wide">
+                <button class="primary-btn" type="submit">Run Veritas Analysis</button>
+                <button class="secondary-btn" type="button" id="intakeExampleBtn">Load example</button>
+                <p id="intakeResult" class="custom-result"></p>
+              </div>
+            </form>
           </section>
 
           <section class="readiness-strip" aria-label="Decision Readiness Strip">
@@ -90,9 +132,20 @@
         </section>
 
         <section class="dashboard-grid">
-          <article class="panel dashboard-card strong-border panel-decisions" id="decisions" data-detail="decisions">
+          <article class="panel dashboard-card strong-border findings-panel" data-detail="timeline">
             <div class="panel-heading">
               <span class="panel-number">1</span>
+              <div>
+                <p class="section-label">What Veritas Found</p>
+                <h3>Normalized evidence signals from the case data</h3>
+              </div>
+            </div>
+            <div id="findingsPanel" class="findings-grid"></div>
+          </article>
+
+          <article class="panel dashboard-card strong-border panel-decisions" id="decisions" data-detail="decisions">
+            <div class="panel-heading">
+              <span class="panel-number">2</span>
               <div>
                 <p class="section-label">Response Decision Queue</p>
                 <h3>Actions Veritas will approve, block, or hold</h3>
@@ -103,7 +156,7 @@
 
           <article class="panel dashboard-card strong-border panel-threshold" id="matrix" data-detail="matrix">
             <div class="panel-heading">
-              <span class="panel-number">2</span>
+              <span class="panel-number">3</span>
               <div>
                 <p class="section-label">Evidence Threshold Matrix</p>
                 <h3>Current evidence against required thresholds</h3>
@@ -114,7 +167,7 @@
 
           <article class="panel dashboard-card strong-border integrity-panel" data-detail="integrity">
             <div class="panel-heading">
-              <span class="panel-number">3</span>
+              <span class="panel-number">4</span>
               <div>
                 <p class="section-label">Evidence Integrity & Blind Spot</p>
                 <h3>Can this evidence support the decision?</h3>
@@ -125,7 +178,7 @@
 
           <article class="panel dashboard-card strong-border missing-panel" data-detail="missing">
             <div class="panel-heading">
-              <span class="panel-number">4</span>
+              <span class="panel-number">5</span>
               <div>
                 <p class="section-label">Investigation Gaps to SPL</p>
                 <h3>Generate SPL queries to collect missing evidence</h3>
@@ -136,7 +189,7 @@
 
           <article class="panel dashboard-card strong-border blast-panel" id="blast" data-detail="blast">
             <div class="panel-heading">
-              <span class="panel-number">5</span>
+              <span class="panel-number">6</span>
               <div>
                 <p class="section-label">Blast Radius & Decision Risk</p>
                 <h3>What could go wrong if the team acts</h3>
@@ -147,7 +200,7 @@
 
           <article class="panel dashboard-card strong-border brief-panel" data-detail="audit">
             <div class="panel-heading">
-              <span class="panel-number">6</span>
+              <span class="panel-number">7</span>
               <div>
                 <p class="section-label">Tier 3 Decision Audit Brief</p>
                 <h3>Evidence-backed response governance</h3>
@@ -162,7 +215,7 @@
 
           <article class="panel approval-panel" data-detail="decisions">
             <div class="panel-heading">
-              <span class="panel-number">7</span>
+              <span class="panel-number">8</span>
               <div>
                 <p class="section-label">Analyst Approval Gate</p>
                 <h3>Human approval before high-impact action</h3>
@@ -173,7 +226,7 @@
 
           <article class="panel spotlight-panel" data-detail="decisions">
             <div class="panel-heading">
-              <span class="panel-number">8</span>
+              <span class="panel-number">9</span>
               <div>
                 <p class="section-label">Live Decision Spotlight</p>
                 <h3>The decision Veritas is protecting right now</h3>
@@ -184,14 +237,25 @@
 
           <article class="panel event-panel" data-detail="timeline">
             <div class="panel-heading">
-              <span class="panel-number">9</span>
+              <span class="panel-number">10</span>
               <div>
-                <p class="section-label">Attack Path Timeline</p>
-                <h3>Reconstructs the attacker path before response decisions are approved.</h3>
+                <p class="section-label">Case Timeline</p>
+                <h3>Chronological evidence Veritas used for response decisions.</h3>
               </div>
               <span class="live-pill">Live</span>
             </div>
             <div id="eventStream" class="event-rail"></div>
+          </article>
+
+          <article class="panel dashboard-card strong-border history-panel">
+            <div class="panel-heading">
+              <span class="panel-number">11</span>
+              <div>
+                <p class="section-label">Case History</p>
+                <h3>Previous Veritas runs on this workstation</h3>
+              </div>
+            </div>
+            <div id="caseHistoryPanel" class="case-history-list"></div>
           </article>
         </section>
 
@@ -211,24 +275,24 @@
           </div>
         </section>
 
-        <section class="secondary-controls" aria-label="Secondary demo controls">
+        <section class="secondary-controls" aria-label="Evidence and response controls">
           <details class="advanced-controls">
             <summary>Advanced controls</summary>
             <div class="advanced-control-grid">
               <div class="action-group">
                 <span>Investigation</span>
                 <div class="button-row">
-                  <button id="onlineFeedBtn" class="primary-btn" type="button">Fetch Online Feed</button>
+                  <button id="onlineFeedBtn" class="primary-btn" type="button">Ingest Online Feed</button>
                   <button id="loadSplunkBtn" class="secondary-btn" type="button">Pull Indexed Evidence</button>
-                  <button id="investigateBtn" class="secondary-btn" type="button">Run Tier 3 Evidence Review</button>
+                  <button id="investigateBtn" class="secondary-btn" type="button">Analyze Decision</button>
                 </div>
               </div>
               <div class="action-group">
                 <span>Response & Admin</span>
                 <div class="button-row">
-                  <button id="executeSafeBtn" class="primary-btn" type="button">Execute Approved Containment</button>
-                  <button id="customRequestBtn" class="secondary-btn" type="button">Run Custom Request</button>
-                  <button id="resetLabBtn" class="secondary-btn" type="button">Reset Lab</button>
+                  <button id="executeSafeBtn" class="primary-btn" type="button">Approve / Execute Action</button>
+                  <button id="judgeModeBtn" class="secondary-btn" type="button">Run Online Evidence Flow</button>
+                  <button id="resetLabBtn" class="secondary-btn" type="button">New Case</button>
                 </div>
               </div>
             </div>
@@ -302,8 +366,8 @@
     <dialog id="customDialog">
       <div class="dialog-header">
         <div>
-          <p class="section-label">Custom Request Runner</p>
-          <h3>Feed evidence, choose the task, and let Veritas execute if justified</h3>
+          <p class="section-label">Analyst Evidence Runner</p>
+          <h3>Feed evidence, choose the task, and run Veritas</h3>
         </div>
         <button id="closeCustomBtn" class="icon-btn" type="button" aria-label="Close custom request">
           X
@@ -315,7 +379,7 @@
           <input
             id="customIncidentTitle"
             name="title"
-            value="Suspicious admin activity review"
+            placeholder="e.g. Suspicious admin activity review"
             autocomplete="off"
           />
         </label>
@@ -330,7 +394,7 @@
         </label>
         <label class="wide">
           Evidence / request details
-          <textarea id="customEvidence" name="evidence" rows="8">Admin login from a new country, impossible travel, repeated MFA anomaly prompts, privilege escalation to super_admin, admin API export endpoint returned 200, scripted curl download from the admin workstation, and cloud export to object storage.</textarea>
+          <textarea id="customEvidence" name="evidence" rows="8" required placeholder="Paste the facts, alerts, log summary, user, IP, actions, and the response you are considering. Veritas will only score what you provide."></textarea>
         </label>
         <div class="scenario-row wide" aria-label="Custom request examples">
           <button
@@ -339,7 +403,7 @@
             data-title="Custom MFA session containment"
             data-action="revoke-token"
           >
-            Test revoke session
+            Example: revoke session
           </button>
           <button
             type="button"
@@ -347,7 +411,7 @@
             data-title="Custom admin disable decision"
             data-action="disable-account"
           >
-            Test disable admin
+            Example: disable admin
           </button>
           <button
             type="button"
@@ -355,7 +419,7 @@
             data-title="Custom weak evidence hold"
             data-action="block-ip"
           >
-            Test insufficient evidence
+            Example: insufficient evidence
           </button>
         </div>
         <label class="checkline">
@@ -369,7 +433,7 @@
       </form>
     </dialog>
 
-    <script type="module" src="app.js?v=20260611-natural-scroll"></script>
+    <script type="module" src="app.js?v=20260613-case-workspace"></script>
     <script>
       (function () {
         function fitExecutiveCanvas() {

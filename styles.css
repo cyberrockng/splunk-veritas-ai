@@ -638,6 +638,74 @@ h3 {
   white-space: nowrap;
 }
 
+.evidence-intake-panel {
+  border: 1px solid #b8d0f4;
+  border-radius: 6px;
+  padding: 10px;
+  background: #f8fbff;
+}
+
+.intake-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 10px;
+  margin-top: 9px;
+}
+
+.intake-form label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.intake-form .wide,
+.intake-actions {
+  grid-column: 1 / -1;
+}
+
+.intake-form input,
+.intake-form select,
+.intake-form textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 9px;
+  color: var(--ink);
+  background: var(--panel);
+  font: inherit;
+  font-weight: 550;
+}
+
+.intake-form textarea {
+  resize: vertical;
+  line-height: 1.4;
+}
+
+.intake-form .checkline {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.intake-form .checkline input {
+  width: auto;
+}
+
+.intake-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  align-items: center;
+}
+
+.intake-actions .custom-result {
+  flex: 1 1 280px;
+}
+
 .secondary-controls .primary-btn,
 .secondary-controls .secondary-btn {
   min-height: 32px;
@@ -852,7 +920,7 @@ h3 {
 
 .demo-steps {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 5px;
 }
 
@@ -977,6 +1045,10 @@ h3 {
   font-weight: 900;
 }
 
+.findings-panel {
+  grid-column: 1 / -1;
+}
+
 .panel-decisions {
   grid-column: 1 / span 6;
 }
@@ -1000,9 +1072,125 @@ h3 {
   grid-column: 1 / -1;
 }
 
+.history-panel {
+  grid-column: 1 / -1;
+}
+
 .approval-panel,
 .spotlight-panel {
   grid-column: span 6;
+}
+
+.findings-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.finding-card {
+  display: grid;
+  gap: 6px;
+  min-height: 116px;
+  border: 1px solid var(--soft-line);
+  border-left: 4px solid var(--blue);
+  border-radius: 5px;
+  padding: 9px;
+  background: #fbfdff;
+}
+
+.finding-card.critical {
+  border-left-color: var(--red);
+}
+
+.finding-card.high {
+  border-left-color: var(--amber);
+}
+
+.finding-card span,
+.finding-card em,
+.finding-card b {
+  color: var(--muted);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.finding-card strong {
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.finding-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.finding-card div {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.case-history-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.case-history-item {
+  display: grid;
+  gap: 7px;
+  border: 1px solid var(--soft-line);
+  border-left: 4px solid var(--amber);
+  border-radius: 5px;
+  padding: 9px;
+  background: #fbfdff;
+}
+
+.case-history-item.executed {
+  border-left-color: var(--green);
+}
+
+.case-history-item strong {
+  display: block;
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.case-history-item span,
+.case-history-item p,
+.case-history-item dt {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.case-history-item p {
+  margin: 0;
+  line-height: 1.35;
+}
+
+.case-history-item dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+}
+
+.case-history-item div,
+.case-history-item dd {
+  min-width: 0;
+}
+
+.case-history-item dd {
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 900;
 }
 
 .support-grid {
@@ -2584,7 +2772,10 @@ dialog::backdrop {
   .readiness-strip,
   .dashboard-grid,
   .support-grid,
+  .findings-grid,
+  .case-history-list,
   .demo-steps,
+  .intake-form,
   .detail-hero,
   .detail-summary-grid,
   .detail-card-grid,

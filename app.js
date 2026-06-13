@@ -22,6 +22,7 @@ const els = {
   readinessStrip: document.querySelector("#readinessStrip"),
   demoSteps: document.querySelector("#demoSteps"),
   decisionMatrix: document.querySelector("#decisionMatrix"),
+  findingsPanel: document.querySelector("#findingsPanel"),
   thresholdMatrix: document.querySelector("#thresholdMatrix"),
   integrityPanel: document.querySelector("#integrityPanel"),
   splGapList: document.querySelector("#splGapList"),
@@ -45,6 +46,16 @@ const els = {
   applyPolicyBtn: document.querySelector("#applyPolicyBtn"),
   tier3Summary: document.querySelector("#tier3Summary"),
   exportBriefBtn: document.querySelector("#exportBriefBtn"),
+  evidenceIntake: document.querySelector("#evidenceIntake"),
+  intakeForm: document.querySelector("#intakeForm"),
+  intakeIncidentTitle: document.querySelector("#intakeIncidentTitle"),
+  intakeAction: document.querySelector("#intakeAction"),
+  intakeEvidence: document.querySelector("#intakeEvidence"),
+  intakeEvidenceFile: document.querySelector("#intakeEvidenceFile"),
+  intakeExecute: document.querySelector("#intakeExecute"),
+  intakeResult: document.querySelector("#intakeResult"),
+  intakeExampleBtn: document.querySelector("#intakeExampleBtn"),
+  caseHistoryPanel: document.querySelector("#caseHistoryPanel"),
   customRequestBtn: document.querySelector("#customRequestBtn"),
   customDialog: document.querySelector("#customDialog"),
   closeCustomBtn: document.querySelector("#closeCustomBtn"),
@@ -90,6 +101,8 @@ let state = {
   integration: {}
 };
 
+let caseHistory = [];
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -109,12 +122,14 @@ function normalizedStatus(status = "") {
 
 function providerInfo(integration = {}) {
   const provider = integration.search_provider || integration.provider || integration.adapter || "mock-mcp";
+  const feed = integration.last_online_feed;
+  const feedIngested = Boolean(feed?.ingested?.length);
 
   if (provider === "splunk-rest") {
     return {
       provider,
-      source: "Evidence source: Splunk REST",
-      mode: "Mode: Real indexed evidence",
+      source: feedIngested ? "Evidence source: online feed indexed by Splunk REST" : "Evidence source: Splunk REST",
+      mode: feedIngested ? "Mode: Ingested online evidence scored" : "Mode: Real indexed evidence",
       tone: "real"
     };
   }
@@ -122,8 +137,8 @@ function providerInfo(integration = {}) {
   if (provider === "splunk-mcp") {
     return {
       provider,
-      source: "Evidence source: Splunk MCP",
-      mode: "Mode: MCP-routed indexed evidence",
+      source: feedIngested ? "Evidence source: online feed indexed through Splunk MCP" : "Evidence source: Splunk MCP",
+      mode: feedIngested ? "Mode: Ingested online evidence scored" : "Mode: MCP-routed indexed evidence",
       tone: "real"
     };
   }
@@ -131,27 +146,59 @@ function providerInfo(integration = {}) {
   if (provider === "mock-mcp-fallback") {
     return {
       provider,
-      source: "Evidence source: mock-mcp fallback",
-      mode: "Mode: Splunk unavailable; safe fallback active",
+      source: feedIngested ? "Evidence source: online feed ingested; Splunk search unavailable" : "Evidence source: Splunk search unavailable",
+      mode: feedIngested ? "Mode: Indexed evidence pending" : "Mode: No live indexed evidence",
       tone: "fallback"
     };
   }
 
   if (provider === "custom-input") {
     return {
-      provider,
-      source: "Evidence source: custom analyst input",
+      provider: "analyst-evidence",
+      source: "Evidence source: analyst-supplied evidence",
       mode: "Mode: Analyst-supplied evidence evaluation",
-      tone: "mock"
+      tone: "fallback"
+    };
+  }
+
+  if (feedIngested) {
+    return {
+      provider: "splunk-hec",
+      source: "Evidence source: online feed ingested into Splunk HEC",
+      mode: "Mode: Waiting for indexed Splunk search",
+      tone: "fallback"
     };
   }
 
   return {
-    provider: state.events?.length ? "local-dev" : "not-loaded",
-    source: state.events?.length ? "Evidence source: local developer fixture" : "Evidence source: waiting for live Splunk evidence",
-    mode: state.events?.length ? "Mode: Local developer fallback" : "Mode: Real feed not loaded",
-    tone: "mock"
+    provider: "not-loaded",
+    source: "Evidence source: connect Splunk and ingest the online feed",
+    mode: "Mode: Online evidence not loaded",
+    tone: "fallback"
   };
+}
+
+function onlineFeedStatus() {
+  const feed = state.integration?.last_online_feed;
+  if (!feed?.ingested?.length) return null;
+  return {
+    eventIds: feed.ingested,
+    sourceCount: feed.sources_fetched?.length || 0,
+    index: feed.index || "veritas",
+    sourcetype: feed.sourcetype || "veritas:incident"
+  };
+}
+
+function hasScoredEvidence() {
+  return Boolean(state.events?.length || state.integration?.request);
+}
+
+function hasAnyRun() {
+  return hasScoredEvidence() || Boolean(onlineFeedStatus());
+}
+
+function emptyRunPanel(message = "Feed evidence to run Veritas. Previous run results will stay here until New Case is used.") {
+  return `<div class="empty-panel">${escapeHtml(message)}</div>`;
 }
 
 function riskTone(score = 0) {
@@ -187,6 +234,9 @@ function blockedDecisionLabel(decision) {
 
 function formatTime(value) {
   if (!value) return "--:--:--";
+  if (String(value).startsWith("custom+")) {
+    return `Step ${String(value).split("+")[1] || ""}`;
+  }
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleTimeString([], { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -211,6 +261,14 @@ function eventDisplay(event) {
   };
 }
 
+function findingTitle(event) {
+  return eventDisplay(event).title;
+}
+
+function findingDescription(event) {
+  return eventDisplay(event).description || event.summary || event.message || "";
+}
+
 async function requestJson(path, options = {}) {
   const response = await fetch(`${API_BASE}${path}`, {
     headers: { "Content-Type": "application/json", ...(options.headers || {}) },
@@ -229,6 +287,15 @@ async function requestJson(path, options = {}) {
   }
 
   return response.json();
+}
+
+async function loadCaseHistory() {
+  try {
+    const payload = await requestJson("/case-history");
+    caseHistory = Array.isArray(payload.history) ? payload.history : [];
+  } catch {
+    caseHistory = [];
+  }
 }
 
 function sleep(ms) {
@@ -309,12 +376,13 @@ function findCheck(checkId) {
 }
 
 function renderMetrics() {
-  const ready = state.decisions.filter((decision) => ["approved", "caution"].includes(normalizedStatus(decision.status))).length;
-  const blocked = state.decisions.filter((decision) => ["blocked", "not-ready"].includes(normalizedStatus(decision.status))).length;
+  const scoredDecisions = hasScoredEvidence() ? state.decisions : [];
+  const ready = scoredDecisions.filter((decision) => ["approved", "caution"].includes(normalizedStatus(decision.status))).length;
+  const blocked = scoredDecisions.filter((decision) => ["blocked", "not-ready"].includes(normalizedStatus(decision.status))).length;
   const provider = providerInfo(state.integration);
   const customRequest = state.integration?.request;
   const telemetry = state.integrity?.telemetry_completeness ?? 0;
-  const risk = Number(state.risk || 0);
+  const risk = hasAnyRun() ? Number(state.risk || 0) : 0;
   const riskText = risk >= 75 ? "High Risk" : risk >= 45 ? "Elevated Risk" : risk > 0 ? "Controlled Risk" : "No Active Risk";
   const trend = risk >= 75 ? "up +12" : risk >= 45 ? "up +6" : risk > 0 ? "down -42" : "0";
 
@@ -364,12 +432,16 @@ function renderTier3Controls() {
   }
 
   if (els.tier3Summary) {
-    const topDecision = [...state.decisions].sort((a, b) => (b.readiness || 0) - (a.readiness || 0))[0];
-    const blocked = state.decisions.filter((decision) => ["blocked", "not-ready"].includes(normalizedStatus(decision.status))).length;
+    const topDecision = hasScoredEvidence()
+      ? [...state.decisions].sort((a, b) => (b.readiness || 0) - (a.readiness || 0))[0]
+      : null;
+    const blocked = hasScoredEvidence()
+      ? state.decisions.filter((decision) => ["blocked", "not-ready"].includes(normalizedStatus(decision.status))).length
+      : 0;
     els.tier3Summary.innerHTML = `
       <strong>${escapeHtml(state.incident?.summary || "Tier 3 decision governance")}</strong>
       <span>Policy: ${escapeHtml(state.policy?.label || "Standard")} - ${escapeHtml(state.policy?.description || "Balanced evidence thresholds.")}</span>
-      <span>Evidence posture: ${topDecision ? `${escapeHtml(topDecision.title)} is ${escapeHtml(topDecision.status)} at ${topDecision.readiness}% readiness` : "Fetch online evidence and pull indexed Splunk events to score readiness."} ${blocked ? `${blocked} decision(s) still blocked or not ready.` : ""}</span>
+      <span>Evidence posture: ${topDecision ? `${escapeHtml(topDecision.title)} is ${escapeHtml(topDecision.status)} at ${topDecision.readiness}% readiness` : "Feed evidence and run Veritas to score readiness."} ${blocked ? `${blocked} decision(s) still blocked or not ready.` : ""}</span>
     `;
   }
 }
@@ -385,8 +457,11 @@ function shortDecisionName(title = "") {
 
 function renderReadinessStrip() {
   if (!els.readinessStrip) return;
-  if (!state.decisions.length) {
-    els.readinessStrip.innerHTML = `<div class="readiness-empty">Load evidence to score the five response decisions.</div>`;
+  if (!hasScoredEvidence()) {
+    const feed = onlineFeedStatus();
+    els.readinessStrip.innerHTML = feed
+      ? `<div class="readiness-empty">Online evidence is ingested. Pull indexed Splunk events to score the five response decisions.</div>`
+      : `<div class="readiness-empty">Fetch online evidence to score the five response decisions.</div>`;
     return;
   }
 
@@ -403,6 +478,21 @@ function renderReadinessStrip() {
 
 function renderJudgeStory() {
   if (!els.judgeStoryCards) return;
+  if (!hasScoredEvidence()) {
+    const feed = onlineFeedStatus();
+    els.judgeStoryCards.innerHTML = `
+      <article class="judge-story-card review">
+        <span>${feed ? "Ingested evidence pending" : "Awaiting evidence"}</span>
+        <strong>${feed ? "Pull indexed Splunk evidence" : "Feed evidence and run Veritas"}</strong>
+        <div>
+          <b>${feed ? "Pending" : "Ready"}</b>
+          <em>--</em>
+        </div>
+        <p>${feed ? "Online feed data is in Splunk HEC. Veritas will score decisions after indexed events are loaded." : "No decision output is shown until evidence is entered or a previous run is loaded."}</p>
+      </article>
+    `;
+    return;
+  }
 
   const safe = state.decisions.find((decision) => normalizedStatus(decision.status) === "approved")
     || state.decisions.find((decision) => normalizedStatus(decision.status) === "caution");
@@ -433,7 +523,7 @@ function renderJudgeStory() {
       title: "Revoke session token",
       status: "Waiting",
       readiness: "--",
-      reason: "Run the live judge demo to prove the evidence threshold."
+      reason: "Ingest evidence, query Splunk, and prove the response threshold."
     })}
     ${storyCard("blocked", "Unsafe conclusion blocked", blocked, {
       title: "Declare no sensitive data accessed",
@@ -447,12 +537,13 @@ function renderJudgeStory() {
 function renderDemoSteps() {
   const evidenceProvider = state.integration?.search_provider || state.integration?.provider;
   const feed = state.integration?.last_online_feed;
+  const customRun = Boolean(state.integration?.request);
   const steps = [
-    { label: "Fetch online feed", done: Boolean(feed?.ingested?.length) },
-    { label: "Pull indexed evidence", done: ["splunk-rest", "splunk-mcp"].includes(evidenceProvider) },
-    { label: "Check thresholds", done: hasCheckedThresholds() },
-    { label: "Approve safe actions", done: approvedApprovalCount() >= 3 },
-    { label: "Execute and brief", done: completedActionCount() >= 3 }
+    { label: "Feed evidence", done: customRun || Boolean(feed?.ingested?.length) },
+    { label: "Run Veritas", done: hasScoredEvidence() },
+    { label: "Score thresholds", done: hasScoredEvidence() && hasCheckedThresholds() },
+    { label: "Approve actions", done: approvedApprovalCount() > 0 },
+    { label: "Export audit proof", done: completedActionCount() > 0 || ["splunk-rest", "splunk-mcp"].includes(evidenceProvider) }
   ];
   const nextIndex = steps.findIndex((step) => !step.done);
   const activeIndex = nextIndex === -1 ? steps.length - 1 : nextIndex;
@@ -468,8 +559,11 @@ function renderDemoSteps() {
 }
 
 function renderDecisionMatrix() {
-  if (!state.decisions.length) {
-    els.decisionMatrix.innerHTML = `<div class="empty-panel">Fetch the online evidence feed, ingest it into Splunk, then run the evidence review.</div>`;
+  if (!hasScoredEvidence()) {
+    const feed = onlineFeedStatus();
+    els.decisionMatrix.innerHTML = feed
+      ? `<div class="empty-panel">Online feed is in Splunk HEC for index ${escapeHtml(feed.index)}. Pull indexed evidence so Veritas can score decisions from the ingested events.</div>`
+      : emptyRunPanel("No decision output yet. Feed incident evidence and run Veritas to score response decisions.");
     return;
   }
 
@@ -526,6 +620,31 @@ function renderDecisionMatrix() {
   `;
 }
 
+function renderFindings() {
+  if (!els.findingsPanel) return;
+  if (!state.events.length) {
+    const feed = onlineFeedStatus();
+    els.findingsPanel.innerHTML = feed
+      ? emptyRunPanel("Online evidence is ingested. Pull indexed Splunk evidence to normalize findings.")
+      : emptyRunPanel("No findings yet. Feed customer evidence or upload a file to let Veritas normalize the case signals.");
+    return;
+  }
+
+  els.findingsPanel.innerHTML = `
+    ${state.events.slice(0, 6).map((event, index) => `
+      <article class="finding-card ${escapeHtml(event.severity || "medium")}">
+        <span>${escapeHtml(formatTime(event.timestamp || event._time || event.time))}</span>
+        <strong>${escapeHtml(findingTitle(event))}</strong>
+        <p>${escapeHtml(findingDescription(event))}</p>
+        <div>
+          <em>${escapeHtml(event.source || "Analyst evidence")}</em>
+          <b>${escapeHtml(event.severity || "medium")}</b>
+        </div>
+      </article>
+    `).join("")}
+  `;
+}
+
 function blockedReason(decision) {
   const missing = (decision.missing_evidence || []).map((item) => item.label).slice(0, 3);
   if (decision.id === "declare-no-data-access") {
@@ -547,6 +666,14 @@ function thresholdScore(check) {
 }
 
 function renderThresholdMatrix() {
+  if (!hasScoredEvidence()) {
+    const feed = onlineFeedStatus();
+    els.thresholdMatrix.innerHTML = feed
+      ? `<div class="empty-panel">Online feed is ingested into Splunk HEC. Pull indexed Splunk evidence before Veritas scores threshold categories from the ingested data.</div>`
+      : emptyRunPanel("No threshold output yet. Scores appear only after you provide evidence and run Veritas.");
+    return;
+  }
+
   const rows = allChecks();
   if (!rows.length) {
     els.thresholdMatrix.innerHTML = `<div class="empty-panel">Evidence thresholds will appear after investigation.</div>`;
@@ -603,7 +730,11 @@ function integrityRows() {
   const sourcesMissing = Array.isArray(missingRaw) ? missingRaw.length : Number(missingRaw || 0);
   const sourcesExpected = Number(integrity.sources_expected || sourcesChecked + sourcesMissing || 0);
   const freshnessRaw = integrity.evidence_freshness || integrity.freshness || "Live";
-  const freshness = String(freshnessRaw).includes("T") ? "2m ago" : freshnessRaw;
+  const freshness = String(freshnessRaw).startsWith("custom+")
+    ? formatTime(freshnessRaw)
+    : String(freshnessRaw).includes("T")
+      ? "2m ago"
+      : freshnessRaw;
   const parsedTrust = Number(integrity.source_trust);
   const sourceTrust = Number.isFinite(parsedTrust) ? parsedTrust : 82;
   return [
@@ -617,6 +748,14 @@ function integrityRows() {
 }
 
 function renderIntegrity() {
+  if (!hasScoredEvidence()) {
+    const feed = onlineFeedStatus();
+    els.integrityPanel.innerHTML = feed
+      ? emptyRunPanel("Online feed is ingested. Evidence integrity will be calculated after indexed Splunk events are loaded.")
+      : emptyRunPanel("Evidence integrity will appear after an analyst evidence run.");
+    return;
+  }
+
   els.integrityPanel.innerHTML = `
     <div class="integrity-list">
       ${integrityRows().map(([label, value, tone]) => `
@@ -635,6 +774,14 @@ function renderIntegrity() {
 }
 
 function renderSplGaps() {
+  if (!hasScoredEvidence()) {
+    const feed = onlineFeedStatus();
+    els.splGapList.innerHTML = feed
+      ? emptyRunPanel("SPL gaps will appear after indexed Splunk evidence is pulled into Veritas.")
+      : emptyRunPanel("Investigation gaps will appear after you feed evidence and run Veritas.");
+    return;
+  }
+
   const gaps = missingEvidenceItems();
   if (!gaps.length) {
     els.splGapList.innerHTML = `<div class="empty-panel good">No active evidence gaps. Required evidence is present for current safe actions.</div>`;
@@ -657,6 +804,11 @@ function renderSplGaps() {
 }
 
 function renderBlastRadius() {
+  if (!hasScoredEvidence()) {
+    els.blastRadiusList.innerHTML = emptyRunPanel("Blast-radius warnings will appear after Veritas scores the proposed action.");
+    return;
+  }
+
   const blastItems = state.decisions
     .filter((decision) => decision.blast_radius)
     .map((decision) => ({
@@ -688,6 +840,14 @@ function renderBlastRadius() {
 function renderAuditPreview() {
   const provider = state.integration?.search_provider || state.integration?.provider || "Splunk REST";
   const customRequest = state.integration?.request;
+  if (!hasScoredEvidence()) {
+    const feed = onlineFeedStatus();
+    els.auditPreview.innerHTML = feed
+      ? emptyRunPanel("Audit proof will be available after indexed Splunk evidence is loaded and scored.")
+      : emptyRunPanel("The audit brief will be generated from the evidence you feed into Veritas.");
+    return;
+  }
+
   if (customRequest?.feedback) {
     const feedback = customRequest.feedback;
     els.auditPreview.innerHTML = `
@@ -730,8 +890,11 @@ function renderAuditPreview() {
 }
 
 function renderApprovalGate() {
-  if (!state.approvals.length) {
-    els.approvalGate.innerHTML = `<div class="empty-panel">High-impact actions will queue here after threshold checks.</div>`;
+  if (!hasScoredEvidence() || !state.approvals.length) {
+    const feed = onlineFeedStatus();
+    els.approvalGate.innerHTML = feed
+      ? `<div class="empty-panel">Approval queue opens after indexed Splunk evidence is pulled and thresholds are scored.</div>`
+      : emptyRunPanel("Approval queue opens after Veritas scores a user-provided evidence run.");
     return;
   }
 
@@ -757,6 +920,14 @@ function renderApprovalGate() {
 }
 
 function renderDecisionSpotlight() {
+  if (!hasScoredEvidence()) {
+    const feed = onlineFeedStatus();
+    els.decisionSpotlight.innerHTML = feed
+      ? `<div class="empty-panel">Online data has been ingested. Pull indexed Splunk evidence to generate decision assurance.</div>`
+      : emptyRunPanel("Decision assurance will appear after you feed evidence and run Veritas.");
+    return;
+  }
+
   const critical = state.decisions.find((decision) => normalizedStatus(decision.status) === "blocked")
     || state.decisions.find((decision) => normalizedStatus(decision.status) === "not-ready")
     || state.decisions.find((decision) => normalizedStatus(decision.status) === "caution")
@@ -785,7 +956,10 @@ function renderDecisionSpotlight() {
 
 function renderEvents() {
   if (!state.events.length) {
-    els.eventStream.innerHTML = `<div class="empty-panel">No live incident events yet.</div>`;
+    const feed = onlineFeedStatus();
+    els.eventStream.innerHTML = feed
+      ? `<div class="empty-panel">Online feed ingested into Splunk HEC: ${escapeHtml(feed.eventIds.join(", "))}. Query the Splunk index to make these events visible in the Veritas timeline and decision matrix.</div>`
+      : emptyRunPanel("No case evidence loaded. Use Feed Evidence & Run Veritas to start a new run.");
     return;
   }
 
@@ -807,12 +981,36 @@ function renderEvents() {
   `;
 }
 
+function renderCaseHistory() {
+  if (!els.caseHistoryPanel) return;
+  if (!caseHistory.length) {
+    els.caseHistoryPanel.innerHTML = emptyRunPanel("No previous cases yet. Completed Veritas runs will appear here.");
+    return;
+  }
+
+  els.caseHistoryPanel.innerHTML = caseHistory.slice(0, 6).map((item) => `
+    <article class="case-history-item ${item.executed ? "executed" : "held"}">
+      <div>
+        <strong>${escapeHtml(item.title || "Veritas case")}</strong>
+        <span>${escapeHtml(item.source || "Evidence")}</span>
+      </div>
+      <p>${escapeHtml(item.outcome || "Run completed")}</p>
+      <dl>
+        <div><dt>Ready</dt><dd>${Number(item.ready_decisions || 0)}</dd></div>
+        <div><dt>Blocked</dt><dd>${Number(item.blocked_decisions || 0)}</dd></div>
+        <div><dt>Events</dt><dd>${Number(item.events || 0)}</dd></div>
+      </dl>
+    </article>
+  `).join("");
+}
+
 function render() {
   renderMetrics();
   renderTier3Controls();
   renderReadinessStrip();
   renderJudgeStory();
   renderDemoSteps();
+  renderFindings();
   renderDecisionMatrix();
   renderThresholdMatrix();
   renderIntegrity();
@@ -822,11 +1020,13 @@ function render() {
   renderApprovalGate();
   renderDecisionSpotlight();
   renderEvents();
+  renderCaseHistory();
   requestAnimationFrame(fitExecutiveCanvas);
 }
 
 async function loadState() {
   try {
+    await loadCaseHistory();
     const payload = await requestJson("/state");
     setState(payload);
     logEntry("Loaded current Veritas state.");
@@ -836,19 +1036,21 @@ async function loadState() {
 }
 
 async function resetLab() {
-  logEntry("Resetting incident lab.");
+  logEntry("Starting a new case.");
   const payload = await requestJson("/reset", { method: "POST", body: "{}" });
+  await loadCaseHistory();
   setState(payload);
 }
 
 async function loadFromSplunk() {
   const configured = Boolean(state.integration?.configured);
   logEntry(configured
-    ? "Pulling real indexed evidence from Splunk REST."
-    : "Splunk REST is not configured; indexed evidence pull will use safe fallback handling.");
+    ? "Pulling indexed evidence from Splunk for the ingested online feed."
+    : "Indexed evidence search requires Splunk host and search token; Veritas will not substitute local results.");
   try {
     await requestJson("/load-splunk", { method: "POST", body: "{}" });
     const payload = await requestJson("/state");
+    await loadCaseHistory();
     setState(payload);
     logEntry("Splunk indexed evidence loaded.");
   } catch (error) {
@@ -860,14 +1062,18 @@ async function loadFromSplunk() {
 async function ingestOnlineFeed() {
   const hasHec = Boolean(state.integration?.hec_configured);
   const hasSearch = Boolean(state.integration?.configured);
-  logEntry(hasHec && hasSearch
+  logEntry(hasHec
     ? "Fetching the online attack-data feed and ingesting it into Splunk HEC."
-    : "Online feed requires Splunk REST and HEC configuration before it can run.", hasHec && hasSearch ? "info" : "warn");
+    : "Online feed requires Splunk HEC configuration before it can run.", hasHec ? "info" : "warn");
+  if (hasHec && !hasSearch) {
+    logEntry("Splunk search is not configured; Veritas will stop after HEC ingestion until indexed evidence can be pulled.", "warn");
+  }
   try {
     const payload = await requestJson("/ingest-online-feed", {
       method: "POST",
       body: JSON.stringify({ load_after: true })
     });
+    await loadCaseHistory();
     setState(payload);
     const feed = payload.feed || payload.integration?.last_online_feed;
     if (feed?.ingested?.length) {
@@ -959,24 +1165,17 @@ async function exportBrief() {
   els.briefDialog.showModal();
 }
 
-async function runCustomRequest(event) {
-  event.preventDefault();
-  els.customResult.textContent = "Running request...";
-  const payload = {
-    title: els.customIncidentTitle.value,
-    evidence: els.customEvidence.value,
-    action: els.customAction.value,
-    execute: els.customExecute.checked
-  };
-
+async function submitEvidenceRun(payload, resultElement) {
+  resultElement.textContent = "Running request...";
   try {
     const result = await requestJson("/custom-run", {
       method: "POST",
       body: JSON.stringify(payload)
     });
+    await loadCaseHistory();
     setState(result);
     const feedback = result.integration?.request?.feedback;
-    els.customResult.innerHTML = feedback
+    resultElement.innerHTML = feedback
       ? `
         <strong>${feedback.executed ? "Executed" : "Held"}: ${escapeHtml(feedback.action_label)}</strong>
         <span>${escapeHtml(feedback.message)}</span>
@@ -987,9 +1186,41 @@ async function runCustomRequest(event) {
       : escapeHtml(result.message || "Request executed.");
     logEntry(result.message || "Custom request executed.");
   } catch (error) {
-    els.customResult.textContent = error.message;
+    resultElement.textContent = error.message;
     logEntry(`Custom request failed: ${error.message}`, "error");
   }
+}
+
+async function runIntakeRequest(event) {
+  event.preventDefault();
+  return submitEvidenceRun({
+    title: els.intakeIncidentTitle.value,
+    evidence: els.intakeEvidence.value,
+    action: els.intakeAction.value,
+    execute: els.intakeExecute.checked
+  }, els.intakeResult);
+}
+
+async function runCustomRequest(event) {
+  event.preventDefault();
+  return submitEvidenceRun({
+    title: els.customIncidentTitle.value,
+    evidence: els.customEvidence.value,
+    action: els.customAction.value,
+    execute: els.customExecute.checked
+  }, els.customResult);
+}
+
+async function loadEvidenceFile(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const text = await file.text();
+  const prefix = `Uploaded file: ${file.name}\n`;
+  els.intakeEvidence.value = `${prefix}${text}`.trim();
+  if (!els.intakeIncidentTitle.value) {
+    els.intakeIncidentTitle.value = file.name.replace(/\.[^.]+$/, "");
+  }
+  els.intakeResult.textContent = `${file.name} loaded. Choose a response task and run Veritas Analysis.`;
 }
 
 function showEvidenceDrilldown(checkId) {
@@ -1112,9 +1343,24 @@ function bindEvents() {
   });
   els.resetLabBtn?.addEventListener("click", () => resetLab().catch((error) => logEntry(error.message, "error")));
   els.customRequestBtn?.addEventListener("click", () => {
-    els.customResult.textContent = "Choose a test scenario or enter your own evidence.";
-    els.customDialog.showModal();
+    els.evidenceIntake?.scrollIntoView({ behavior: "smooth", block: "center" });
+    els.intakeEvidence?.focus();
+    els.intakeResult.textContent = "Paste customer evidence, choose a task, then run Veritas.";
   });
+  els.intakeExampleBtn?.addEventListener("click", () => {
+    els.intakeIncidentTitle.value = "Customer supplied admin takeover";
+    els.intakeAction.value = "disable-account";
+    els.intakeEvidence.value = "Admin login from a new country with impossible travel. Repeated MFA anomaly prompts followed by approval. Privilege escalation to super_admin. Admin API export endpoint returned 200. Scripted curl download observed on the admin workstation.";
+    els.intakeResult.textContent = "Example loaded. Click Run Veritas Analysis.";
+    els.intakeEvidence.focus();
+  });
+  els.intakeEvidenceFile?.addEventListener("change", (event) => {
+    loadEvidenceFile(event).catch((error) => {
+      els.intakeResult.textContent = error.message;
+      logEntry(`Evidence file load failed: ${error.message}`, "error");
+    });
+  });
+  els.intakeForm?.addEventListener("submit", runIntakeRequest);
   els.closeCustomBtn?.addEventListener("click", () => els.customDialog.close());
   els.customDialog?.addEventListener("click", (event) => {
     const scenario = event.target.closest("[data-scenario]");

@@ -26,7 +26,7 @@
           <div class="detail-action-group primary-detail-actions">
             <span>Test</span>
             <div class="button-row">
-              <button id="runCustomBtn" class="primary-btn" type="button">Run Custom Request</button>
+              <button id="runCustomBtn" class="primary-btn" type="button">Feed Evidence</button>
             </div>
           </div>
         </div>
@@ -61,14 +61,14 @@
         <div class="panel-heading">
           <span class="panel-number">Run</span>
           <div>
-            <p class="section-label">Executable Test Input</p>
-            <h3>Feed information and let Veritas decide whether to execute</h3>
+            <p class="section-label">Analyst Evidence Runner</p>
+            <h3>Feed evidence and let Veritas decide whether to execute</h3>
           </div>
         </div>
         <form id="detailCustomForm" class="custom-form detail-custom-form">
           <label>
             Incident title
-            <input id="detailCustomTitle" value="Detail page custom request" autocomplete="off" />
+            <input id="detailCustomTitle" placeholder="e.g. Suspicious admin activity review" autocomplete="off" />
           </label>
           <label>
             Task
@@ -81,7 +81,7 @@
           </label>
           <label class="wide">
             Evidence / request details
-            <textarea id="detailCustomEvidence" rows="6">Admin login from a new country with impossible travel and MFA anomaly prompts followed by approval.</textarea>
+            <textarea id="detailCustomEvidence" rows="6" required placeholder="Paste the facts, alerts, log summary, user, IP, actions, and the response you are considering."></textarea>
           </label>
           <div class="scenario-row wide">
             <button type="button" data-action="revoke-token" data-title="Detail revoke test" data-evidence="Admin login from a new country with impossible travel and repeated MFA anomaly prompts followed by approval.">Revoke session test</button>
@@ -94,7 +94,7 @@
           </label>
           <div class="custom-actions">
             <button class="primary-btn" type="submit">Run request</button>
-            <p id="detailCustomResult" class="custom-result">Choose a scenario or enter your own evidence.</p>
+            <p id="detailCustomResult" class="custom-result">Enter evidence or load an example, then run Veritas.</p>
           </div>
         </form>
       </section>
@@ -111,6 +111,6 @@
       <pre id="detailBriefOutput"></pre>
     </dialog>
 
-    <script type="module" src="detail.js?v=20260611-final-touch"></script>
+    <script type="module" src="detail.js?v=20260613-case-workspace"></script>
   </body>
 </html>

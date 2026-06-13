@@ -6,6 +6,8 @@ __pycache__/
 *.local
 *.log
 external_veritas_events.json
+.veritas_last_run.json
+.veritas_case_history.json
 .DS_Store
 Thumbs.db
 .vercel/

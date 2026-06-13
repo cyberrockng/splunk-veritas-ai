@@ -49,11 +49,13 @@ Run the local server with Splunk REST and HEC environment variables configured, 
 
 1. Open `http://127.0.0.1:5173`.
 2. Open **Advanced controls**.
-3. Click **Fetch Online Feed**.
+3. Click **Ingest Online Feed**.
 4. Veritas fetches the online attack-data sources, normalizes them, writes them through Splunk HEC, waits briefly, and pulls indexed evidence back from Splunk.
-5. Click **Run Tier 3 Evidence Review** to evaluate thresholds from the indexed evidence.
+5. Click **Analyze Decision** to evaluate thresholds from the indexed evidence.
 
-The dashboard does not show simulated results in this primary judging path. If HEC or Splunk REST/MCP is not configured, the feed action fails with a clear setup error and leaves evidence count at zero.
+The dashboard does not show simulated results in this primary judging path. If HEC is configured but Splunk REST/MCP search is not configured, the feed can still be written to Splunk HEC and the UI shows **online feed ingested / indexed search pending**. Veritas does not score decisions until the ingested events are pulled back from the Splunk index.
+
+`server.py` also reads a local `.env` file when present, without overriding variables already set in the shell. This keeps local Splunk REST, MCP, and HEC settings aligned for the dashboard workflow.
 
 ## API Endpoint
 

@@ -69,12 +69,17 @@ def verify_browser_shell():
         'id="incidentSelector"',
         'id="policySelector"',
         'id="customDialog"',
+        'id="evidenceIntake"',
+        'id="intakeForm"',
+        'id="findingsPanel"',
+        'id="caseHistoryPanel"',
         'id="briefDialog"',
         'id="evidenceDialog"',
-        "Run Real Evidence Test",
-        "Fetch Online Feed",
+        "Feed Evidence & Run Veritas",
+        "Ingest Online Feed",
         "Pull Indexed Evidence",
-        "Execute Approved Containment",
+        "Run Online Evidence Flow",
+        "Approve / Execute Action",
         "detail.html?view=matrix",
         "detail.html?view=audit",
     ):
@@ -93,7 +98,7 @@ def verify_browser_shell():
         'id="detailContent"',
         'id="detailCustomForm"',
         'id="detailBriefDialog"',
-        "Run Custom Request",
+        "Feed Evidence",
     ):
         assert_contains(detail, expected, "detail browser shell")
     assert_no_secret_like_values(detail, "detail page")

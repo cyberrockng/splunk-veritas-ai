@@ -8,6 +8,12 @@ Most SOC tools ask, "Is this alert real?"
 
 Veritas asks, "Are we justified to act?"
 
+## Customer Evidence Workflow
+
+Veritas now starts from customer-supplied evidence. A responder can paste incident notes, upload a `.txt`, `.log`, `.json`, `.csv`, or `.ndjson` file, choose the intended response action, and run Veritas against that evidence. The dashboard stays empty until evidence is provided or a previous run exists, so the output represents the latest ingested case instead of preloaded sample output.
+
+Veritas also keeps a local case history for previous runs and can ingest the online Splunk evidence feed into Splunk HEC when Splunk is configured.
+
 ## Demo Scenario
 
 The demo incident is **ADMIN ACCOUNT TAKEOVER**.
@@ -138,18 +144,18 @@ The health response never exposes Splunk tokens or secrets.
 
 ### Manual Path
 
-1. Click **Reset Lab**.
+1. Click **New Case**.
 2. Click **Load Demo Evidence** or **Pull Indexed Evidence**.
 3. Click **Check Thresholds**.
 4. Drill into evidence and SPL gaps.
 5. Approve eligible actions.
-6. Click **Execute Approved Containment**.
+6. Click **Approve / Execute Action**.
 7. Export the Tier 3 Decision Audit Brief.
 
 ### Custom Request Path
 
-1. Open **Run Custom Request** or any detail page.
-2. Enter incident facts in plain language.
+1. Open **Feed Evidence & Run Veritas** or the **Evidence Intake** panel.
+2. Paste incident facts in plain language or upload an evidence file.
 3. Select a proposed response action.
 4. Choose evaluate-only or execute-if-justified.
 5. Review readiness, blocked decisions, missing evidence, SPL, and recommended next action.
@@ -159,7 +165,7 @@ The health response never exposes Splunk tokens or secrets.
 1. Choose an incident profile from **Incident Queue**.
 2. Click **Load Profile**.
 3. Choose a governance mode from **Policy Builder**: Standard, Strict, or Emergency.
-4. Click **Apply Policy** and watch readiness, status, blocked decisions, and simulation text update.
+4. Click **Apply Policy** and watch readiness, status, blocked decisions, and evidence notes update.
 5. Continue to approval, containment, and audit brief export.
 
 ## Detail Pages
@@ -206,9 +212,9 @@ Developer License status: active for the local hackathon Splunk instance. Confir
 5. Confirm the token can write to index `veritas`.
 6. Configure environment variables.
 7. Run `python server.py`.
-8. In the dashboard, open **Advanced controls** and click **Fetch Online Feed**.
+8. In the dashboard, open **Advanced controls** and click **Ingest Online Feed**.
 9. Confirm the events are searchable in `index=veritas`.
-10. Click **Run Tier 3 Evidence Review**.
+10. Click **Analyze Decision**.
 
 Copy `.env.example` to `.env` for local use only. Never commit real Splunk tokens.
 

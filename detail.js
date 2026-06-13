@@ -68,12 +68,14 @@ function statusClass(status = "") {
 
 function providerInfo(integration = {}) {
   const provider = integration.search_provider || integration.provider || "mock-mcp";
+  const feed = integration.last_online_feed;
+  const feedIngested = Boolean(feed?.ingested?.length);
 
   if (provider === "splunk-rest") {
     return {
       provider,
-      source: "Splunk REST",
-      mode: "Real indexed evidence",
+      source: feedIngested ? "Online feed indexed by Splunk REST" : "Splunk REST",
+      mode: feedIngested ? "Ingested online evidence scored" : "Real indexed evidence",
       tone: "real"
     };
   }
@@ -81,8 +83,8 @@ function providerInfo(integration = {}) {
   if (provider === "splunk-mcp") {
     return {
       provider,
-      source: "Splunk MCP",
-      mode: "MCP-routed indexed evidence",
+      source: feedIngested ? "Online feed indexed through Splunk MCP" : "Splunk MCP",
+      mode: feedIngested ? "Ingested online evidence scored" : "MCP-routed indexed evidence",
       tone: "real"
     };
   }
@@ -90,27 +92,58 @@ function providerInfo(integration = {}) {
   if (provider === "mock-mcp-fallback") {
     return {
       provider,
-      source: "mock-mcp fallback",
-      mode: "Splunk unavailable; safe fallback active",
+      source: feedIngested ? "Online feed ingested; Splunk search unavailable" : "Splunk search unavailable",
+      mode: feedIngested ? "Indexed evidence pending" : "No live indexed evidence",
       tone: "fallback"
     };
   }
 
   if (provider === "custom-input") {
     return {
-      provider,
-      source: "custom analyst input",
+      provider: "analyst-evidence",
+      source: "Analyst-supplied evidence",
       mode: "Analyst-supplied evidence evaluation",
-      tone: "mock"
+      tone: "fallback"
+    };
+  }
+
+  if (feedIngested) {
+    return {
+      provider: "splunk-hec",
+      source: "Online feed ingested into Splunk HEC",
+      mode: "Waiting for indexed Splunk search",
+      tone: "fallback"
     };
   }
 
   return {
-    provider: "mock-mcp",
-    source: "mock-mcp",
-    mode: "Safe deterministic demo",
-    tone: "mock"
+    provider: "not-loaded",
+    source: "Connect Splunk and ingest the online feed",
+    mode: "Online evidence not loaded",
+    tone: "fallback"
   };
+}
+
+function onlineFeedStatus() {
+  const feed = state?.integration?.last_online_feed;
+  if (!feed?.ingested?.length) return null;
+  return {
+    eventIds: feed.ingested,
+    sourceCount: feed.sources_fetched?.length || 0,
+    index: feed.index || "veritas",
+    sourcetype: feed.sourcetype || "veritas:incident"
+  };
+}
+
+function hasScoredEvidence() {
+  return Boolean(state?.events?.length || state?.integration?.request);
+}
+
+function pendingEvidenceCard() {
+  const feed = onlineFeedStatus();
+  return feed
+    ? `<article class="detail-card"><h3>Online feed ingested</h3><p>${escapeHtml(feed.eventIds.join(", "))} were written to Splunk HEC for index ${escapeHtml(feed.index)}. Pull indexed evidence to generate this view from searchable Splunk data.</p></article>`
+    : `<article class="detail-card"><h3>No ingested evidence loaded</h3><p>Ingest the online feed, then pull indexed Splunk evidence before reviewing this page.</p></article>`;
 }
 
 async function requestJson(path, options = {}) {
@@ -151,6 +184,33 @@ function readinessTone(decision) {
   if (status === "blocked" || status === "not-ready") return "blocked";
   if (status === "caution") return "caution";
   return "review";
+}
+
+function cleanTimelineTime(value) {
+  if (!value) return "Evidence";
+  if (String(value).startsWith("custom+")) {
+    return `Step ${String(value).split("+")[1] || ""}`;
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function cleanEventTitle(event) {
+  const map = {
+    "SEC-3001": "Login anomaly detected",
+    "SEC-3002": "MFA anomaly detected",
+    "SEC-3003": "Privilege escalation detected",
+    "SEC-3004": "Admin API access detected",
+    "SEC-3005": "Scripted download detected",
+    "SEC-3006": "Cloud export evidence detected",
+  };
+  return map[event.id || event.event_id] || event.title || event.action || "Security evidence";
+}
+
+function cleanEventSummary(event) {
+  return String(event.summary || event.description || event.message || "")
+    .replace(" Source: analyst-provided request.", "");
 }
 
 function isBlockedDecision(decision) {
@@ -221,6 +281,10 @@ function renderEvidenceDrilldown(check) {
 }
 
 function renderDecisionCards() {
+  if (!hasScoredEvidence()) {
+    return `<div class="detail-card-grid">${pendingEvidenceCard()}</div>`;
+  }
+
   return `
     <div class="detail-card-grid">
       ${state.decisions.map((decision) => {
@@ -253,6 +317,10 @@ function renderDecisionCards() {
 }
 
 function renderMatrix() {
+  if (!hasScoredEvidence()) {
+    return `<div class="detail-card-grid">${pendingEvidenceCard()}</div>`;
+  }
+
   const rows = decisionFilter
     ? allChecks().filter(({ decision }) => decision.id === decisionFilter)
     : allChecks();
@@ -286,6 +354,10 @@ function renderMatrix() {
 }
 
 function renderIntegrity() {
+  if (!hasScoredEvidence()) {
+    return `<div class="detail-card-grid">${pendingEvidenceCard()}</div>`;
+  }
+
   const integrity = state.integrity || {};
   const checked = Array.isArray(integrity.sources_checked) ? integrity.sources_checked : [];
   const missing = Array.isArray(integrity.sources_missing) ? integrity.sources_missing : [];
@@ -311,6 +383,10 @@ function renderIntegrity() {
 }
 
 function renderMissing() {
+  if (!hasScoredEvidence()) {
+    return `<div class="detail-card-grid">${pendingEvidenceCard()}</div>`;
+  }
+
   const gaps = missingChecks();
   return `
     <div class="detail-card-grid">
@@ -327,6 +403,10 @@ function renderMissing() {
 }
 
 function renderBlast() {
+  if (!hasScoredEvidence()) {
+    return `<div class="detail-card-grid">${pendingEvidenceCard()}</div>`;
+  }
+
   return `
     <div class="detail-card-grid">
       ${state.decisions.map((decision) => `
@@ -342,6 +422,10 @@ function renderBlast() {
 }
 
 function renderAudit() {
+  if (!hasScoredEvidence()) {
+    return `<div class="detail-card-grid">${pendingEvidenceCard()}</div>`;
+  }
+
   const request = state.integration?.request;
   return `
     ${request?.feedback ? `
@@ -362,24 +446,31 @@ function renderAudit() {
 }
 
 function renderTimeline() {
+  const feed = onlineFeedStatus();
   return `
     <div class="detail-timeline">
       ${(state.events || []).map((event) => `
         <article class="detail-card">
-          <span>${escapeHtml(event.time || event._time || "event")}</span>
-          <h3>${escapeHtml(event.id || event.event_id || "Security event")}</h3>
-          <p>${escapeHtml(event.summary || event.description || event.message || "")}</p>
+          <span>${escapeHtml(cleanTimelineTime(event.time || event._time || event.timestamp))}</span>
+          <h3>${escapeHtml(cleanEventTitle(event))}</h3>
+          <p>${escapeHtml(cleanEventSummary(event))}</p>
           <div class="detail-chip-row">
             <span>${escapeHtml(event.source || "source unknown")}</span>
             <span>${escapeHtml(event.severity || "medium")}</span>
           </div>
         </article>
-      `).join("") || `<article class="detail-card"><h3>No events loaded</h3><p>Run a custom request or pull Splunk evidence.</p></article>`}
+      `).join("") || (feed
+        ? `<article class="detail-card"><h3>Online feed ingested</h3><p>${escapeHtml(feed.eventIds.join(", "))} were written to Splunk HEC for index ${escapeHtml(feed.index)}. Pull indexed evidence to show the searchable timeline.</p></article>`
+        : `<article class="detail-card"><h3>No ingested evidence loaded</h3><p>Ingest the online feed, then pull indexed Splunk evidence.</p></article>`)}
     </div>
   `;
 }
 
 function renderRisk() {
+  if (!hasScoredEvidence()) {
+    return `<div class="detail-card-grid">${pendingEvidenceCard()}</div>`;
+  }
+
   const ready = state.decisions.filter((item) => ["Approved", "Caution"].includes(item.status)).length;
   const blocked = state.decisions.filter((item) => ["Blocked", "Not Ready"].includes(item.status)).length;
   return `
