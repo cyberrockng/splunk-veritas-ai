@@ -19,6 +19,7 @@ This project is intentionally explicit about what is real, what is simulated, an
 | Splunk MCP server | Real stdio MCP server in `splunk_mcp_server.py` with Splunk REST search and HEC ingestion tools. |
 | Dashboard-to-MCP routing | Real backend route from the browser dashboard API to `splunk_mcp_server.py` when `VERITAS_SPLUNK_ROUTE=mcp`. |
 | Splunk proof screenshots | Real local screenshots captured after HEC ingestion and dashboard-to-MCP Splunk loading. |
+| Input protection model | Real documented security boundary in `SECURITY_SANDBOX_MODEL.md`; online feed fetches are HTTPS-only, allowlisted, size-limited, and parsed as JSON data only. |
 
 ## Real When Splunk Is Configured
 
@@ -43,6 +44,7 @@ The captured proof in `assets/` shows this path working locally.
 | Risk reduction | Residual risk changes are simulated to demonstrate workflow impact after approved mock containment. |
 | Direct browser-to-stdio MCP | Browsers cannot directly launch stdio MCP. The local Python API acts as the MCP client bridge. |
 | AI behavior | The product name includes AI, but the current decision engine is deterministic and evidence-bounded. It does not run an autonomous unbounded AI agent. |
+| Malware/file detonation | Veritas does not detonate suspicious files in this build. Future arbitrary file intake must use a separate quarantine/sandbox path before Splunk ingestion. |
 
 ## Not Implemented Yet
 
@@ -51,6 +53,7 @@ The captured proof in `assets/` shows this path working locally.
 - Production authentication and multi-user state isolation.
 - Production deployment of the Python API.
 - AI/LLM-generated decisions.
+- A production malware detonation sandbox.
 
 See `DEPLOYMENT_STATUS.md` for the public hosting boundary.
 
@@ -69,7 +72,10 @@ Avoid these claims unless the implementation is added and verified:
 - "The AI autonomously decides and acts."
 - "It is production deployed."
 - "Missing logs prove the environment is safe."
+- "It detonates or executes suspicious files."
 
 ## Safety Principle
 
 Missing evidence is uncertainty, not proof of safety. Veritas blocks unsafe conclusions until the required evidence threshold is met.
+
+Veritas also treats evidence input as hostile. Logs, uploaded artifacts, and feed records must be normalized as data, not executed as instructions, so the product does not become a backdoor into Splunk or customer infrastructure.

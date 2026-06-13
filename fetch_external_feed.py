@@ -4,6 +4,7 @@ import os
 import sys
 import time
 from urllib import request
+from urllib.parse import urlparse
 
 from server import VERITAS_INCIDENT_ID, VERITAS_SOURCETYPE, VERITAS_SPLUNK_INDEX
 
@@ -11,6 +12,13 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_MANIFEST = os.path.join(ROOT, "external_feed_sources.json")
 DEFAULT_OUTPUT = os.path.join(ROOT, "external_veritas_events.json")
 GIT_LFS_BATCH_URL = "https://github.com/splunk/attack_data.git/info/lfs/objects/batch"
+MAX_DOWNLOAD_BYTES = int(os.environ.get("VERITAS_FEED_MAX_BYTES", "1048576"))
+MAX_JSON_LINES = int(os.environ.get("VERITAS_FEED_MAX_JSON_LINES", "2000"))
+ALLOWED_HOSTS = {
+    "raw.githubusercontent.com",
+    "github.com",
+    "github-cloud.githubusercontent.com",
+}
 
 
 def read_json(path):
@@ -18,7 +26,20 @@ def read_json(path):
         return json.load(handle)
 
 
+def validate_feed_url(url):
+    parsed = urlparse(url)
+    if parsed.scheme != "https":
+        raise ValueError(f"Refusing non-HTTPS feed URL: {url}")
+    if parsed.netloc not in ALLOWED_HOSTS:
+        raise ValueError(f"Refusing non-allowlisted feed host: {parsed.netloc}")
+    if parsed.netloc == "raw.githubusercontent.com" and not parsed.path.startswith("/splunk/attack_data/"):
+        raise ValueError(f"Refusing raw URL outside splunk/attack_data: {url}")
+    if parsed.netloc == "github.com" and parsed.path != "/splunk/attack_data.git/info/lfs/objects/batch":
+        raise ValueError(f"Refusing GitHub URL outside attack_data LFS batch endpoint: {url}")
+
+
 def request_bytes(url, data=None, headers=None, method=None):
+    validate_feed_url(url)
     req = request.Request(
         url,
         data=data,
@@ -29,7 +50,10 @@ def request_bytes(url, data=None, headers=None, method=None):
         method=method,
     )
     with request.urlopen(req, timeout=30) as response:
-        return response.read()
+        body = response.read(MAX_DOWNLOAD_BYTES + 1)
+    if len(body) > MAX_DOWNLOAD_BYTES:
+        raise ValueError(f"Feed response exceeded {MAX_DOWNLOAD_BYTES} byte limit: {url}")
+    return body
 
 
 def lfs_download(oid, size):
@@ -73,6 +97,8 @@ def parse_json_lines(text):
         line = line.strip()
         if not line:
             continue
+        if len(rows) >= MAX_JSON_LINES:
+            raise ValueError(f"Feed exceeded {MAX_JSON_LINES} JSON-line limit")
         rows.append(json.loads(line))
     return rows
 

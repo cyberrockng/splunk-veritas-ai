@@ -353,10 +353,16 @@ The smoke tests verify health, static assets, state/reset/start/investigation, a
 - Missing logs are not proof of safety.
 - Logs are untrusted evidence, not instructions.
 - Prompt-injection-like text inside logs is treated as data.
+- External feed data is fetched through an allowlisted, HTTPS-only, size-limited JSON normalization path before Splunk ingestion.
+- Suspicious files, if supported later, must be quarantined and parsed in a low-privilege sandbox before any normalized facts reach Splunk.
+- Splunk tokens stay server-side in environment variables and are never exposed to the browser.
+- Splunk MCP HEC write tools are disabled by default and require explicit enablement and confirmation.
 - High-impact actions require human approval.
 - Demo containment is simulated only.
 - No real destructive action runs from this project.
 - The AI/LLM path, if added later, must remain evidence-bounded and non-autonomous.
+
+See `SECURITY_SANDBOX_MODEL.md` for the product sandbox and Splunk protection boundary.
 
 ## Limitations
 
@@ -406,8 +412,11 @@ Do not claim a production deployment unless the selected path is implemented and
 - `mcp_smoke_tests.py` - MCP protocol smoke test
 - `browser_smoke_tests.py` - Browser-facing demo smoke tests
 - `ingest_to_splunk.py` - Splunk HEC demo evidence ingestion
+- `fetch_external_feed.py` - Online Splunk attack-data fetcher and Veritas evidence normalizer
+- `external_feed_sources.json` - Allowlisted online evidence source manifest
 - `sample_splunk_events.json` - Demo evidence payloads
 - `REAL_VS_SIMULATED.md` - Honest implementation boundary
+- `SECURITY_SANDBOX_MODEL.md` - Untrusted input, sandbox, and Splunk protection model
 - `DEPLOYMENT_STATUS.md` - Local demo and deployment boundary
 - `SPLUNK_REAL_DATA.md` - Splunk runbook
 - `DEMO_SCRIPT.md` - Under-three-minute walkthrough

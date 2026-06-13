@@ -41,6 +41,7 @@ Veritas makes those decisions evidence-bound and auditable.
 - Analyst Approval Gate
 - Evidence drilldown
 - Tier 3 Decision Audit Brief with Splunk search provenance
+- Security sandbox model that prevents untrusted feeds/files from becoming an exploit path into Splunk
 
 ## Security Maturity
 
@@ -48,8 +49,12 @@ Veritas explicitly states:
 
 - Missing logs are not proof of safety.
 - Logs are untrusted evidence, not instructions.
+- External evidence is normalized through an allowlisted, size-limited data path before Splunk ingestion.
+- Splunk tokens stay server-side and are never exposed to the browser.
+- MCP write-capable HEC tools are disabled by default and require explicit enablement.
 - High-impact actions require human approval.
 - Demo containment is simulated and deterministic.
+- Veritas does not detonate malware or execute suspicious files in this build.
 
 ## What Is Real vs Simulated
 
